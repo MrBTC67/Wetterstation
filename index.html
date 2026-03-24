@@ -11,6 +11,7 @@
         .stats { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
         .card { padding: 10px; border-left: 4px solid #00d1b2; background: #2a2a2a; border-radius: 5px; min-width: 100px; flex: 1; }
         .card.hum { border-left-color: #3273dc; }
+        .card.pres { border-left-color: #a29bfe; }
         .chart-box { background: #2a2a2a; border-radius: 10px; padding: 10px; margin-bottom: 20px; }
         h3 { margin: 5px 0; font-size: 0.9em; color: #ccc; }
     </style>
@@ -35,6 +36,10 @@
             <h3>Feuchte</h3>
             <strong id="curr-hum">--</strong> %
         </div>
+        <div class="card pres">
+            <h3>Luftdruck</h3>
+            <strong id="curr-pres">--</strong> hPa
+        </div>
     </div>
 
     <div class="chart-box">
@@ -43,19 +48,24 @@
     <div class="chart-box">
         <canvas id="humChart"></canvas>
     </div>
+    <div class="chart-box">
+        <canvas id="presChart"></canvas>
+    </div>
 </div>
 
 <script>
 const URL_T = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app/temperature.json";
 const URL_H = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app/humidity.json";
+const URL_P = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app/pressure.json";
 
-let chartT, chartH;
+let chartT, chartH, chartP;
 
 async function fetchData() {
     try {
-        const [resT, resH] = await Promise.all([fetch(URL_T), fetch(URL_H)]);
+        const [resT, resH, resP] = await Promise.all([fetch(URL_T), fetch(URL_H), fetch(URL_P)]);
         const dataT = await resT.json();
         const dataH = await resH.json();
+        const dataP = await resP.json();
         
         if (dataT) {
             const valT = Object.values(dataT).map(e => e.value);
@@ -71,6 +81,13 @@ async function fetchData() {
             const labH = Object.keys(dataH).map((_, i) => i + 1);
             document.getElementById('curr-hum').innerText = valH[valH.length-1].toFixed(1);
             chartH = updateChart('humChart', chartH, labH, valH, 'Feuchtigkeit (%)', '#3273dc');
+        }
+
+        if (dataP) {
+            const valP = Object.values(dataP).map(e => e.value);
+            const labP = Object.keys(dataP).map((_, i) => i + 1);
+            document.getElementById('curr-pres').innerText = valP[valP.length-1].toFixed(0);
+            chartP = updateChart('presChart', chartP, labP, valP, 'Luftdruck (hPa)', '#a29bfe');
         }
     } catch (e) { console.error(e); }
 }
