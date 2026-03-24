@@ -6,39 +6,51 @@
     <title>Wetterstation Klaus</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 10px; margin: 0; }
-        .container { max-width: 900px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 5px; margin: 0; }
+        .container { max-width: 900px; margin: auto; background: #1e1e1e; padding: 10px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
         
-        .controls { margin-bottom: 20px; display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
-        select { background: #2a2a2a; color: white; border: 1px solid #444; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 14px; }
-        select:focus { border-color: #00d1b2; outline: none; }
+        .controls { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 0 5px; }
+        .controls label { font-size: 0.85em; color: #aaa; }
+        select { background: #2a2a2a; color: white; border: 1px solid #444; padding: 6px; border-radius: 5px; cursor: pointer; font-size: 13px; }
 
-        .stats { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
-        .card { padding: 15px; background: #2a2a2a; border-radius: 8px; min-width: 150px; border-left: 5px solid #00d1b2; transition: all 0.5s ease; }
-        .card h3 { margin: 0 0 5px 0; font-size: 0.8em; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+        /* Stats Optimierung für Mobile: Karten nebeneinander */
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 15px; }
+        .card { padding: 10px 5px; background: #2a2a2a; border-radius: 8px; border-top: 3px solid #00d1b2; transition: all 0.5s ease; }
+        .card h3 { margin: 0 0 5px 0; font-size: 0.65em; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
         
-        .val-display { font-size: 1.8em; font-weight: bold; }
+        .val-display { font-size: 1.1em; font-weight: bold; white-space: nowrap; }
         #temp-display { transition: color 0.5s ease; }
         .hum-text { color: #3273dc; }
         .pres-text { color: #a29bfe; }
         
-        .card.hum { border-left-color: #3273dc; }
-        .card.pres { border-left-color: #a29bfe; }
+        .card.hum { border-top-color: #3273dc; }
+        .card.pres { border-top-color: #a29bfe; }
 
-        .chart-box { background: #2a2a2a; border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 1px solid #333; }
-        canvas { max-height: 350px; }
+        .chart-box { background: #2a2a2a; border-radius: 10px; padding: 10px; margin-bottom: 10px; border: 1px solid #333; height: 280px; }
+        
+        @media (min-width: 600px) {
+            body { padding: 15px; }
+            .container { padding: 20px; }
+            .stats { gap: 15px; }
+            .card { padding: 15px; border-top: 0; border-left: 5px solid #00d1b2; }
+            .card.hum { border-left-color: #3273dc; }
+            .card.pres { border-left-color: #a29bfe; }
+            .val-display { font-size: 1.6em; }
+            .card h3 { font-size: 0.8em; }
+            .chart-box { height: 350px; }
+        }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="controls">
-        <label for="period">Zeitraum:</label>
+        <label for="period">Zeitraum</label>
         <select id="period" onchange="fetchData()">
-            <option value="12">1 Stunde</option>
-            <option value="48">4 Stunden</option>
-            <option value="144">12 Stunden</option>
-            <option value="288" selected>24 Stunden</option>
+            <option value="12">1 Std</option>
+            <option value="48">4 Std</option>
+            <option value="144">12 Std</option>
+            <option value="288" selected>24 Std</option>
             <option value="2016">7 Tage</option>
             <option value="8640">1 Monat</option>
             <option value="0">Alles</option>
@@ -47,16 +59,16 @@
 
     <div class="stats">
         <div id="card-curr" class="card">
-            <h3>Temperatur</h3>
-            <div id="temp-display" class="val-display"><span id="curr-temp">--</span> °C</div>
+            <h3>Temp</h3>
+            <div id="temp-display" class="val-display"><span id="curr-temp">--</span>°</div>
         </div>
         <div class="card hum">
             <h3>Feuchte</h3>
-            <div class="val-display hum-text"><span id="curr-hum">--</span> %</div>
+            <div class="val-display hum-text"><span id="curr-hum">--</span>%</div>
         </div>
         <div class="card pres">
-            <h3>Luftdruck</h3>
-            <div class="val-display pres-text"><span id="curr-pres">--</span> hPa</div>
+            <h3>Druck</h3>
+            <div class="val-display pres-text"><span id="curr-pres">--</span></div>
         </div>
     </div>
 
@@ -90,7 +102,7 @@ const lineLabelPlugin = {
         if (chart.canvas.id !== 'mainChart') return;
         const { ctx, chartArea: { right }, scales: { y } } = chart;
         ctx.save();
-        ctx.font = 'bold 11px sans-serif';
+        ctx.font = 'bold 10px sans-serif';
         ctx.textBaseline = 'middle';
         
         chart.data.datasets.forEach((dataset) => {
@@ -98,8 +110,8 @@ const lineLabelPlugin = {
                 const val = dataset.data[0];
                 const yPos = y.getPixelForValue(val);
                 ctx.fillStyle = dataset.borderColor;
-                const text = `${dataset.label.toUpperCase()}: ${val.toFixed(1)} °C`;
-                ctx.fillText(text, right - 95, yPos - 12);
+                const text = `${dataset.label}: ${val.toFixed(1)}°`;
+                ctx.fillText(text, right - 70, yPos - 10);
             }
         });
         ctx.restore();
@@ -124,7 +136,9 @@ async function fetchData() {
             const dynamicColor = getTempColor(lastTemp);
             document.getElementById('curr-temp').innerText = lastTemp.toFixed(1);
             document.getElementById('temp-display').style.color = dynamicColor;
-            document.getElementById('card-curr').style.borderLeftColor = dynamicColor;
+            document.getElementById('card-curr').style.borderTopColor = dynamicColor;
+            // Desktop fallback color
+            if(window.innerWidth >= 600) document.getElementById('card-curr').style.borderLeftColor = dynamicColor;
         }
 
         if (dataH) {
@@ -140,7 +154,6 @@ async function fetchData() {
             const lastTemp = valT[valT.length-1];
             const dynamicColor = getTempColor(lastTemp);
 
-            // Autoscale Feuchte: +/- 5% Puffer um den aktuellen Wert
             const lastHum = valH[valH.length-1];
             const hMinData = Math.min(...valH);
             const hMaxData = Math.max(...valH);
@@ -149,24 +162,24 @@ async function fetchData() {
 
             const datasets = [
                 {
-                    label: 'Temperatur (°C)',
+                    label: 'Temp',
                     data: valT,
                     borderColor: dynamicColor,
                     backgroundColor: dynamicColor + '22',
                     fill: true,
                     tension: 0.3,
                     yAxisID: 'y',
-                    pointRadius: period > 500 ? 0 : 1
+                    pointRadius: 0
                 },
                 {
-                    label: 'Feuchtigkeit (%)',
+                    label: 'Hum',
                     data: valH,
                     borderColor: '#3273dc',
                     borderWidth: 2,
                     fill: false,
                     tension: 0.3,
                     yAxisID: 'y1',
-                    pointRadius: period > 500 ? 0 : 1
+                    pointRadius: 0
                 },
                 {
                     label: 'Max',
@@ -220,15 +233,13 @@ function renderMainChart(labels, datasets, hMin, hMax) {
                 plugins: { legend: { display: false } },
                 scales: {
                     y: { 
-                        type: 'linear', display: true, position: 'left',
-                        grid: { color: '#333' }, ticks: { color: '#aaa' },
-                        title: { display: true, text: 'Temp °C', color: '#00d1b2' }
+                        type: 'linear', position: 'left',
+                        grid: { color: '#333' }, ticks: { color: '#aaa', font: { size: 10 } }
                     },
                     y1: { 
-                        type: 'linear', display: true, position: 'right',
+                        type: 'linear', position: 'right',
                         min: Math.floor(hMin), max: Math.ceil(hMax),
-                        grid: { drawOnChartArea: false }, ticks: { color: '#3273dc' },
-                        title: { display: true, text: 'Feuchte %', color: '#3273dc' }
+                        grid: { drawOnChartArea: false }, ticks: { color: '#3273dc', font: { size: 10 } }
                     },
                     x: { display: false }
                 }
@@ -249,13 +260,13 @@ function renderPresChart(labels, data) {
             data: {
                 labels,
                 datasets: [{
-                    label: 'Luftdruck (hPa)',
+                    label: 'Druck',
                     data: data,
                     borderColor: '#a29bfe',
                     backgroundColor: '#a29bfe22',
                     fill: true,
                     tension: 0.3,
-                    pointRadius: labels.length > 500 ? 0 : 1
+                    pointRadius: 0
                 }]
             },
             options: {
@@ -264,7 +275,7 @@ function renderPresChart(labels, data) {
                 animation: false,
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { grid: { color: '#333' }, ticks: { color: '#aaa' }, title: { display: true, text: 'hPa', color: '#a29bfe' } },
+                    y: { grid: { color: '#333' }, ticks: { color: '#aaa', font: { size: 10 } } },
                     x: { display: false }
                 }
             }
