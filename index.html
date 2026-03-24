@@ -3,54 +3,68 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Wetterdaten</title>
+    <title>Wetterstation Klaus</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 10px; }
-        .container { max-width: 800px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .stats { display: flex; justify-content: space-around; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
-        .card { padding: 10px; border-left: 4px solid #00d1b2; background: #2a2a2a; border-radius: 5px; min-width: 100px; flex: 1; }
+        body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 10px; margin: 0; }
+        .container { max-width: 900px; margin: auto; background: #1e1e1e; padding: 20px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        
+        .controls { margin-bottom: 20px; display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
+        select { background: #2a2a2a; color: white; border: 1px solid #444; padding: 8px 12px; border-radius: 5px; cursor: pointer; font-size: 14px; }
+        select:focus { border-color: #00d1b2; outline: none; }
+
+        .stats { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; margin-bottom: 20px; }
+        .card { padding: 15px; background: #2a2a2a; border-radius: 8px; min-width: 150px; border-left: 5px solid #00d1b2; transition: all 0.5s ease; }
+        .card h3 { margin: 0 0 5px 0; font-size: 0.9em; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+        
+        .val-display { font-size: 1.8em; font-weight: bold; }
+        
+        /* Farben für die Schrift */
+        #temp-display { transition: color 0.5s ease; }
+        .hum-text { color: #3273dc; }
+        .pres-text { color: #a29bfe; }
+        
         .card.hum { border-left-color: #3273dc; }
         .card.pres { border-left-color: #a29bfe; }
-        .chart-box { background: #2a2a2a; border-radius: 10px; padding: 10px; margin-bottom: 20px; }
-        h3 { margin: 5px 0; font-size: 0.9em; color: #ccc; }
+
+        .chart-box { background: #2a2a2a; border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 1px solid #333; }
+        canvas { max-height: 320px; }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <div class="controls">
+        <label for="period">Zeitraum:</label>
+        <select id="period" onchange="fetchData()">
+            <option value="12">1 Stunde</option>
+            <option value="48">4 Stunden</option>
+            <option value="144">12 Stunden</option>
+            <option value="288" selected>24 Stunden</option>
+            <option value="2016">7 Tage</option>
+            <option value="8640">1 Monat</option>
+            <option value="0">Alles</option>
+        </select>
+    </div>
+
     <div class="stats">
-        <div class="card">
-            <h3>Temp Aktuell</h3>
-            <strong id="curr-temp">--</strong> °C
-        </div>
-        <div class="card" style="border-left-color: #ff3860;">
-            <h3>Temp Max</h3>
-            <strong id="max-temp">--</strong> °C
-        </div>
-        <div class="card" style="border-left-color: #ffdd57;">
-            <h3>Temp Min</h3>
-            <strong id="min-temp">--</strong> °C
+        <div id="card-curr" class="card">
+            <h3>Temperatur Aktuell</h3>
+            <div id="temp-display" class="val-display"><span id="curr-temp">--</span> °C</div>
         </div>
         <div class="card hum">
             <h3>Feuchte</h3>
-            <strong id="curr-hum">--</strong> %
+            <div class="val-display hum-text"><span id="curr-hum">--</span> %</div>
         </div>
         <div class="card pres">
             <h3>Luftdruck</h3>
-            <strong id="curr-pres">--</strong> hPa
+            <div class="val-display pres-text"><span id="curr-pres">--</span> hPa</div>
         </div>
     </div>
 
-    <div class="chart-box">
-        <canvas id="tempChart"></canvas>
-    </div>
-    <div class="chart-box">
-        <canvas id="humChart"></canvas>
-    </div>
-    <div class="chart-box">
-        <canvas id="presChart"></canvas>
-    </div>
+    <div class="chart-box"><canvas id="tempChart"></canvas></div>
+    <div class="chart-box"><canvas id="humChart"></canvas></div>
+    <div class="chart-box"><canvas id="presChart"></canvas></div>
 </div>
 
 <script>
@@ -58,66 +72,151 @@ const URL_T = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatab
 const URL_H = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app/humidity.json";
 const URL_P = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app/pressure.json";
 
-let chartT, chartH, chartP;
+let charts = {};
+
+function getTempColor(t) {
+    if (t < 5) return '#00008B';
+    if (t < 10) return '#40E0D0';
+    if (t < 15) return '#006400';
+    if (t < 20) return '#90EE90';
+    if (t < 25) return '#FFA500';
+    return '#FF0000';
+}
+
+const lineLabelPlugin = {
+    id: 'lineLabels',
+    afterDatasetsDraw(chart) {
+        const { ctx, chartArea: { right }, scales: { y } } = chart;
+        ctx.save();
+        ctx.font = 'bold 12px sans-serif';
+        ctx.textBaseline = 'middle';
+        
+        chart.data.datasets.forEach((dataset) => {
+            if (dataset.label === 'Max' || dataset.label === 'Min') {
+                const val = dataset.data[0];
+                const yPos = y.getPixelForValue(val);
+                ctx.fillStyle = dataset.borderColor;
+                const text = `${dataset.label.toUpperCase()}: ${val.toFixed(1)} °C`;
+                ctx.fillText(text, right - 100, yPos - 12);
+            }
+        });
+        ctx.restore();
+    }
+};
 
 async function fetchData() {
+    const period = parseInt(document.getElementById('period').value);
+    
     try {
         const [resT, resH, resP] = await Promise.all([fetch(URL_T), fetch(URL_H), fetch(URL_P)]);
         const dataT = await resT.json();
         const dataH = await resH.json();
         const dataP = await resP.json();
-        
+
         if (dataT) {
-            const valT = Object.values(dataT).map(e => e.value);
-            const labT = Object.keys(dataT).map((_, i) => i + 1);
-            document.getElementById('curr-temp').innerText = valT[valT.length-1].toFixed(1);
-            document.getElementById('max-temp').innerText = Math.max(...valT).toFixed(1);
-            document.getElementById('min-temp').innerText = Math.min(...valT).toFixed(1);
-            chartT = updateChart('tempChart', chartT, labT, valT, 'Temperatur (°C)', '#00d1b2');
+            let valT = Object.values(dataT).map(e => e.value);
+            if (period > 0) valT = valT.slice(-period);
+            
+            const lastTemp = valT[valT.length-1];
+            const maxVal = Math.max(...valT);
+            const minVal = Math.min(...valT);
+            const dynamicColor = getTempColor(lastTemp);
+
+            document.getElementById('curr-temp').innerText = lastTemp.toFixed(1);
+            const display = document.getElementById('temp-display');
+            const card = document.getElementById('card-curr');
+            display.style.color = dynamicColor;
+            card.style.borderLeftColor = dynamicColor;
+
+            const datasets = [
+                {
+                    label: 'Temperatur',
+                    data: valT,
+                    borderColor: dynamicColor,
+                    backgroundColor: dynamicColor + '22',
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: period > 500 ? 0 : 1
+                },
+                {
+                    label: 'Max',
+                    data: Array(valT.length).fill(maxVal),
+                    borderColor: '#ff3860',
+                    borderDash: [5, 5],
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    fill: false
+                },
+                {
+                    label: 'Min',
+                    data: Array(valT.length).fill(minVal),
+                    borderColor: '#ffdd57',
+                    borderDash: [5, 5],
+                    borderWidth: 1.5,
+                    pointRadius: 0,
+                    fill: false
+                }
+            ];
+            renderChart('tempChart', valT.map((_, i) => i + 1), datasets);
         }
 
         if (dataH) {
-            const valH = Object.values(dataH).map(e => e.value);
-            const labH = Object.keys(dataH).map((_, i) => i + 1);
+            let valH = Object.values(dataH).map(e => e.value);
+            if (period > 0) valH = valH.slice(-period);
             document.getElementById('curr-hum').innerText = valH[valH.length-1].toFixed(1);
-            chartH = updateChart('humChart', chartH, labH, valH, 'Feuchtigkeit (%)', '#3273dc');
+            renderChart('humChart', valH.map((_, i) => i + 1), [{
+                label: 'Feuchtigkeit (%)',
+                data: valH,
+                borderColor: '#3273dc',
+                backgroundColor: '#3273dc22',
+                fill: true,
+                tension: 0.3,
+                pointRadius: period > 500 ? 0 : 1
+            }]);
         }
 
         if (dataP) {
-            const valP = Object.values(dataP).map(e => e.value);
-            const labP = Object.keys(dataP).map((_, i) => i + 1);
+            let valP = Object.values(dataP).map(e => e.value);
+            if (period > 0) valP = valP.slice(-period);
             document.getElementById('curr-pres').innerText = valP[valP.length-1].toFixed(0);
-            chartP = updateChart('presChart', chartP, labP, valP, 'Luftdruck (hPa)', '#a29bfe');
-        }
-    } catch (e) { console.error(e); }
-}
-
-function updateChart(id, chartObj, labels, data, label, color) {
-    const ctx = document.getElementById(id).getContext('2d');
-    if (chartObj) chartObj.destroy();
-    return new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: labels,
-            datasets: [{
-                label: label,
-                data: data,
-                borderColor: color,
-                backgroundColor: color + '22',
+            renderChart('presChart', valP.map((_, i) => i + 1), [{
+                label: 'Luftdruck (hPa)',
+                data: valP,
+                borderColor: '#a29bfe',
+                backgroundColor: '#a29bfe22',
                 fill: true,
                 tension: 0.3,
-                pointRadius: 1
-            }]
-        },
-        options: {
-            responsive: true,
-            plugins: { legend: { labels: { color: '#fff' } } },
-            scales: {
-                y: { grid: { color: '#444' }, ticks: { color: '#ccc' } },
-                x: { display: false }
-            }
+                pointRadius: period > 500 ? 0 : 1
+            }]);
         }
-    });
+    } catch (e) { console.error("Fehler:", e); }
+}
+
+function renderChart(id, labels, datasets) {
+    const ctx = document.getElementById(id).getContext('2d');
+    
+    if (charts[id]) {
+        charts[id].data.labels = labels;
+        charts[id].data.datasets = datasets;
+        charts[id].update('none');
+    } else {
+        charts[id] = new Chart(ctx, {
+            type: 'line',
+            data: { labels, datasets },
+            plugins: [lineLabelPlugin],
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                animation: false,
+                layout: { padding: { right: 10 } },
+                plugins: { legend: { display: false } },
+                scales: {
+                    y: { grid: { color: '#333' }, ticks: { color: '#aaa' } },
+                    x: { display: false }
+                }
+            }
+        });
+    }
 }
 
 fetchData();
