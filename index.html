@@ -60,7 +60,7 @@
             <div class="val-display hum-text"><span id="curr-hum">--</span>%</div>
         </div>
         <div class="card pres">
-            <h3>Druck</h3>
+            <h3>Luftdruck</h3>
             <div class="val-display pres-text"><span id="curr-pres">--</span></div>
         </div>
     </div>
@@ -80,7 +80,6 @@ const URL_P = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatab
 
 let charts = {};
 
-// Dekodiert den Erstellungszeitpunkt aus einer Firebase Push-ID
 function getTimeFromId(id) {
     const PUSH_CHARS = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
     let time = 0;
@@ -144,8 +143,10 @@ async function fetchData() {
         const entriesH = processData(dataH);
         const entriesP = processData(dataP);
 
-        // Labels für Tooltips (exakte Zeit)
-        const labels = entriesT.map(e => e.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
+        // Separate Labels für beide Diagramme
+        const labelsT = entriesT.map(e => e.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
+        const labelsP = entriesP.map(e => e.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
+        
         const valT = entriesT.map(e => e.value);
         const valH = entriesH.map(e => e.value);
         const valP = entriesP.map(e => e.value);
@@ -163,13 +164,14 @@ async function fetchData() {
                 { label: 'Max', data: Array(valT.length).fill(Math.max(...valT)), borderColor: '#ff3860', borderDash: [5, 5], borderWidth: 1, pointRadius: 0, yAxisID: 'y' },
                 { label: 'Min', data: Array(valT.length).fill(Math.min(...valT)), borderColor: '#ffdd57', borderDash: [5, 5], borderWidth: 1, pointRadius: 0, yAxisID: 'y' }
             ];
-            renderMainChart(labels, datasets, Math.min(...valH) - 5, Math.max(...valH) + 5);
+            renderMainChart(labelsT, datasets, Math.min(...valH) - 5, Math.max(...valH) + 5);
         }
 
         if (valH.length > 0) document.getElementById('curr-hum').innerText = valH[valH.length-1].toFixed(1);
+        
         if (valP.length > 0) {
             document.getElementById('curr-pres').innerText = valP[valP.length-1].toFixed(0);
-            renderPresChart(labels, valP);
+            renderPresChart(labelsP, valP);
         }
     } catch (e) { console.error("Fehler:", e); }
 }
@@ -183,12 +185,10 @@ function renderMainChart(labels, datasets, hMin, hMax) {
             color: '#888',
             font: { size: 9 },
             maxRotation: 0,
-            autoSkip: false, // Wir steuern das Skipping selbst
+            autoSkip: false,
             callback: function(value, index) {
                 const currentLabel = this.getLabelForValue(value);
                 const prevLabel = index > 0 ? this.getLabelForValue(value - 1) : null;
-                
-                // Zeige Label nur, wenn sich die Stunde zum Vorgänger geändert hat
                 if (!prevLabel || currentLabel.split(':')[0] !== prevLabel.split(':')[0]) {
                     return currentLabel.split(':')[0] + ':00';
                 }
@@ -213,7 +213,10 @@ function renderMainChart(labels, datasets, hMin, hMax) {
                 maintainAspectRatio: false,
                 animation: false,
                 interaction: { mode: 'index', intersect: false },
-                plugins: { legend: { display: false } },
+                plugins: { 
+                    legend: { display: false },
+                    title: { display: true, text: 'Temperatur & Feuchte', color: '#aaa', font: { size: 12 } }
+                },
                 scales: {
                     y: { type: 'linear', position: 'left', grid: { color: '#333' }, ticks: { color: '#aaa', font: { size: 10 } } },
                     y1: { type: 'linear', position: 'right', min: Math.floor(hMin), max: Math.ceil(hMax), grid: { drawOnChartArea: false }, ticks: { color: '#3273dc', font: { size: 10 } } },
@@ -252,12 +255,15 @@ function renderPresChart(labels, data) {
     } else {
         charts['presChart'] = new Chart(ctx, {
             type: 'line',
-            data: { labels, datasets: [{ label: 'Druck', data: data, borderColor: '#a29bfe', backgroundColor: '#a29bfe22', fill: true, tension: 0.3, pointRadius: 0 }] },
+            data: { labels, datasets: [{ label: 'Luftdruck', data: data, borderColor: '#a29bfe', backgroundColor: '#a29bfe22', fill: true, tension: 0.3, pointRadius: 0 }] },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 animation: false,
-                plugins: { legend: { display: false } },
+                plugins: { 
+                    legend: { display: false },
+                    title: { display: true, text: 'Luftdruck (hPa)', color: '#a29bfe', font: { size: 12 } }
+                },
                 scales: {
                     y: { grid: { color: '#333' }, ticks: { color: '#aaa', font: { size: 10 } } },
                     x: commonXAxis
