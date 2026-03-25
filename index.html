@@ -8,26 +8,19 @@
     <style>
         body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 5px; margin: 0; }
         .container { max-width: 900px; margin: auto; background: #1e1e1e; padding: 10px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        
         .controls { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 0 5px; }
         .controls label { font-size: 0.85em; color: #aaa; }
         select { background: #2a2a2a; color: white; border: 1px solid #444; padding: 6px; border-radius: 5px; cursor: pointer; font-size: 13px; }
-
-        /* Stats Optimierung für Mobile: Karten nebeneinander */
         .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 15px; }
         .card { padding: 10px 5px; background: #2a2a2a; border-radius: 8px; border-top: 3px solid #00d1b2; transition: all 0.5s ease; }
         .card h3 { margin: 0 0 5px 0; font-size: 0.65em; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
-        
         .val-display { font-size: 1.1em; font-weight: bold; white-space: nowrap; }
         #temp-display { transition: color 0.5s ease; }
         .hum-text { color: #3273dc; }
         .pres-text { color: #a29bfe; }
-        
         .card.hum { border-top-color: #3273dc; }
         .card.pres { border-top-color: #a29bfe; }
-
-        .chart-box { background: #2a2a2a; border-radius: 10px; padding: 10px; margin-bottom: 10px; border: 1px solid #333; height: 280px; }
-        
+        .chart-box { background: #2a2a2a; border-radius: 10px; padding: 10px 10px 30px 10px; margin-bottom: 10px; border: 1px solid #333; height: 280px; }
         @media (min-width: 600px) {
             body { padding: 15px; }
             .container { padding: 20px; }
@@ -87,6 +80,17 @@ const URL_P = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatab
 
 let charts = {};
 
+// Dekodiert den Erstellungszeitpunkt aus einer Firebase Push-ID
+function getTimeFromId(id) {
+    const PUSH_CHARS = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
+    let time = 0;
+    const data = id.substring(0, 8);
+    for (let i = 0; i < data.length; i++) {
+        time = time * 64 + PUSH_CHARS.indexOf(data.charAt(i));
+    }
+    return new Date(time);
+}
+
 function getTempColor(t) {
     if (t < 5) return '#00008B';
     if (t < 10) return '#40E0D0';
@@ -104,10 +108,10 @@ const lineLabelPlugin = {
         ctx.save();
         ctx.font = 'bold 10px sans-serif';
         ctx.textBaseline = 'middle';
-        
         chart.data.datasets.forEach((dataset) => {
             if (dataset.label === 'Max' || dataset.label === 'Min') {
-                const val = dataset.data[0];
+                const val = dataset.data[dataset.data.length - 1];
+                if(val === undefined) return;
                 const yPos = y.getPixelForValue(val);
                 ctx.fillStyle = dataset.borderColor;
                 const text = `${dataset.label}: ${val.toFixed(1)}°`;
@@ -120,100 +124,79 @@ const lineLabelPlugin = {
 
 async function fetchData() {
     const period = parseInt(document.getElementById('period').value);
-    
     try {
         const [resT, resH, resP] = await Promise.all([fetch(URL_T), fetch(URL_H), fetch(URL_P)]);
         const dataT = await resT.json();
         const dataH = await resH.json();
         const dataP = await resP.json();
 
-        let valT = [], valH = [], valP = [];
+        const processData = (data) => {
+            if (!data) return [];
+            let arr = Object.keys(data).map(key => ({
+                id: key,
+                date: getTimeFromId(key),
+                value: data[key].value
+            }));
+            return period > 0 ? arr.slice(-period) : arr;
+        };
 
-        if (dataT) {
-            valT = Object.values(dataT).map(e => e.value);
-            if (period > 0) valT = valT.slice(-period);
+        const entriesT = processData(dataT);
+        const entriesH = processData(dataH);
+        const entriesP = processData(dataP);
+
+        // Labels für Tooltips (exakte Zeit)
+        const labels = entriesT.map(e => e.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
+        const valT = entriesT.map(e => e.value);
+        const valH = entriesH.map(e => e.value);
+        const valP = entriesP.map(e => e.value);
+
+        if (valT.length > 0) {
             const lastTemp = valT[valT.length-1];
             const dynamicColor = getTempColor(lastTemp);
             document.getElementById('curr-temp').innerText = lastTemp.toFixed(1);
             document.getElementById('temp-display').style.color = dynamicColor;
             document.getElementById('card-curr').style.borderTopColor = dynamicColor;
-            // Desktop fallback color
-            if(window.innerWidth >= 600) document.getElementById('card-curr').style.borderLeftColor = dynamicColor;
-        }
-
-        if (dataH) {
-            valH = Object.values(dataH).map(e => e.value);
-            if (period > 0) valH = valH.slice(-period);
-            const lastHum = valH[valH.length-1];
-            document.getElementById('curr-hum').innerText = lastHum.toFixed(1);
-        }
-
-        if (dataT && dataH) {
-            const maxT = Math.max(...valT);
-            const minT = Math.min(...valT);
-            const lastTemp = valT[valT.length-1];
-            const dynamicColor = getTempColor(lastTemp);
-
-            const lastHum = valH[valH.length-1];
-            const hMinData = Math.min(...valH);
-            const hMaxData = Math.max(...valH);
-            const hScaleMin = Math.min(hMinData, lastHum - 5);
-            const hScaleMax = Math.max(hMaxData, lastHum + 5);
 
             const datasets = [
-                {
-                    label: 'Temp',
-                    data: valT,
-                    borderColor: dynamicColor,
-                    backgroundColor: dynamicColor + '22',
-                    fill: true,
-                    tension: 0.3,
-                    yAxisID: 'y',
-                    pointRadius: 0
-                },
-                {
-                    label: 'Hum',
-                    data: valH,
-                    borderColor: '#3273dc',
-                    borderWidth: 2,
-                    fill: false,
-                    tension: 0.3,
-                    yAxisID: 'y1',
-                    pointRadius: 0
-                },
-                {
-                    label: 'Max',
-                    data: Array(valT.length).fill(maxT),
-                    borderColor: '#ff3860',
-                    borderDash: [5, 5],
-                    borderWidth: 1,
-                    pointRadius: 0,
-                    yAxisID: 'y'
-                },
-                {
-                    label: 'Min',
-                    data: Array(valT.length).fill(minT),
-                    borderColor: '#ffdd57',
-                    borderDash: [5, 5],
-                    borderWidth: 1,
-                    pointRadius: 0,
-                    yAxisID: 'y'
-                }
+                { label: 'Temp', data: valT, borderColor: dynamicColor, backgroundColor: dynamicColor + '22', fill: true, tension: 0.3, yAxisID: 'y', pointRadius: 0 },
+                { label: 'Hum', data: valH, borderColor: '#3273dc', borderWidth: 2, fill: false, tension: 0.3, yAxisID: 'y1', pointRadius: 0 },
+                { label: 'Max', data: Array(valT.length).fill(Math.max(...valT)), borderColor: '#ff3860', borderDash: [5, 5], borderWidth: 1, pointRadius: 0, yAxisID: 'y' },
+                { label: 'Min', data: Array(valT.length).fill(Math.min(...valT)), borderColor: '#ffdd57', borderDash: [5, 5], borderWidth: 1, pointRadius: 0, yAxisID: 'y' }
             ];
-            renderMainChart(valT.map((_, i) => i + 1), datasets, hScaleMin, hScaleMax);
+            renderMainChart(labels, datasets, Math.min(...valH) - 5, Math.max(...valH) + 5);
         }
 
-        if (dataP) {
-            valP = Object.values(dataP).map(e => e.value);
-            if (period > 0) valP = valP.slice(-period);
+        if (valH.length > 0) document.getElementById('curr-hum').innerText = valH[valH.length-1].toFixed(1);
+        if (valP.length > 0) {
             document.getElementById('curr-pres').innerText = valP[valP.length-1].toFixed(0);
-            renderPresChart(valP.map((_, i) => i + 1), valP);
+            renderPresChart(labels, valP);
         }
     } catch (e) { console.error("Fehler:", e); }
 }
 
 function renderMainChart(labels, datasets, hMin, hMax) {
     const ctx = document.getElementById('mainChart').getContext('2d');
+    const commonXAxis = {
+        display: true,
+        grid: { color: '#333' },
+        ticks: {
+            color: '#888',
+            font: { size: 9 },
+            maxRotation: 0,
+            autoSkip: false, // Wir steuern das Skipping selbst
+            callback: function(value, index) {
+                const currentLabel = this.getLabelForValue(value);
+                const prevLabel = index > 0 ? this.getLabelForValue(value - 1) : null;
+                
+                // Zeige Label nur, wenn sich die Stunde zum Vorgänger geändert hat
+                if (!prevLabel || currentLabel.split(':')[0] !== prevLabel.split(':')[0]) {
+                    return currentLabel.split(':')[0] + ':00';
+                }
+                return null;
+            }
+        }
+    };
+
     if (charts['mainChart']) {
         charts['mainChart'].data.labels = labels;
         charts['mainChart'].data.datasets = datasets;
@@ -232,16 +215,9 @@ function renderMainChart(labels, datasets, hMin, hMax) {
                 interaction: { mode: 'index', intersect: false },
                 plugins: { legend: { display: false } },
                 scales: {
-                    y: { 
-                        type: 'linear', position: 'left',
-                        grid: { color: '#333' }, ticks: { color: '#aaa', font: { size: 10 } }
-                    },
-                    y1: { 
-                        type: 'linear', position: 'right',
-                        min: Math.floor(hMin), max: Math.ceil(hMax),
-                        grid: { drawOnChartArea: false }, ticks: { color: '#3273dc', font: { size: 10 } }
-                    },
-                    x: { display: false }
+                    y: { type: 'linear', position: 'left', grid: { color: '#333' }, ticks: { color: '#aaa', font: { size: 10 } } },
+                    y1: { type: 'linear', position: 'right', min: Math.floor(hMin), max: Math.ceil(hMax), grid: { drawOnChartArea: false }, ticks: { color: '#3273dc', font: { size: 10 } } },
+                    x: commonXAxis
                 }
             }
         });
@@ -250,6 +226,25 @@ function renderMainChart(labels, datasets, hMin, hMax) {
 
 function renderPresChart(labels, data) {
     const ctx = document.getElementById('presChart').getContext('2d');
+    const commonXAxis = {
+        display: true,
+        grid: { color: '#333' },
+        ticks: {
+            color: '#888',
+            font: { size: 9 },
+            maxRotation: 0,
+            autoSkip: false,
+            callback: function(value, index) {
+                const currentLabel = this.getLabelForValue(value);
+                const prevLabel = index > 0 ? this.getLabelForValue(value - 1) : null;
+                if (!prevLabel || currentLabel.split(':')[0] !== prevLabel.split(':')[0]) {
+                    return currentLabel.split(':')[0] + ':00';
+                }
+                return null;
+            }
+        }
+    };
+
     if (charts['presChart']) {
         charts['presChart'].data.labels = labels;
         charts['presChart'].data.datasets[0].data = data;
@@ -257,18 +252,7 @@ function renderPresChart(labels, data) {
     } else {
         charts['presChart'] = new Chart(ctx, {
             type: 'line',
-            data: {
-                labels,
-                datasets: [{
-                    label: 'Druck',
-                    data: data,
-                    borderColor: '#a29bfe',
-                    backgroundColor: '#a29bfe22',
-                    fill: true,
-                    tension: 0.3,
-                    pointRadius: 0
-                }]
-            },
+            data: { labels, datasets: [{ label: 'Druck', data: data, borderColor: '#a29bfe', backgroundColor: '#a29bfe22', fill: true, tension: 0.3, pointRadius: 0 }] },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
@@ -276,7 +260,7 @@ function renderPresChart(labels, data) {
                 plugins: { legend: { display: false } },
                 scales: {
                     y: { grid: { color: '#333' }, ticks: { color: '#aaa', font: { size: 10 } } },
-                    x: { display: false }
+                    x: commonXAxis
                 }
             }
         });
