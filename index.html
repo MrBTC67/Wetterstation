@@ -6,6 +6,10 @@
     <title>Wetterstation Klaus</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
+        :root { 
+            --color-dry: #00bcd4; --color-light: #ffeb3b; --color-mod: #ff9800; 
+            --color-heavy: #f44336; --color-extreme: #9c27b0; 
+        }
         body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 5px; margin: 0; }
         .container { max-width: 900px; margin: auto; background: #1e1e1e; padding: 8px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
         .controls { margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 0 5px; }
@@ -14,19 +18,18 @@
         
         .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
         .card { padding: 8px 4px; background: #2a2a2a; border-radius: 8px; border-top: 3px solid #00d1b2; transition: all 0.5s ease; }
-        .card h3 { margin: 0 0 4px 0; font-size: 0.6em; color: #bbb; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; }
+        .card h3 { margin: 0 0 4px 0; font-size: 0.6em; color: #bbb; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
         .val-display { font-size: 1.05em; font-weight: bold; white-space: nowrap; }
         
-        #temp-display { transition: color 0.5s ease; }
         .hum-text { color: #3273dc; }
         .pres-text { color: #a29bfe; }
-        .dew-text { color: #00d1b2; }
+        .rain-text { color: var(--color-dry); }
         .max-text { color: #ff3860; }
         .min-text { color: #ffdd57; }
         
         .card.hum { border-top-color: #3273dc; }
         .card.pres { border-top-color: #a29bfe; }
-        .card.dew { border-top-color: #00d1b2; }
+        .card.rain { border-top-color: var(--color-dry); }
         .card.max { border-top-color: #ff3860; }
         .card.min { border-top-color: #ffdd57; }
 
@@ -39,12 +42,12 @@
             .card { padding: 15px; border-top: 0; border-left: 5px solid #00d1b2; text-align: left; }
             .card.hum { border-left-color: #3273dc; }
             .card.pres { border-left-color: #a29bfe; }
-            .card.dew { border-left-color: #00d1b2; }
+            .card.rain { border-left-color: var(--color-dry); }
             .card.max { border-left-color: #ff3860; }
             .card.min { border-left-color: #ffdd57; }
             .val-display { font-size: 1.6em; }
             .card h3 { font-size: 0.8em; }
-            .chart-box { height: 380px; padding-bottom: 30px; }
+            .chart-box { height: 350px; padding-bottom: 30px; }
         }
     </style>
 </head>
@@ -59,32 +62,30 @@
             <option value="144">12 Std</option>
             <option value="288" selected>24 Std</option>
             <option value="2016">7 Tage</option>
-            <option value="8640">1 Monat</option>
-            <option value="0">Alles</option>
         </select>
     </div>
 
-    <!-- Reihe 1: Aktuelle Werte -->
+    <!-- Reihe 1: Hauptwerte -->
     <div class="stats">
         <div id="card-curr" class="card">
-            <h3>Temp</h3>
+            <h3>Temperatur</h3>
             <div id="temp-display" class="val-display"><span id="curr-temp">--</span>°</div>
         </div>
         <div class="card hum">
             <h3>Feuchte</h3>
             <div class="val-display hum-text"><span id="curr-hum">--</span>%</div>
         </div>
-        <div class="card pres">
-            <h3>Luftdruck</h3>
-            <div class="val-display pres-text"><span id="curr-pres">--</span></div>
+        <div class="card rain" id="rainCard">
+            <h3>Gesamt Regenmenge</h3>
+            <div class="val-display rain-text" id="curr-rain">--</div>
         </div>
     </div>
 
-    <!-- Reihe 2: Berechnete Werte / Min-Max -->
+    <!-- Reihe 2: Sekundärwerte -->
     <div class="stats">
-        <div class="card dew">
-            <h3>Taupunkt</h3>
-            <div class="val-display dew-text"><span id="curr-dew">--</span>°</div>
+        <div class="card pres">
+            <h3>Luftdruck</h3>
+            <div class="val-display pres-text"><span id="curr-pres">--</span></div>
         </div>
         <div class="card min">
             <h3>Min (24h)</h3>
@@ -102,12 +103,17 @@
     <div class="chart-box">
         <canvas id="presChart"></canvas>
     </div>
+    <div class="chart-box">
+        <canvas id="rainChart"></canvas>
+    </div>
 </div>
 
 <script>
-const URL_T = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app/temperature.json";
-const URL_H = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app/humidity.json";
-const URL_P = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app/pressure.json";
+const URL_BASE = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app";
+const URL_T = `${URL_BASE}/temperature.json`;
+const URL_H = `${URL_BASE}/humidity.json`;
+const URL_P = `${URL_BASE}/pressure.json`;
+const URL_R_BASE = `${URL_BASE}/Regenmesser`;
 
 let charts = {};
 
@@ -130,44 +136,36 @@ function getTempColor(t) {
     return '#FF0000';
 }
 
-// Präzise Taupunktberechnung (Magnus-Formel)
-function calculateDewPoint(temp, hum) {
-    const a = 17.27;
-    const b = 237.7;
-    const alpha = ((a * temp) / (b + temp)) + Math.log(hum / 100.0);
-    return (b * alpha) / (a - alpha);
+function getColorByDiff(diff) {
+    if (diff < 0.2) return '#00bcd4'; 
+    const rate = diff * 60; 
+    if (rate <= 15.0) return '#ffeb3b'; 
+    if (rate <= 30.0) return '#ff9800'; 
+    if (rate <= 45.0) return '#f44336'; 
+    return '#9c27b0';                      
 }
-
-const lineLabelPlugin = {
-    id: 'lineLabels',
-    afterDatasetsDraw(chart) {
-        if (chart.canvas.id !== 'mainChart') return;
-        const { ctx, chartArea: { right }, scales: { y } } = chart;
-        ctx.save();
-        ctx.font = 'bold 10px sans-serif';
-        ctx.textBaseline = 'middle';
-        chart.data.datasets.forEach((dataset) => {
-            if (dataset.label === 'Max' || dataset.label === 'Min') {
-                const val = dataset.data[dataset.data.length - 1];
-                if(val === undefined) return;
-                const yPos = y.getPixelForValue(val);
-                ctx.fillStyle = dataset.borderColor;
-                const text = `${dataset.label}: ${val.toFixed(1)}°`;
-                ctx.fillText(text, right - 70, yPos - 10);
-            }
-        });
-        ctx.restore();
-    }
-};
 
 async function fetchData() {
     const period = parseInt(document.getElementById('period').value);
+    const months = ["Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+    const now = new Date();
+    const currentYear = now.getFullYear();
+    const currentMonthStr = months[now.getMonth()];
+
     try {
-        const [resT, resH, resP] = await Promise.all([fetch(URL_T), fetch(URL_H), fetch(URL_P)]);
+        const [resT, resH, resP, resR] = await Promise.all([
+            fetch(URL_T), 
+            fetch(URL_H), 
+            fetch(URL_P),
+            fetch(`${URL_R_BASE}/${currentYear}/${currentMonthStr}.json?orderBy="$key"&limitToLast=2000`)
+        ]);
+
         const dataT = await resT.json();
         const dataH = await resH.json();
         const dataP = await resP.json();
+        const dataR = await resR.json();
 
+        // Standard Sensoren verarbeiten
         const processData = (data) => {
             if (!data) return [];
             let arr = Object.keys(data).map(key => ({
@@ -182,135 +180,152 @@ async function fetchData() {
         const entriesH = processData(dataH);
         const entriesP = processData(dataP);
 
-        const valT = entriesT.map(e => e.value);
-        const valH = entriesH.map(e => e.value);
-        const valP = entriesP.map(e => e.value);
-
-        const labelsT = entriesT.map(e => e.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
-        const labelsP = entriesP.map(e => e.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
-
-        if (valT.length > 0 && valH.length > 0) {
-            const lastTemp = valT[valT.length-1];
-            const lastHum = valH[valH.length-1];
-            const dynamicColor = getTempColor(lastTemp);
-            
-            // Aktuelle Temp
-            document.getElementById('curr-temp').innerText = lastTemp.toFixed(1);
-            document.getElementById('temp-display').style.color = dynamicColor;
-            document.getElementById('card-curr').style.borderTopColor = dynamicColor;
-
-            // Min / Max
-            const minT = Math.min(...valT);
-            const maxT = Math.max(...valT);
-            document.getElementById('min-temp-val').innerText = minT.toFixed(1);
-            document.getElementById('max-temp-val').innerText = maxT.toFixed(1);
-
-            // Taupunkt
-            const dewPoint = calculateDewPoint(lastTemp, lastHum);
-            document.getElementById('curr-dew').innerText = dewPoint.toFixed(1);
-
-            const datasets = [
-                { label: 'Temp', data: valT, borderColor: dynamicColor, backgroundColor: dynamicColor + '22', fill: true, tension: 0.3, yAxisID: 'y', pointRadius: 0 },
-                { label: 'Hum', data: valH, borderColor: '#3273dc', borderWidth: 2, fill: false, tension: 0.3, yAxisID: 'y1', pointRadius: 0 },
-                { label: 'Max', data: Array(valT.length).fill(maxT), borderColor: '#ff3860', borderDash: [5, 5], borderWidth: 1, pointRadius: 0, yAxisID: 'y' },
-                { label: 'Min', data: Array(valT.length).fill(minT), borderColor: '#ffdd57', borderDash: [5, 5], borderWidth: 1, pointRadius: 0, yAxisID: 'y' }
-            ];
-            renderMainChart(labelsT, datasets, Math.min(...valH) - 5, Math.max(...valH) + 5);
+        // Regen verarbeiten
+        let entriesR = [];
+        if (dataR) {
+            const keys = Object.keys(dataR).sort();
+            entriesR = keys.map(k => {
+                const e = dataR[k];
+                const p = e.zeitstempel.split(/[. :]/);
+                // Beachte: Index 3 ist Stunde, Index 4 Minute. Korrektur +1 falls nötig wie im Original
+                return {
+                    date: new Date(p[2], p[1]-1, p[0], p[3], p[4]),
+                    value: parseFloat(e.regen_l_m2) || 0
+                };
+            });
+            // Filtere Regen auf den Zeitraum (grob geschätzt über die letzten X Einträge oder Zeit)
+            const cutoff = new Date(now.getTime() - (period * 5 * 60 * 1000)); // 5 Min Interval angenommen
+            entriesR = entriesR.filter(e => e.date >= cutoff);
         }
 
-        if (valH.length > 0) document.getElementById('curr-hum').innerText = valH[valH.length-1].toFixed(1);
-        if (valP.length > 0) {
-            document.getElementById('curr-pres').innerText = valP[valP.length-1].toFixed(0);
-            renderPresChart(labelsP, valP);
-        }
-    } catch (e) { console.error("Fehler:", e); }
+        updateUI(entriesT, entriesH, entriesP, entriesR);
+        
+    } catch (e) { console.error("Datenfehler:", e); }
 }
 
-function renderMainChart(labels, datasets, hMin, hMax) {
+function updateUI(entriesT, entriesH, entriesP, entriesR) {
+    // Aktuelle Werte & Farben
+    if (entriesT.length > 0) {
+        const lastT = entriesT[entriesT.length-1].value;
+        const color = getTempColor(lastT);
+        document.getElementById('curr-temp').innerText = lastT.toFixed(1);
+        document.getElementById('temp-display').style.color = color;
+        document.getElementById('card-curr').style.borderTopColor = color;
+        
+        const valsT = entriesT.map(e => e.value);
+        document.getElementById('min-temp-val').innerText = Math.min(...valsT).toFixed(1);
+        document.getElementById('max-temp-val').innerText = Math.max(...valsT).toFixed(1);
+    }
+
+    if (entriesH.length > 0) document.getElementById('curr-hum').innerText = entriesH[entriesH.length-1].value.toFixed(1);
+    if (entriesP.length > 0) document.getElementById('curr-pres').innerText = entriesP[entriesP.length-1].value.toFixed(0);
+
+    if (entriesR.length > 0) {
+        const lastR = entriesR[entriesR.length-1].value;
+        const prevR = entriesR.length > 1 ? entriesR[entriesR.length-2].value : lastR;
+        const diff = lastR - prevR > 0 ? lastR - prevR : 0;
+        const rainColor = getColorByDiff(diff);
+        
+        document.getElementById('curr-rain').innerText = lastR.toFixed(2) + " l/m²";
+        document.getElementById('curr-rain').style.color = rainColor;
+        document.getElementById('rainCard').style.borderTopColor = rainColor;
+    }
+
+    // Charts rendern
+    renderMainChart(entriesT, entriesH);
+    renderPresChart(entriesP);
+    renderRainChart(entriesR);
+}
+
+function renderMainChart(entriesT, entriesH) {
     const ctx = document.getElementById('mainChart').getContext('2d');
-    const commonXAxis = {
-        display: true,
-        grid: { color: '#333' },
-        ticks: {
-            color: '#bbb',
-            font: { size: 10 },
-            maxRotation: 0,
-            autoSkip: true,
-            maxTicksLimit: 6,
-            callback: function(value, index) {
-                const currentLabel = this.getLabelForValue(value);
-                return currentLabel.split(':')[0] + ':00';
-            }
-        }
+    const labels = entriesT.map(e => e.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
+    const valT = entriesT.map(e => e.value);
+    const valH = entriesH.map(e => e.value);
+    const color = valT.length > 0 ? getTempColor(valT[valT.length-1]) : '#00d1b2';
+
+    const data = {
+        labels,
+        datasets: [
+            { label: 'Temp', data: valT, borderColor: color, backgroundColor: color + '22', fill: true, yAxisID: 'y', pointRadius: 0, tension: 0.3 },
+            { label: 'Feuchte', data: valH, borderColor: '#3273dc', yAxisID: 'y1', pointRadius: 0, tension: 0.3 }
+        ]
     };
 
     if (charts['mainChart']) {
-        charts['mainChart'].data.labels = labels;
-        charts['mainChart'].data.datasets = datasets;
-        charts['mainChart'].options.scales.y1.min = Math.floor(hMin);
-        charts['mainChart'].options.scales.y1.max = Math.ceil(hMax);
+        charts['mainChart'].data = data;
         charts['mainChart'].update('none');
     } else {
         charts['mainChart'] = new Chart(ctx, {
-            type: 'line',
-            data: { labels, datasets },
-            plugins: [lineLabelPlugin],
+            type: 'line', data,
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                interaction: { mode: 'index', intersect: false },
-                plugins: { 
-                    legend: { display: false },
-                    title: { display: true, text: 'Temperatur & Feuchte', color: '#fff', font: { size: 14 } }
-                },
+                responsive: true, maintainAspectRatio: false, animation: false,
+                plugins: { legend: { display: false }, title: { display: true, text: 'Temperatur & Feuchte', color: '#fff' } },
                 scales: {
-                    y: { type: 'linear', position: 'left', grid: { color: '#333' }, ticks: { color: '#bbb', font: { size: 10 } } },
-                    y1: { type: 'linear', position: 'right', min: Math.floor(hMin), max: Math.ceil(hMax), grid: { drawOnChartArea: false }, ticks: { color: '#3273dc', font: { size: 10 } } },
-                    x: commonXAxis
+                    y: { type: 'linear', position: 'left', grid: { color: '#333' }, ticks: { color: '#bbb' } },
+                    y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#3273dc' } },
+                    x: { grid: { color: '#333' }, ticks: { color: '#bbb', maxTicksLimit: 6 } }
                 }
             }
         });
     }
 }
 
-function renderPresChart(labels, data) {
+function renderPresChart(entriesP) {
     const ctx = document.getElementById('presChart').getContext('2d');
-    const commonXAxis = {
-        display: true,
-        grid: { color: '#333' },
-        ticks: {
-            color: '#bbb',
-            font: { size: 10 },
-            maxRotation: 0,
-            autoSkip: true,
-            maxTicksLimit: 6,
-            callback: function(value, index) {
-                const currentLabel = this.getLabelForValue(value);
-                return currentLabel.split(':')[0] + ':00';
-            }
-        }
-    };
+    const labels = entriesP.map(e => e.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
+    const values = entriesP.map(e => e.value);
 
     if (charts['presChart']) {
         charts['presChart'].data.labels = labels;
-        charts['presChart'].data.datasets[0].data = data;
+        charts['presChart'].data.datasets[0].data = values;
         charts['presChart'].update('none');
     } else {
         charts['presChart'] = new Chart(ctx, {
             type: 'line',
-            data: { labels, datasets: [{ label: 'Luftdruck', data: data, borderColor: '#a29bfe', backgroundColor: '#a29bfe22', fill: true, tension: 0.3, pointRadius: 0 }] },
+            data: { labels, datasets: [{ label: 'Druck', data: values, borderColor: '#a29bfe', backgroundColor: '#a29bfe22', fill: true, pointRadius: 0, tension: 0.3 }] },
             options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                animation: false,
-                plugins: { 
-                    legend: { display: false },
-                    title: { display: true, text: 'Luftdruck (hPa)', color: '#fff', font: { size: 14 } }
-                },
-                scales: {
-                    y: { grid: { color: '#333' }, ticks: { color: '#bbb', font: { size: 10 } } },
-                    x: commonXAxis
+                responsive: true, maintainAspectRatio: false, animation: false,
+                plugins: { legend: { display: false }, title: { display: true, text: 'Luftdruck (hPa)', color: '#fff' } },
+                scales: { y: { grid: { color: '#333' }, ticks: { color: '#bbb' } }, x: { grid: { color: '#333' }, ticks: { color: '#bbb', maxTicksLimit: 6 } } }
+            }
+        });
+    }
+}
+
+function renderRainChart(entriesR) {
+    const ctx = document.getElementById('rainChart').getContext('2d');
+    const labels = entriesR.map(e => e.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
+    const values = entriesR.map(e => e.value);
+
+    const data = {
+        labels,
+        datasets: [{
+            label: 'l/m²', data: values, tension: 0, pointRadius: 0, borderWidth: 2,
+            segment: {
+                borderColor: ctx => {
+                    if (ctx.p0.parsed && ctx.p1.parsed) {
+                        const diff = ctx.p1.parsed.y - ctx.p0.parsed.y;
+                        return getColorByDiff(diff);
+                    }
+                    return '#00bcd4';
+                }
+            }
+        }]
+    };
+
+    if (charts['rainChart']) {
+        charts['rainChart'].data = data;
+        charts['rainChart'].update('none');
+    } else {
+        charts['rainChart'] = new Chart(ctx, {
+            type: 'line', data,
+            options: {
+                responsive: true, maintainAspectRatio: false, animation: false,
+                plugins: { legend: { display: false }, title: { display: true, text: 'Gesamt Regenmenge (l/m²)', color: '#fff' } },
+                scales: { 
+                    y: { grid: { color: '#333' }, ticks: { color: '#bbb' } }, 
+                    x: { grid: { color: '#333' }, ticks: { color: '#bbb', maxTicksLimit: 6 } } 
                 }
             }
         });
@@ -318,8 +333,7 @@ function renderPresChart(labels, data) {
 }
 
 fetchData();
-setInterval(fetchData, 300000);
+setInterval(fetchData, 60000); // Jede Minute aktualisieren
 </script>
-
 </body>
 </html>
