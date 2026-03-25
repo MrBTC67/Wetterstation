@@ -7,20 +7,27 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 5px; margin: 0; }
-        .container { max-width: 900px; margin: auto; background: #1e1e1e; padding: 10px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
-        .controls { margin-bottom: 15px; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 0 5px; }
+        .container { max-width: 900px; margin: auto; background: #1e1e1e; padding: 8px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .controls { margin-bottom: 12px; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 0 5px; }
         .controls label { font-size: 0.85em; color: #aaa; }
         select { background: #2a2a2a; color: white; border: 1px solid #444; padding: 6px; border-radius: 5px; cursor: pointer; font-size: 13px; }
-        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 15px; }
-        .card { padding: 10px 5px; background: #2a2a2a; border-radius: 8px; border-top: 3px solid #00d1b2; transition: all 0.5s ease; }
-        .card h3 { margin: 0 0 5px 0; font-size: 0.65em; color: #aaa; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
-        .val-display { font-size: 1.1em; font-weight: bold; white-space: nowrap; }
+        
+        /* Stats Optimierung für Mobile */
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+        .card { padding: 8px 4px; background: #2a2a2a; border-radius: 8px; border-top: 3px solid #00d1b2; transition: all 0.5s ease; }
+        .card h3 { margin: 0 0 4px 0; font-size: 0.6em; color: #bbb; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; }
+        .val-display { font-size: 1.05em; font-weight: bold; white-space: nowrap; }
+        
         #temp-display { transition: color 0.5s ease; }
         .hum-text { color: #3273dc; }
         .pres-text { color: #a29bfe; }
+        
         .card.hum { border-top-color: #3273dc; }
         .card.pres { border-top-color: #a29bfe; }
-        .chart-box { background: #2a2a2a; border-radius: 10px; padding: 10px 10px 30px 10px; margin-bottom: 10px; border: 1px solid #333; height: 280px; }
+
+        /* Erhöhte Unterkante für die Zeitachse */
+        .chart-box { background: #2a2a2a; border-radius: 10px; padding: 12px 10px 40px 10px; margin-bottom: 10px; border: 1px solid #333; height: 300px; box-sizing: border-box; }
+        
         @media (min-width: 600px) {
             body { padding: 15px; }
             .container { padding: 20px; }
@@ -30,7 +37,7 @@
             .card.pres { border-left-color: #a29bfe; }
             .val-display { font-size: 1.6em; }
             .card h3 { font-size: 0.8em; }
-            .chart-box { height: 350px; }
+            .chart-box { height: 380px; padding-bottom: 30px; }
         }
     </style>
 </head>
@@ -143,7 +150,6 @@ async function fetchData() {
         const entriesH = processData(dataH);
         const entriesP = processData(dataP);
 
-        // Separate Labels für beide Diagramme
         const labelsT = entriesT.map(e => e.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
         const labelsP = entriesP.map(e => e.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
         
@@ -168,7 +174,6 @@ async function fetchData() {
         }
 
         if (valH.length > 0) document.getElementById('curr-hum').innerText = valH[valH.length-1].toFixed(1);
-        
         if (valP.length > 0) {
             document.getElementById('curr-pres').innerText = valP[valP.length-1].toFixed(0);
             renderPresChart(labelsP, valP);
@@ -182,17 +187,14 @@ function renderMainChart(labels, datasets, hMin, hMax) {
         display: true,
         grid: { color: '#333' },
         ticks: {
-            color: '#888',
-            font: { size: 9 },
+            color: '#bbb', // Hellerer Text für Mobile
+            font: { size: 10 },
             maxRotation: 0,
-            autoSkip: false,
+            autoSkip: true, // Auto-Skip für bessere Mobile-Passung
+            maxTicksLimit: 6,
             callback: function(value, index) {
                 const currentLabel = this.getLabelForValue(value);
-                const prevLabel = index > 0 ? this.getLabelForValue(value - 1) : null;
-                if (!prevLabel || currentLabel.split(':')[0] !== prevLabel.split(':')[0]) {
-                    return currentLabel.split(':')[0] + ':00';
-                }
-                return null;
+                return currentLabel.split(':')[0] + ':00';
             }
         }
     };
@@ -215,10 +217,10 @@ function renderMainChart(labels, datasets, hMin, hMax) {
                 interaction: { mode: 'index', intersect: false },
                 plugins: { 
                     legend: { display: false },
-                    title: { display: true, text: 'Temperatur & Feuchte', color: '#aaa', font: { size: 12 } }
+                    title: { display: true, text: 'Temperatur & Feuchte', color: '#fff', font: { size: 14 } }
                 },
                 scales: {
-                    y: { type: 'linear', position: 'left', grid: { color: '#333' }, ticks: { color: '#aaa', font: { size: 10 } } },
+                    y: { type: 'linear', position: 'left', grid: { color: '#333' }, ticks: { color: '#bbb', font: { size: 10 } } },
                     y1: { type: 'linear', position: 'right', min: Math.floor(hMin), max: Math.ceil(hMax), grid: { drawOnChartArea: false }, ticks: { color: '#3273dc', font: { size: 10 } } },
                     x: commonXAxis
                 }
@@ -233,17 +235,14 @@ function renderPresChart(labels, data) {
         display: true,
         grid: { color: '#333' },
         ticks: {
-            color: '#888',
-            font: { size: 9 },
+            color: '#bbb',
+            font: { size: 10 },
             maxRotation: 0,
-            autoSkip: false,
+            autoSkip: true,
+            maxTicksLimit: 6,
             callback: function(value, index) {
                 const currentLabel = this.getLabelForValue(value);
-                const prevLabel = index > 0 ? this.getLabelForValue(value - 1) : null;
-                if (!prevLabel || currentLabel.split(':')[0] !== prevLabel.split(':')[0]) {
-                    return currentLabel.split(':')[0] + ':00';
-                }
-                return null;
+                return currentLabel.split(':')[0] + ':00';
             }
         }
     };
@@ -262,10 +261,10 @@ function renderPresChart(labels, data) {
                 animation: false,
                 plugins: { 
                     legend: { display: false },
-                    title: { display: true, text: 'Luftdruck (hPa)', color: '#a29bfe', font: { size: 12 } }
+                    title: { display: true, text: 'Luftdruck (hPa)', color: '#fff', font: { size: 14 } }
                 },
                 scales: {
-                    y: { grid: { color: '#333' }, ticks: { color: '#aaa', font: { size: 10 } } },
+                    y: { grid: { color: '#333' }, ticks: { color: '#bbb', font: { size: 10 } } },
                     x: commonXAxis
                 }
             }
