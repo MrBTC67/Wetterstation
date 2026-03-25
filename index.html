@@ -9,6 +9,8 @@
         :root { 
             --color-dry: #00bcd4; --color-light: #ffeb3b; --color-mod: #ff9800; 
             --color-heavy: #f44336; --color-extreme: #9c27b0; 
+            --color-temp: #00d1b2;
+            --color-min: #3b82f6; 
         }
         body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 5px; margin: 0; }
         .container { max-width: 900px; margin: auto; background: #1e1e1e; padding: 8px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
@@ -25,16 +27,24 @@
         .pres-text { color: #a29bfe; }
         .rain-text { color: var(--color-dry); }
         .max-text { color: #ff3860; }
-        .min-text { color: #ffdd57; }
+        .min-text { color: var(--color-min); }
         
         .card.hum { border-top-color: #3273dc; }
         .card.pres { border-top-color: #a29bfe; }
         .card.rain { border-top-color: var(--color-dry); }
         .card.max { border-top-color: #ff3860; }
-        .card.min { border-top-color: #ffdd57; }
+        .card.min { border-top-color: var(--color-min); }
 
         .chart-box { background: #2a2a2a; border-radius: 10px; padding: 12px 10px 40px 10px; margin-bottom: 10px; border: 1px solid #333; height: 300px; box-sizing: border-box; }
         
+        .sensor-info {
+            margin: 10px 0 20px 0;
+            font-size: 0.75em;
+            color: #888;
+            line-height: 1.4;
+            padding: 0 10px;
+        }
+
         @media (min-width: 600px) {
             body { padding: 15px; }
             .container { padding: 20px; }
@@ -44,10 +54,11 @@
             .card.pres { border-left-color: #a29bfe; }
             .card.rain { border-left-color: var(--color-dry); }
             .card.max { border-left-color: #ff3860; }
-            .card.min { border-left-color: #ffdd57; }
+            .card.min { border-left-color: var(--color-min); }
             .val-display { font-size: 1.6em; }
             .card h3 { font-size: 0.8em; }
             .chart-box { height: 350px; padding-bottom: 30px; }
+            .sensor-info { font-size: 0.85em; }
         }
     </style>
 </head>
@@ -85,7 +96,7 @@
     <div class="stats">
         <div class="card pres">
             <h3>Luftdruck</h3>
-            <div class="val-display pres-text"><span id="curr-pres">--</span></div>
+            <div class="val-display pres-text"><span id="curr-pres">--</span> hPa</div>
         </div>
         <div class="card min">
             <h3>Min (24h)</h3>
@@ -100,11 +111,19 @@
     <div class="chart-box">
         <canvas id="mainChart"></canvas>
     </div>
+    
     <div class="chart-box">
         <canvas id="presChart"></canvas>
     </div>
+
     <div class="chart-box">
         <canvas id="rainChart"></canvas>
+    </div>
+
+    <div class="sensor-info">
+        Die Temperatur und Feuchte werden mit dem digitalen hochpräzisions Sensor SHT3x von Sensirion gemessen.<br>
+        <strong>Genauigkeit:</strong> Temp: +/- 0,3° | Feuchte: +/- 3% RH<br>
+        Der Sensor verfügt über eine Werkskalibrierung.
     </div>
 </div>
 
@@ -145,6 +164,13 @@ function getColorByDiff(diff) {
     return '#9c27b0';                      
 }
 
+function calculateDewPoint(temp, hum) {
+    const a = 17.27;
+    const b = 237.7;
+    const alpha = ((a * temp) / (b + temp)) + Math.log(hum / 100.0);
+    return (b * alpha) / (a - alpha);
+}
+
 async function fetchData() {
     const period = parseInt(document.getElementById('period').value);
     const months = ["Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
@@ -165,7 +191,6 @@ async function fetchData() {
         const dataP = await resP.json();
         const dataR = await resR.json();
 
-        // Standard Sensoren verarbeiten
         const processData = (data) => {
             if (!data) return [];
             let arr = Object.keys(data).map(key => ({
@@ -180,21 +205,18 @@ async function fetchData() {
         const entriesH = processData(dataH);
         const entriesP = processData(dataP);
 
-        // Regen verarbeiten
         let entriesR = [];
         if (dataR) {
             const keys = Object.keys(dataR).sort();
             entriesR = keys.map(k => {
                 const e = dataR[k];
                 const p = e.zeitstempel.split(/[. :]/);
-                // Beachte: Index 3 ist Stunde, Index 4 Minute. Korrektur +1 falls nötig wie im Original
                 return {
                     date: new Date(p[2], p[1]-1, p[0], p[3], p[4]),
                     value: parseFloat(e.regen_l_m2) || 0
                 };
             });
-            // Filtere Regen auf den Zeitraum (grob geschätzt über die letzten X Einträge oder Zeit)
-            const cutoff = new Date(now.getTime() - (period * 5 * 60 * 1000)); // 5 Min Interval angenommen
+            const cutoff = new Date(now.getTime() - (period * 5 * 60 * 1000));
             entriesR = entriesR.filter(e => e.date >= cutoff);
         }
 
@@ -204,7 +226,6 @@ async function fetchData() {
 }
 
 function updateUI(entriesT, entriesH, entriesP, entriesR) {
-    // Aktuelle Werte & Farben
     if (entriesT.length > 0) {
         const lastT = entriesT[entriesT.length-1].value;
         const color = getTempColor(lastT);
@@ -231,7 +252,6 @@ function updateUI(entriesT, entriesH, entriesP, entriesR) {
         document.getElementById('rainCard').style.borderTopColor = rainColor;
     }
 
-    // Charts rendern
     renderMainChart(entriesT, entriesH);
     renderPresChart(entriesP);
     renderRainChart(entriesR);
@@ -242,13 +262,20 @@ function renderMainChart(entriesT, entriesH) {
     const labels = entriesT.map(e => e.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
     const valT = entriesT.map(e => e.value);
     const valH = entriesH.map(e => e.value);
+    
+    const valDew = entriesT.map((e, i) => {
+        if (entriesH[i]) return calculateDewPoint(e.value, entriesH[i].value);
+        return null;
+    });
+
     const color = valT.length > 0 ? getTempColor(valT[valT.length-1]) : '#00d1b2';
 
     const data = {
         labels,
         datasets: [
             { label: 'Temp', data: valT, borderColor: color, backgroundColor: color + '22', fill: true, yAxisID: 'y', pointRadius: 0, tension: 0.3 },
-            { label: 'Feuchte', data: valH, borderColor: '#3273dc', yAxisID: 'y1', pointRadius: 0, tension: 0.3 }
+            { label: 'Feuchte', data: valH, borderColor: '#3273dc', yAxisID: 'y1', pointRadius: 0, tension: 0.3 },
+            { label: 'Taupunkt', data: valDew, borderColor: '#ccaa00', borderDash: [5, 5], borderWidth: 1, yAxisID: 'y', pointRadius: 0, tension: 0.3 }
         ]
     };
 
@@ -260,9 +287,9 @@ function renderMainChart(entriesT, entriesH) {
             type: 'line', data,
             options: {
                 responsive: true, maintainAspectRatio: false, animation: false,
-                plugins: { legend: { display: false }, title: { display: true, text: 'Temperatur & Feuchte', color: '#fff' } },
+                plugins: { legend: { display: false }, title: { display: true, text: 'Temperatur, Feuchte & Taupunkt', color: '#fff' } },
                 scales: {
-                    y: { type: 'linear', position: 'left', grid: { color: '#333' }, ticks: { color: '#bbb' } },
+                    y: { type: 'linear', position: 'left', grid: { color: '#333' }, ticks: { color: '#00d1b2', font: { weight: 'bold' } } },
                     y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#3273dc' } },
                     x: { grid: { color: '#333' }, ticks: { color: '#bbb', maxTicksLimit: 6 } }
                 }
@@ -287,7 +314,16 @@ function renderPresChart(entriesP) {
             options: {
                 responsive: true, maintainAspectRatio: false, animation: false,
                 plugins: { legend: { display: false }, title: { display: true, text: 'Luftdruck (hPa)', color: '#fff' } },
-                scales: { y: { grid: { color: '#333' }, ticks: { color: '#bbb' } }, x: { grid: { color: '#333' }, ticks: { color: '#bbb', maxTicksLimit: 6 } } }
+                scales: { 
+                    y: { 
+                        grid: { color: '#333' }, 
+                        ticks: { 
+                            color: '#bbb',
+                            callback: function(value) { return value + ' hPa'; }
+                        } 
+                    }, 
+                    x: { grid: { color: '#333' }, ticks: { color: '#bbb', maxTicksLimit: 6 } } 
+                }
             }
         });
     }
@@ -333,7 +369,7 @@ function renderRainChart(entriesR) {
 }
 
 fetchData();
-setInterval(fetchData, 60000); // Jede Minute aktualisieren
+setInterval(fetchData, 60000);
 </script>
 </body>
 </html>
