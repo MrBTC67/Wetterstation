@@ -12,7 +12,6 @@
         .controls label { font-size: 0.85em; color: #aaa; }
         select { background: #2a2a2a; color: white; border: 1px solid #444; padding: 6px; border-radius: 5px; cursor: pointer; font-size: 13px; }
         
-        /* Stats Optimierung für Mobile */
         .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
         .card { padding: 8px 4px; background: #2a2a2a; border-radius: 8px; border-top: 3px solid #00d1b2; transition: all 0.5s ease; }
         .card h3 { margin: 0 0 4px 0; font-size: 0.6em; color: #bbb; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; overflow: hidden; }
@@ -21,20 +20,28 @@
         #temp-display { transition: color 0.5s ease; }
         .hum-text { color: #3273dc; }
         .pres-text { color: #a29bfe; }
+        .dew-text { color: #00d1b2; }
+        .max-text { color: #ff3860; }
+        .min-text { color: #ffdd57; }
         
         .card.hum { border-top-color: #3273dc; }
         .card.pres { border-top-color: #a29bfe; }
+        .card.dew { border-top-color: #00d1b2; }
+        .card.max { border-top-color: #ff3860; }
+        .card.min { border-top-color: #ffdd57; }
 
-        /* Erhöhte Unterkante für die Zeitachse */
         .chart-box { background: #2a2a2a; border-radius: 10px; padding: 12px 10px 40px 10px; margin-bottom: 10px; border: 1px solid #333; height: 300px; box-sizing: border-box; }
         
         @media (min-width: 600px) {
             body { padding: 15px; }
             .container { padding: 20px; }
             .stats { gap: 15px; }
-            .card { padding: 15px; border-top: 0; border-left: 5px solid #00d1b2; }
+            .card { padding: 15px; border-top: 0; border-left: 5px solid #00d1b2; text-align: left; }
             .card.hum { border-left-color: #3273dc; }
             .card.pres { border-left-color: #a29bfe; }
+            .card.dew { border-left-color: #00d1b2; }
+            .card.max { border-left-color: #ff3860; }
+            .card.min { border-left-color: #ffdd57; }
             .val-display { font-size: 1.6em; }
             .card h3 { font-size: 0.8em; }
             .chart-box { height: 380px; padding-bottom: 30px; }
@@ -57,6 +64,7 @@
         </select>
     </div>
 
+    <!-- Reihe 1: Aktuelle Werte -->
     <div class="stats">
         <div id="card-curr" class="card">
             <h3>Temp</h3>
@@ -69,6 +77,22 @@
         <div class="card pres">
             <h3>Luftdruck</h3>
             <div class="val-display pres-text"><span id="curr-pres">--</span></div>
+        </div>
+    </div>
+
+    <!-- Reihe 2: Berechnete Werte / Min-Max -->
+    <div class="stats">
+        <div class="card dew">
+            <h3>Taupunkt</h3>
+            <div class="val-display dew-text"><span id="curr-dew">--</span>°</div>
+        </div>
+        <div class="card min">
+            <h3>Min (24h)</h3>
+            <div class="val-display min-text"><span id="min-temp-val">--</span>°</div>
+        </div>
+        <div class="card max">
+            <h3>Max (24h)</h3>
+            <div class="val-display max-text"><span id="max-temp-val">--</span>°</div>
         </div>
     </div>
 
@@ -104,6 +128,14 @@ function getTempColor(t) {
     if (t < 20) return '#90EE90';
     if (t < 25) return '#FFA500';
     return '#FF0000';
+}
+
+// Präzise Taupunktberechnung (Magnus-Formel)
+function calculateDewPoint(temp, hum) {
+    const a = 17.27;
+    const b = 237.7;
+    const alpha = ((a * temp) / (b + temp)) + Math.log(hum / 100.0);
+    return (b * alpha) / (a - alpha);
 }
 
 const lineLabelPlugin = {
@@ -150,25 +182,38 @@ async function fetchData() {
         const entriesH = processData(dataH);
         const entriesP = processData(dataP);
 
-        const labelsT = entriesT.map(e => e.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
-        const labelsP = entriesP.map(e => e.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
-        
         const valT = entriesT.map(e => e.value);
         const valH = entriesH.map(e => e.value);
         const valP = entriesP.map(e => e.value);
 
-        if (valT.length > 0) {
+        const labelsT = entriesT.map(e => e.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
+        const labelsP = entriesP.map(e => e.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' }));
+
+        if (valT.length > 0 && valH.length > 0) {
             const lastTemp = valT[valT.length-1];
+            const lastHum = valH[valH.length-1];
             const dynamicColor = getTempColor(lastTemp);
+            
+            // Aktuelle Temp
             document.getElementById('curr-temp').innerText = lastTemp.toFixed(1);
             document.getElementById('temp-display').style.color = dynamicColor;
             document.getElementById('card-curr').style.borderTopColor = dynamicColor;
 
+            // Min / Max
+            const minT = Math.min(...valT);
+            const maxT = Math.max(...valT);
+            document.getElementById('min-temp-val').innerText = minT.toFixed(1);
+            document.getElementById('max-temp-val').innerText = maxT.toFixed(1);
+
+            // Taupunkt
+            const dewPoint = calculateDewPoint(lastTemp, lastHum);
+            document.getElementById('curr-dew').innerText = dewPoint.toFixed(1);
+
             const datasets = [
                 { label: 'Temp', data: valT, borderColor: dynamicColor, backgroundColor: dynamicColor + '22', fill: true, tension: 0.3, yAxisID: 'y', pointRadius: 0 },
                 { label: 'Hum', data: valH, borderColor: '#3273dc', borderWidth: 2, fill: false, tension: 0.3, yAxisID: 'y1', pointRadius: 0 },
-                { label: 'Max', data: Array(valT.length).fill(Math.max(...valT)), borderColor: '#ff3860', borderDash: [5, 5], borderWidth: 1, pointRadius: 0, yAxisID: 'y' },
-                { label: 'Min', data: Array(valT.length).fill(Math.min(...valT)), borderColor: '#ffdd57', borderDash: [5, 5], borderWidth: 1, pointRadius: 0, yAxisID: 'y' }
+                { label: 'Max', data: Array(valT.length).fill(maxT), borderColor: '#ff3860', borderDash: [5, 5], borderWidth: 1, pointRadius: 0, yAxisID: 'y' },
+                { label: 'Min', data: Array(valT.length).fill(minT), borderColor: '#ffdd57', borderDash: [5, 5], borderWidth: 1, pointRadius: 0, yAxisID: 'y' }
             ];
             renderMainChart(labelsT, datasets, Math.min(...valH) - 5, Math.max(...valH) + 5);
         }
@@ -187,10 +232,10 @@ function renderMainChart(labels, datasets, hMin, hMax) {
         display: true,
         grid: { color: '#333' },
         ticks: {
-            color: '#bbb', // Hellerer Text für Mobile
+            color: '#bbb',
             font: { size: 10 },
             maxRotation: 0,
-            autoSkip: true, // Auto-Skip für bessere Mobile-Passung
+            autoSkip: true,
             maxTicksLimit: 6,
             callback: function(value, index) {
                 const currentLabel = this.getLabelForValue(value);
