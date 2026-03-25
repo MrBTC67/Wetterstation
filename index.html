@@ -13,6 +13,7 @@
             --color-min: #3b82f6; 
             --color-forecast: #ffa500;
             --color-dew: #ccaa00;
+            --color-hum: #006400; /* Dunkelgrün für Feuchte */
         }
         body { font-family: sans-serif; background: #121212; color: white; text-align: center; padding: 5px; margin: 0; }
         .container { max-width: 900px; margin: auto; background: #1e1e1e; padding: 8px; border-radius: 15px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
@@ -37,7 +38,7 @@
         .card h3 { margin: 0 0 4px 0; font-size: 0.6em; color: #bbb; text-transform: uppercase; letter-spacing: 0.5px; white-space: nowrap; }
         .val-display { font-size: 1.05em; font-weight: bold; white-space: nowrap; }
         
-        .hum-text { color: #3273dc; }
+        .hum-text { color: var(--color-hum); }
         .pres-text { color: #a29bfe; }
         .rain-text { color: var(--color-dry); }
         .max-text { color: #ff3860; }
@@ -46,7 +47,11 @@
         .dew-text { color: var(--color-dew); }
         .fore-info { font-size: 0.75em; color: #888; display: block; margin-top: 2px; font-weight: normal; }
         
-        .card.hum { border-top-color: #3273dc; }
+        /* Neue Stile für Luftdruck-Rate */
+        .pres-rate { font-size: 0.65em; display: block; margin-top: 2px; font-weight: normal; color: #888; }
+        .pres-trend-icon { font-size: 1.1em; margin-left: 2px; }
+
+        .card.hum { border-top-color: var(--color-hum); }
         .card.pres { border-top-color: #a29bfe; }
         .card.rain { border-top-color: var(--color-dry); }
         .card.max { border-top-color: #ff3860; }
@@ -78,7 +83,7 @@
             .container { padding: 20px; }
             .stats, .stats-split { gap: 15px; }
             .card { padding: 15px; border-top: 0; border-left: 5px solid #00d1b2; text-align: left; }
-            .card.hum { border-left-color: #3273dc; }
+            .card.hum { border-left-color: var(--color-hum); }
             .card.pres { border-left-color: #a29bfe; }
             .card.rain { border-left-color: var(--color-dry); }
             .card.max { border-left-color: #ff3860; }
@@ -95,7 +100,6 @@
 <body>
 
 <div class="container">
-    <!-- Haupt-Steuerung -->
     <div class="controls-row">
         <label>Allgemeiner Zeitraum</label>
         <select id="period" onchange="fetchData()">
@@ -126,7 +130,10 @@
     <div class="stats">
         <div class="card pres">
             <h3>Luftdruck</h3>
-            <div class="val-display pres-text"><span id="curr-pres">--</span> hPa</div>
+            <div class="val-display pres-text">
+                <span id="curr-pres">--</span> hPa<span id="pres-trend-arrow" class="pres-trend-icon"></span>
+                <span id="pres-rate-val" class="pres-rate">-- hPa/h</span>
+            </div>
         </div>
         <div class="card min">
             <h3>Min (Zeitraum)</h3>
@@ -152,7 +159,6 @@
         </div>
     </div>
 
-    <!-- Diagramme Sektion 1 -->
     <div class="chart-box">
         <canvas id="mainChart"></canvas>
     </div>
@@ -161,7 +167,6 @@
         <canvas id="presChart"></canvas>
     </div>
 
-    <!-- Regen Sektion mit eigenem Dropdown -->
     <div class="section-header">
         <h2>Niederschlag</h2>
         <select id="rainPeriod" onchange="fetchData()">
@@ -217,12 +222,13 @@ function getSmartLabel(date, hours, isRegenmesser = false) {
 }
 
 function getTempColor(t) {
-    if (t < 5) return '#00008B';
-    if (t < 10) return '#40E0D0';
-    if (t < 15) return '#006400';
-    if (t < 20) return '#90EE90';
-    if (t < 25) return '#FFA500';
-    return '#FF0000';
+    if (t < 0) return '#00008B';  // dunkelblau
+    if (t < 10) return '#40E0D0'; // türkis
+    if (t < 15) return '#FFFF00'; // gelb
+    if (t < 20) return '#FFA500'; // orange
+    if (t < 30) return '#FF0000'; // rot
+    if (t < 40) return '#8A2BE2'; // violett
+    return '#4B0082';             // Indigo
 }
 
 function getColorByDiff(diff) {
@@ -266,7 +272,6 @@ async function fetchData() {
 
     try {
         const maxHours = Math.max(hours, rainHours, 12);
-        // Erhöhtes Limit ab 7 Tagen (168h), um alle Datenpunkte zu erfassen
         const limit = maxHours >= 168 ? 10000 : 2500;
         
         const fetchPromises = [
@@ -335,7 +340,15 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
         const color = getTempColor(lastT);
         document.getElementById('curr-temp').innerText = lastT.toFixed(1);
         document.getElementById('temp-display').style.color = color;
-        document.getElementById('card-curr').style.borderTopColor = color;
+        const card = document.getElementById('card-curr');
+        if (window.innerWidth >= 600) {
+            card.style.borderLeftColor = color;
+            card.style.borderTopColor = 'transparent';
+        } else {
+            card.style.borderTopColor = color;
+            card.style.borderLeftColor = 'transparent';
+        }
+        
         const valsT = entriesT.map(e => e.value);
         document.getElementById('min-temp-val').innerText = Math.min(...valsT).toFixed(1);
         document.getElementById('max-temp-val').innerText = Math.max(...valsT).toFixed(1);
@@ -347,7 +360,28 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
     if (lastT !== 0 && lastHum !== 0) {
         document.getElementById('curr-dew').innerText = calculateDewPoint(lastT, lastHum).toFixed(1);
     }
-    if (entriesP.length > 0) document.getElementById('curr-pres').innerText = entriesP[entriesP.length-1].value.toFixed(0);
+
+    // Luftdruck Trend & Rate Logik
+    if (entriesP.length > 0) {
+        const lastPres = entriesP[entriesP.length-1].value;
+        document.getElementById('curr-pres').innerText = lastPres.toFixed(0);
+        
+        // Rate berechnen (letzte 3 Stunden oder verfügbare Daten)
+        if (entriesP.length > 12) { // Ca. 1 Std. bei 5min Intervall
+            const pNow = entriesP[entriesP.length-1];
+            const pOld = entriesP[entriesP.length-12]; 
+            const diff = pNow.value - pOld.value;
+            
+            // Pfeil setzen
+            const arrowEl = document.getElementById('pres-trend-arrow');
+            if (diff > 0.2) arrowEl.innerText = " ↑";
+            else if (diff < -0.2) arrowEl.innerText = " ↓";
+            else arrowEl.innerText = " →";
+            
+            // Rate anzeigen
+            document.getElementById('pres-rate-val').innerText = (diff > 0 ? "+" : "") + diff.toFixed(1) + " hPa/h";
+        }
+    }
 
     document.getElementById('forecast-val').innerText = getForecast(allP, lastHum);
 
@@ -399,14 +433,27 @@ function renderMainChart(entriesT, entriesH, hours) {
     const ctx = document.getElementById('mainChart').getContext('2d');
     const labels = entriesT.map(e => getSmartLabel(e.date, hours));
     const valT = entriesT.map(e => e.value);
-    const valH = entriesH.map(e => e.value);
-    const color = valT.length > 0 ? getTempColor(valT[valT.length-1]) : '#00d1b2';
     
     const data = {
         labels,
         datasets: [
-            { label: 'Temp', data: valT, borderColor: color, backgroundColor: color + '22', fill: true, yAxisID: 'y', pointRadius: 0, tension: 0.3 },
-            { label: 'Feuchte', data: valH, borderColor: '#3273dc', yAxisID: 'y1', pointRadius: 0, tension: 0.3 }
+            { 
+                label: 'Temp', 
+                data: valT, 
+                fill: false, 
+                yAxisID: 'y', 
+                pointRadius: 0, 
+                tension: 0.3,
+                segment: {
+                    borderColor: ctx => {
+                        if (ctx.p0.parsed && ctx.p1.parsed) {
+                            const avg = (ctx.p0.parsed.y + ctx.p1.parsed.y) / 2;
+                            return getTempColor(avg);
+                        }
+                        return '#00d1b2';
+                    }
+                }
+            }
         ]
     };
 
@@ -419,10 +466,9 @@ function renderMainChart(entriesT, entriesH, hours) {
             type: 'line', data,
             options: {
                 responsive: true, maintainAspectRatio: false, animation: false,
-                plugins: { legend: { display: false }, title: { display: true, text: 'Temperatur & Feuchte', color: '#fff' } },
+                plugins: { legend: { display: false }, title: { display: true, text: 'Temperaturverlauf', color: '#fff' } },
                 scales: {
-                    y: { type: 'linear', position: 'left', grid: { color: '#333' }, ticks: { color: '#00d1b2', font: { weight: 'bold' }, callback: v => v + '°C' } },
-                    y1: { type: 'linear', position: 'right', grid: { drawOnChartArea: false }, ticks: { color: '#3273dc', callback: v => v + '%' } },
+                    y: { type: 'linear', position: 'left', grid: { color: '#333' }, ticks: { color: '#bbb', callback: v => v + '°C' } },
                     x: getXAxisConfig(hours)
                 }
             }
