@@ -85,7 +85,6 @@
             box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
         }
 
-        /* Akzentleiste mit Glow */
         .card::before {
             content: '';
             position: absolute;
@@ -93,6 +92,7 @@
             background: var(--accent-color, var(--color-temp));
             box-shadow: 0 2px 10px var(--accent-color, var(--color-temp));
             opacity: 0.8;
+            transition: background 0.5s ease, box-shadow 0.5s ease;
         }
 
         .card:hover { 
@@ -111,10 +111,9 @@
             font-weight: 800;
         }
         
-        .val-display { font-size: 1.25em; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 4px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .val-display { font-size: 1.25em; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 4px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); transition: color 0.5s ease; }
         .unit { font-size: 0.7em; font-weight: 400; color: #666; }
         
-        /* Spezifische Karten-Farben */
         .card.temp { --accent-color: var(--color-temp); }
         .card.min { --accent-color: var(--color-min); }
         .card.max { --accent-color: var(--color-max); }
@@ -129,7 +128,7 @@
         .max-text { color: var(--color-max); }
         .dew-text { color: var(--color-dew); }
 
-        .card-icon { width: 20px; height: 20px; margin-bottom: 8px; stroke: currentColor; opacity: 0.9; filter: drop-shadow(0 0 5px rgba(255,255,255,0.1)); }
+        .card-icon { width: 20px; height: 20px; margin-bottom: 8px; stroke: currentColor; opacity: 0.9; filter: drop-shadow(0 0 5px rgba(255,255,255,0.1)); transition: stroke 0.5s ease; }
 
         .pres-rate { font-size: 0.55em; display: block; margin-top: 5px; font-weight: 600; color: #555; }
         .fore-info { font-size: 0.65em; color: #555; margin-top: 5px; font-weight: bold; }
@@ -338,13 +337,18 @@ function getSmartLabel(date, hours, isRegenmesser = false) {
 }
 
 function getTempColor(t) {
-    if (t < 0) return '#3b82f6'; if (t < 10) return '#40E0D0'; if (t < 15) return '#FFFF00';
-    if (t < 20) return '#FFA500'; if (t < 30) return '#FF0000'; return '#8A2BE2';
+    if (t < 0) return '#3b82f6';
+    if (t < 12) return '#00d1b2';
+    if (t < 22) return '#ffeb3b';
+    if (t < 30) return '#ff9800';
+    return '#ff3860';
 }
 
 function getHumColor(h) {
-    if (h <= 30) return '#f44336'; if (h <= 50) return '#ff9800'; if (h <= 65) return '#00d1b2'; 
-    if (h <= 80) return '#b794f4'; return '#9c27b0';                      
+    if (h < 35) return '#ff9800';
+    if (h <= 60) return '#00ff88';
+    if (h <= 80) return '#3b82f6';
+    return '#9c27b0';
 }
 
 function getColorByDiff(diff) {
@@ -360,9 +364,17 @@ function calculateDewPoint(temp, hum) {
     return (b * alpha) / (a - alpha);
 }
 
-function getForecast(allP, lastHum) {
+function getForecast(allP, lastHum, lastT) {
+    const dewPoint = calculateDewPoint(lastT, lastHum);
+    
+    // Nebel-Check: Hohe Feuchtigkeit und geringer Abstand Temperatur/Taupunkt
+    if (lastHum > 95 && (lastT - dewPoint) < 1.5) {
+        return "🌫️ Nebel möglich";
+    }
+
     if (allP.length < 36) return "Ermittlung...";
     const currentP = allP[allP.length - 1].value, oldP = allP[allP.length - 36].value, diff = currentP - oldP;
+    
     if (diff < -3.0) return "⛈️ Unbeständig"; 
     if (diff < -1.0) return lastHum > 75 ? "🌧️ Regenneigung" : "☁️ Bewölkt";
     if (Math.abs(diff) <= 1.0) return lastHum > 80 ? "☁️ Trüb" : "⛅ Beständig";
@@ -406,23 +418,26 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
         const timeStr = lastDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
         document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${timeStr} Uhr`;
         
-        lastT = entriesT[entriesT.length-1].value; const color = getTempColor(lastT);
+        lastT = entriesT[entriesT.length-1].value; 
+        const color = getTempColor(lastT);
         document.getElementById('curr-temp').innerText = lastT.toFixed(1);
-        document.getElementById('temp-display').style.color = color;
-        document.getElementById('icon-temp').style.stroke = color; 
         const cardT = document.getElementById('card-temp');
         cardT.style.setProperty('--accent-color', color);
+        document.getElementById('temp-display').style.color = color;
+        document.getElementById('icon-temp').style.stroke = color;
+        
         const valsT = entriesT.map(e => e.value);
         document.getElementById('min-temp-val').innerText = Math.min(...valsT).toFixed(1);
         document.getElementById('max-temp-val').innerText = Math.max(...valsT).toFixed(1);
     }
     if (entriesH.length > 0) {
-        lastHum = entriesH[entriesH.length-1].value; const color = getHumColor(lastHum);
+        lastHum = entriesH[entriesH.length-1].value; 
+        const color = getHumColor(lastHum);
         document.getElementById('curr-hum').innerText = lastHum.toFixed(1);
-        document.getElementById('hum-display').style.color = color;
-        document.getElementById('icon-hum').style.stroke = color;
         const cardH = document.getElementById('card-hum');
         cardH.style.setProperty('--accent-color', color);
+        document.getElementById('hum-display').style.color = color;
+        document.getElementById('icon-hum').style.stroke = color;
     }
     if (lastT !== 0 && lastHum !== 0) {
         document.getElementById('curr-dew').innerText = calculateDewPoint(lastT, lastHum).toFixed(1);
@@ -435,7 +450,7 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
             document.getElementById('pres-rate-val').innerText = (diff > 0 ? "+" : "") + diff.toFixed(1) + " hPa/h";
         }
     }
-    document.getElementById('forecast-val').innerText = getForecast(allP, lastHum);
+    document.getElementById('forecast-val').innerText = getForecast(allP, lastHum, lastT);
     if (entriesR.length > 0) {
         const lastR = entriesR[entriesR.length-1].value;
         const diff = lastR - (entriesR.length > 1 ? entriesR[entriesR.length-2].value : lastR);
