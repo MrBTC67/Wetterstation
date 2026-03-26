@@ -10,10 +10,11 @@
             --color-dry: #00bcd4; --color-light: #ffeb3b; --color-mod: #ff9800; 
             --color-heavy: #f44336; --color-extreme: #9c27b0; 
             --color-temp: #00d1b2;
-            --color-min: #3b82f6; 
-            --color-max: #ff3860;
+            --color-min: #3b82f6; /* Blau */
+            --color-max: #ff3860; /* Rot */
             --color-forecast: #ffa500;
-            --color-dew: #ccaa00;
+            --color-dew: #ffff00; /* Gelb */
+            --color-pres: #a29bfe; /* Hellviolett */
             --bg-card: #252525;
             --bg-body: #121212;
         }
@@ -78,19 +79,24 @@
         .val-display { font-size: 1.2em; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 4px; }
         .unit { font-size: 0.7em; font-weight: 400; color: #888; }
         
-        /* Icon Styling - Standardfarbe wird per JS überschrieben */
+        /* Spezifische Farben für die Werte */
+        .pres-text { color: var(--color-pres); }
+        .min-text { color: var(--color-min); }
+        .max-text { color: var(--color-max); }
+        .dew-text { color: var(--color-dew); }
+
+        /* Icon Styling */
         .card-icon { width: 18px; height: 18px; margin-bottom: 5px; stroke: currentColor; transition: stroke 0.5s ease; }
 
         .card.hum::before { background: var(--color-temp); }
-        .card.pres::before { background: #a29bfe; }
+        .card.pres::before { background: var(--color-pres); }
         .card.rain::before { background: var(--color-dry); }
         .card.max::before { background: var(--color-max); }
         .card.min::before { background: var(--color-min); }
         .card.forecast::before { background: var(--color-forecast); }
         .card.dew-card::before { background: var(--color-dew); }
 
-        /* Statische Icon-Farben */
-        .card.pres .card-icon { stroke: #a29bfe; }
+        .card.pres .card-icon { stroke: var(--color-pres); }
         .card.min .card-icon { stroke: var(--color-min); }
         .card.max .card-icon { stroke: var(--color-max); }
         .card.forecast .card-icon { stroke: var(--color-forecast); }
@@ -180,7 +186,7 @@
             <h3>Prognose</h3>
             <div class="val-display" style="flex-direction: column; align-items: flex-start; gap: 0;">
                 <span id="forecast-val" style="color: var(--color-forecast); font-size: 0.9em;">Berechne...</span>
-                <span class="fore-info">Trend 12h</span>
+                <span class="fore-info">Trend 3h</span>
             </div>
         </div>
         <div class="card dew-card">
@@ -276,14 +282,14 @@ function getTempColor(t) {
 
 function getHumColor(h) {
     if (h <= 30) return '#f44336'; if (h <= 50) return '#ff9800'; if (h <= 65) return '#00d1b2'; 
-    if (h <= 80) return '#b794f4'; return '#9c27b0';              
+    if (h <= 80) return '#b794f4'; return '#9c27b0';                      
 }
 
 function getColorByDiff(diff) {
     if (diff < 0.2) return '#00bcd4'; 
     const rate = diff * 60; 
     if (rate <= 15.0) return '#ffeb3b'; if (rate <= 30.0) return '#ff9800'; 
-    if (rate <= 45.0) return '#f44336'; return '#9c27b0';                      
+    if (rate <= 45.0) return '#f44336'; return '#9c27b0';                                   
 }
 
 function calculateDewPoint(temp, hum) {
@@ -293,11 +299,17 @@ function calculateDewPoint(temp, hum) {
 }
 
 function getForecast(allP, lastHum) {
-    if (allP.length < 144) return "Ermittlung...";
-    const currentP = allP[allP.length - 1].value, oldP = allP[allP.length - 144].value, diff = currentP - oldP;
-    if (diff < -3.0) return "⛈️ Unbeständig"; if (diff < -1.0) return lastHum > 75 ? "🌧️ Regenneigung" : "☁️ Bewölkt";
+    // Annahme: Datenpunkt alle 5 Min. -> 3h = 36 Punkte
+    if (allP.length < 36) return "Ermittlung...";
+    const currentP = allP[allP.length - 1].value;
+    const oldP = allP[allP.length - 36].value;
+    const diff = currentP - oldP;
+    
+    if (diff < -3.0) return "⛈️ Unbeständig"; 
+    if (diff < -1.0) return lastHum > 75 ? "🌧️ Regenneigung" : "☁️ Bewölkt";
     if (Math.abs(diff) <= 1.0) return lastHum > 80 ? "☁️ Trüb" : "⛅ Beständig";
-    if (diff > 3.0) return "☀️ Sonnig"; if (diff > 1.0) return "🌤️ Aufklarend";
+    if (diff > 3.0) return "☀️ Sonnig"; 
+    if (diff > 1.0) return "🌤️ Aufklarend";
     return "⌛ Unklar";
 }
 
@@ -335,7 +347,7 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
         lastT = entriesT[entriesT.length-1].value; const color = getTempColor(lastT);
         document.getElementById('curr-temp').innerText = lastT.toFixed(1);
         document.getElementById('temp-display').style.color = color;
-        document.getElementById('icon-temp').style.stroke = color; // Icon Farbe
+        document.getElementById('icon-temp').style.stroke = color; 
         const cardT = document.getElementById('card-temp');
         cardT.style.setProperty('--color-temp', color);
         const valsT = entriesT.map(e => e.value);
@@ -347,7 +359,7 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
         lastHum = entriesH[entriesH.length-1].value; const color = getHumColor(lastHum);
         document.getElementById('curr-hum').innerText = lastHum.toFixed(1);
         document.getElementById('hum-display').style.color = color;
-        document.getElementById('icon-hum').style.stroke = color; // Icon Farbe
+        document.getElementById('icon-hum').style.stroke = color;
         const cardH = document.getElementById('card-hum');
         cardH.style.setProperty('--color-temp', color);
     }
@@ -371,7 +383,7 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
         const rainColor = getColorByDiff(diff > 0 ? diff : 0);
         document.getElementById('curr-rain').innerText = lastR.toFixed(2) + " l/m²";
         document.getElementById('curr-rain').style.color = rainColor;
-        document.getElementById('icon-rain').style.stroke = rainColor; // Icon Farbe
+        document.getElementById('icon-rain').style.stroke = rainColor;
         document.getElementById('rainCard').style.setProperty('--color-dry', rainColor);
     }
 
@@ -432,7 +444,7 @@ function renderPresChart(entriesP, hours) {
         charts['presChart'].data.datasets[0].data = values; charts['presChart'].update('none');
     } else {
         charts['presChart'] = new Chart(ctx, {
-            type: 'line', data: { labels: entriesP.map(e => getSmartLabel(e.date, hours)), datasets: [{ label: 'Druck', data: values, borderColor: '#a29bfe', backgroundColor: '#a29bfe22', fill: true, pointRadius: 0, tension: 0.3 }] },
+            type: 'line', data: { labels: entriesP.map(e => getSmartLabel(e.date, hours)), datasets: [{ label: 'Druck', data: values, borderColor: 'var(--color-pres)', backgroundColor: '#a29bfe22', fill: true, pointRadius: 0, tension: 0.3 }] },
             options: {
                 responsive: true, maintainAspectRatio: false, animation: false,
                 plugins: { legend: { display: false }, title: { display: true, text: 'Luftdruck (hPa)', color: '#fff' } },
