@@ -10,117 +10,145 @@
             --color-dry: #00bcd4; --color-light: #ffeb3b; --color-mod: #ff9800; 
             --color-heavy: #f44336; --color-extreme: #9c27b0; 
             --color-temp: #00d1b2;
-            --color-min: #3b82f6; /* Blau */
-            --color-max: #ff3860; /* Rot */
+            --color-min: #3b82f6; 
+            --color-max: #ff3860; 
             --color-forecast: #ffa500;
-            --color-dew: #ffff00; /* Gelb */
-            --color-pres: #a29bfe; /* Hellviolett */
-            --bg-card: #252525;
-            --bg-body: #121212;
+            --color-dew: #ffff00; 
+            --color-pres: #a29bfe; 
+            --color-update: #00ff88; 
+            --bg-body: #0f0f0f;
         }
-        body { font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; background: var(--bg-body); color: white; text-align: center; padding: 5px; margin: 0; }
-        .container { max-width: 900px; margin: auto; background: #1e1e1e; padding: 12px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.6); }
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background: var(--bg-body); 
+            color: white; 
+            text-align: center; 
+            padding: 5px; 
+            margin: 0; 
+            background-image: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #0f0f0f 100%);
+            background-attachment: fixed;
+        }
+        .container { max-width: 900px; margin: auto; background: rgba(0, 0, 0, 0.3); padding: 12px; border-radius: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.9); border: 1px solid rgba(255,255,255,0.03); }
         
         .main-title {
             font-size: 1.3em;
-            margin: 10px 0 20px 0;
-            color: var(--color-temp);
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+            margin: 10px 0 5px 0;
+            background: linear-gradient(135deg, var(--color-temp), #fff);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .last-update {
+            font-size: 0.75em;
+            color: var(--color-update);
+            margin-bottom: 20px;
+            font-weight: 600;
+            opacity: 0.9;
+            text-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
         }
 
         .controls-row { 
-            margin-bottom: 15px; 
+            margin-bottom: 20px; 
             display: flex; 
             justify-content: space-between; 
             align-items: center; 
             gap: 10px; 
-            padding: 8px 15px;
-            background: #2a2a2a;
-            border-radius: 12px;
+            padding: 12px 18px;
+            background: rgba(255,255,255,0.03);
+            border-radius: 16px;
+            backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.05);
         }
-        .controls-row label { font-size: 0.85em; color: #aaa; font-weight: bold; }
-        select { background: #1e1e1e; color: white; border: 1px solid #444; padding: 6px 10px; border-radius: 8px; cursor: pointer; font-size: 13px; outline: none; }
+        .controls-row label { font-size: 0.8em; color: #777; font-weight: bold; }
+        select { background: #1a1a1a; color: white; border: 1px solid #333; padding: 6px 12px; border-radius: 10px; cursor: pointer; font-size: 13px; outline: none; transition: border 0.3s; }
+        select:hover { border-color: var(--color-temp); }
         
-        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 10px; }
-        .stats-split { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+        .stats-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 20px; }
         
         .card { 
             position: relative;
-            padding: 12px 8px; 
-            background: var(--bg-card); 
-            border-radius: 14px; 
-            border: 1px solid #333;
-            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            padding: 15px 10px; 
+            background: linear-gradient(165deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); 
+            border-radius: 20px; 
+            border: 1px solid rgba(255,255,255,0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
             display: flex;
             flex-direction: column;
             align-items: center;
             overflow: hidden;
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
         }
-        .card:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.4); }
 
+        /* Akzentleiste mit Glow */
         .card::before {
             content: '';
             position: absolute;
-            top: 0; left: 0; width: 100%; height: 4px;
-            background: var(--color-temp);
+            top: 0; left: 0; width: 100%; height: 3px;
+            background: var(--accent-color, var(--color-temp));
+            box-shadow: 0 2px 10px var(--accent-color, var(--color-temp));
+            opacity: 0.8;
+        }
+
+        .card:hover { 
+            transform: translateY(-6px) scale(1.02); 
+            background: linear-gradient(165deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%);
+            border-color: var(--accent-color, var(--color-temp));
+            box-shadow: 0 15px 30px rgba(0,0,0,0.6), 0 0 15px rgba(255,255,255,0.05);
         }
 
         .card h3 { 
-            margin: 0 0 6px 0; 
+            margin: 0 0 8px 0; 
             font-size: 0.65em; 
             color: #888; 
             text-transform: uppercase; 
-            letter-spacing: 1px; 
-            font-weight: 700;
+            letter-spacing: 1.5px; 
+            font-weight: 800;
         }
         
-        .val-display { font-size: 1.2em; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 4px; }
-        .unit { font-size: 0.7em; font-weight: 400; color: #888; }
+        .val-display { font-size: 1.25em; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 4px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); }
+        .unit { font-size: 0.7em; font-weight: 400; color: #666; }
         
-        /* Spezifische Farben für die Werte */
+        /* Spezifische Karten-Farben */
+        .card.temp { --accent-color: var(--color-temp); }
+        .card.min { --accent-color: var(--color-min); }
+        .card.max { --accent-color: var(--color-max); }
+        .card.pres { --accent-color: var(--color-pres); }
+        .card.hum { --accent-color: var(--color-temp); }
+        .card.rain { --accent-color: var(--color-dry); }
+        .card.forecast { --accent-color: var(--color-forecast); }
+        .card.dew-card { --accent-color: var(--color-dew); }
+
         .pres-text { color: var(--color-pres); }
         .min-text { color: var(--color-min); }
         .max-text { color: var(--color-max); }
         .dew-text { color: var(--color-dew); }
 
-        /* Icon Styling */
-        .card-icon { width: 18px; height: 18px; margin-bottom: 5px; stroke: currentColor; transition: stroke 0.5s ease; }
+        .card-icon { width: 20px; height: 20px; margin-bottom: 8px; stroke: currentColor; opacity: 0.9; filter: drop-shadow(0 0 5px rgba(255,255,255,0.1)); }
 
-        .card.hum::before { background: var(--color-temp); }
-        .card.pres::before { background: var(--color-pres); }
-        .card.rain::before { background: var(--color-dry); }
-        .card.max::before { background: var(--color-max); }
-        .card.min::before { background: var(--color-min); }
-        .card.forecast::before { background: var(--color-forecast); }
-        .card.dew-card::before { background: var(--color-dew); }
+        .pres-rate { font-size: 0.55em; display: block; margin-top: 5px; font-weight: 600; color: #555; }
+        .fore-info { font-size: 0.65em; color: #555; margin-top: 5px; font-weight: bold; }
 
-        .card.pres .card-icon { stroke: var(--color-pres); }
-        .card.min .card-icon { stroke: var(--color-min); }
-        .card.max .card-icon { stroke: var(--color-max); }
-        .card.forecast .card-icon { stroke: var(--color-forecast); }
-        .card.dew-card .card-icon { stroke: var(--color-dew); }
-
-        .pres-rate { font-size: 0.55em; display: block; margin-top: 4px; font-weight: 400; color: #777; }
-        .pres-trend-icon { font-size: 1em; margin-left: 3px; }
-        .fore-info { font-size: 0.65em; color: #666; margin-top: 4px; font-weight: bold; }
-
-        .chart-box { background: #222; border-radius: 16px; padding: 15px 10px 45px 10px; margin-bottom: 15px; border: 1px solid #333; height: 320px; box-sizing: border-box; }
-        .section-header { margin: 25px 0 12px 0; padding: 0 5px; display: flex; justify-content: space-between; align-items: center; }
-        .section-header h2 { font-size: 0.9em; text-transform: uppercase; color: #777; margin: 0; letter-spacing: 1.5px; font-weight: 800; }
-        .sensor-info { margin: 15px 0 25px 0; font-size: 0.75em; color: #666; line-height: 1.5; padding: 0 15px; }
+        .chart-box { background: rgba(20, 20, 20, 0.4); border-radius: 24px; padding: 15px 10px 45px 10px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.04); height: 320px; box-sizing: border-box; position: relative; backdrop-filter: blur(10px); }
+        .section-header { margin: 30px 0 15px 0; padding: 0 5px; display: flex; justify-content: space-between; align-items: center; }
+        .section-header h2 { font-size: 0.9em; text-transform: uppercase; color: #555; margin: 0; letter-spacing: 2px; font-weight: 800; }
+        .sensor-info { margin: 20px 0 30px 0; font-size: 0.75em; color: #444; line-height: 1.6; padding: 0 15px; border-top: 1px solid rgba(255,255,255,0.03); padding-top: 20px; }
 
         @media (min-width: 600px) {
             body { padding: 20px; }
-            .container { padding: 25px; }
+            .container { padding: 35px; }
             .main-title { font-size: 1.8em; }
-            .stats, .stats-split { gap: 15px; }
-            .card { padding: 18px 15px; align-items: flex-start; text-align: left; }
-            .card::before { width: 5px; height: 100%; top: 0; left: 0; }
-            .val-display { font-size: 1.8em; }
+            .stats, .stats-split { gap: 18px; }
+            .card { padding: 24px 18px; align-items: flex-start; text-align: left; }
+            .card::before { width: 4px; height: 100%; top: 0; left: 0; }
+            .val-display { font-size: 1.9em; }
             .card h3 { font-size: 0.75em; }
-            .card-icon { width: 22px; height: 22px; position: absolute; right: 15px; top: 15px; }
+            .card-icon { width: 28px; height: 28px; position: absolute; right: 18px; top: 18px; }
         }
     </style>
 </head>
@@ -128,6 +156,7 @@
 
 <div class="container">
     <div class="main-title">Wetterstation Kirchheide, 170 m ü. NHN</div>
+    <div id="last-update-ts" class="last-update">Zuletzt aktualisiert: --:-- Uhr</div>
 
     <div class="controls-row">
         <label>Zeitraum</label>
@@ -141,48 +170,51 @@
         </select>
     </div>
 
+    <!-- Reihe 1: Temp, Min, Max -->
     <div class="stats">
-        <div id="card-temp" class="card">
-            <svg id="icon-temp" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+        <div id="card-temp" class="card temp">
+            <svg id="icon-temp" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
             <h3>Temperatur</h3>
             <div id="temp-display" class="val-display"><span id="curr-temp">--</span><span class="unit">°C</span></div>
         </div>
-        <div id="card-hum" class="card hum">
-            <svg id="icon-hum" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-            <h3>Feuchte</h3>
-            <div id="hum-display" class="val-display"><span id="curr-hum">--</span><span class="unit">%</span></div>
+        <div class="card min">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M7 10l5 5 5-5"/></svg>
+            <h3>Min-Temp</h3>
+            <div class="val-display min-text"><span id="min-temp-val">--</span><span class="unit">°C</span></div>
         </div>
-        <div id="rainCard" class="card rain">
-            <svg id="icon-rain" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6M8 14v6M12 16v6"/></svg>
-            <h3>Regenmenge</h3>
-            <div class="val-display" id="curr-rain-box"><span id="curr-rain">--</span></div>
+        <div class="card max">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M17 14l-5-5-5 5"/></svg>
+            <h3>Max-Temp</h3>
+            <div class="val-display max-text"><span id="max-temp-val">--</span><span class="unit">°C</span></div>
         </div>
     </div>
 
+    <!-- Reihe 2: Druck, Feuchte, Regen -->
     <div class="stats">
         <div class="card pres">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="m12 16 4-4-4-4M8 12h8"/></svg>
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="m12 16 4-4-4-4M8 12h8"/></svg>
             <h3>Luftdruck</h3>
             <div class="val-display pres-text" style="flex-direction: column; align-items: flex-start; gap: 0;">
                 <div><span id="curr-pres">--</span><span class="unit"> hPa</span><span id="pres-trend-arrow" class="pres-trend-icon"></span></div>
                 <span id="pres-rate-val" class="pres-rate">-- hPa/h</span>
             </div>
         </div>
-        <div class="card min">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M7 10l5 5 5-5"/></svg>
-            <h3>Min-Temp</h3>
-            <div class="val-display min-text"><span id="min-temp-val">--</span><span class="unit">°C</span></div>
+        <div id="card-hum" class="card hum">
+            <svg id="icon-hum" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+            <h3>Feuchte</h3>
+            <div id="hum-display" class="val-display"><span id="curr-hum">--</span><span class="unit">%</span></div>
         </div>
-        <div class="card max">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M17 14l-5-5-5 5"/></svg>
-            <h3>Max-Temp</h3>
-            <div class="val-display max-text"><span id="max-temp-val">--</span><span class="unit">°C</span></div>
+        <div id="rainCard" class="card rain">
+            <svg id="icon-rain" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6M8 14v6M12 16v6"/></svg>
+            <h3>Regenmenge</h3>
+            <div class="val-display" id="curr-rain-box"><span id="curr-rain">--</span></div>
         </div>
     </div>
 
+    <!-- Reihe 3: Prognose, Taupunkt -->
     <div class="stats-split">
         <div class="card forecast">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M17.5 19a3.5 3.5 0 1 1-5.83-2.66 3 3 0 1 1 3.83-4.34 4.5 4.5 0 1 1 2 7M12 12V3m0 0l-3 3m3-3l3 3"/></svg>
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M17.5 19a3.5 3.5 0 1 1-5.83-2.66 3 3 0 1 1 3.83-4.34 4.5 4.5 0 1 1 2 7M12 12V3m0 0l-3 3m3-3l3 3"/></svg>
             <h3>Prognose</h3>
             <div class="val-display" style="flex-direction: column; align-items: flex-start; gap: 0;">
                 <span id="forecast-val" style="color: var(--color-forecast); font-size: 0.9em;">Berechne...</span>
@@ -190,7 +222,7 @@
             </div>
         </div>
         <div class="card dew-card">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
             <h3>Taupunkt</h3>
             <div class="val-display dew-text"><span id="curr-dew">--</span><span class="unit">°C</span></div>
         </div>
@@ -236,6 +268,34 @@ const URL_R_BASE = `${URL_BASE}/Regenmesser`;
 
 let charts = {};
 
+function createVerticalGradient(ctx, chartArea, color) {
+    if (!chartArea) return null;
+    const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+    gradient.addColorStop(0, color + '00');
+    gradient.addColorStop(1, color + '33');
+    return gradient;
+}
+
+const crosshairPlugin = {
+    id: 'crosshair',
+    afterDatasetsDraw(chart) {
+        const { ctx, chartArea: { top, bottom } } = chart;
+        if (chart.tooltip?._active?.length) {
+            const activePoint = chart.tooltip._active[0];
+            const xPos = activePoint.element.x;
+            ctx.save();
+            ctx.beginPath();
+            ctx.moveTo(xPos, top);
+            ctx.lineTo(xPos, bottom);
+            ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+            ctx.setLineDash([5, 5]);
+            ctx.stroke();
+            ctx.restore();
+        }
+    }
+};
+
 const minMaxPlugin = {
     id: 'minMaxPlugin',
     afterDatasetsDraw(chart) {
@@ -259,6 +319,8 @@ const minMaxPlugin = {
         drawPointer(maxIdx, maxVal, '#ff3860'); drawPointer(minIdx, minVal, '#3b82f6');
     }
 };
+
+const globalInteractionConfig = { mode: 'index', intersect: false };
 
 function getTimeFromId(id) {
     const PUSH_CHARS = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
@@ -299,12 +361,8 @@ function calculateDewPoint(temp, hum) {
 }
 
 function getForecast(allP, lastHum) {
-    // Annahme: Datenpunkt alle 5 Min. -> 3h = 36 Punkte
     if (allP.length < 36) return "Ermittlung...";
-    const currentP = allP[allP.length - 1].value;
-    const oldP = allP[allP.length - 36].value;
-    const diff = currentP - oldP;
-    
+    const currentP = allP[allP.length - 1].value, oldP = allP[allP.length - 36].value, diff = currentP - oldP;
     if (diff < -3.0) return "⛈️ Unbeständig"; 
     if (diff < -1.0) return lastHum > 75 ? "🌧️ Regenneigung" : "☁️ Bewölkt";
     if (Math.abs(diff) <= 1.0) return lastHum > 80 ? "☁️ Trüb" : "⛅ Beständig";
@@ -344,28 +402,31 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
     let lastT = 0, lastHum = 0;
     
     if (entriesT.length > 0) {
+        const lastDate = entriesT[entriesT.length - 1].date;
+        const timeStr = lastDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${timeStr} Uhr`;
+        
         lastT = entriesT[entriesT.length-1].value; const color = getTempColor(lastT);
         document.getElementById('curr-temp').innerText = lastT.toFixed(1);
         document.getElementById('temp-display').style.color = color;
         document.getElementById('icon-temp').style.stroke = color; 
         const cardT = document.getElementById('card-temp');
-        cardT.style.setProperty('--color-temp', color);
+        cardT.style.setProperty('--accent-color', color);
         const valsT = entriesT.map(e => e.value);
         document.getElementById('min-temp-val').innerText = Math.min(...valsT).toFixed(1);
         document.getElementById('max-temp-val').innerText = Math.max(...valsT).toFixed(1);
     }
-
     if (entriesH.length > 0) {
         lastHum = entriesH[entriesH.length-1].value; const color = getHumColor(lastHum);
         document.getElementById('curr-hum').innerText = lastHum.toFixed(1);
         document.getElementById('hum-display').style.color = color;
         document.getElementById('icon-hum').style.stroke = color;
         const cardH = document.getElementById('card-hum');
-        cardH.style.setProperty('--color-temp', color);
+        cardH.style.setProperty('--accent-color', color);
     }
-
-    if (lastT !== 0 && lastHum !== 0) document.getElementById('curr-dew').innerText = calculateDewPoint(lastT, lastHum).toFixed(1);
-
+    if (lastT !== 0 && lastHum !== 0) {
+        document.getElementById('curr-dew').innerText = calculateDewPoint(lastT, lastHum).toFixed(1);
+    }
     if (entriesP.length > 0) {
         document.getElementById('curr-pres').innerText = entriesP[entriesP.length-1].value.toFixed(0);
         if (entriesP.length > 12) {
@@ -374,9 +435,7 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
             document.getElementById('pres-rate-val').innerText = (diff > 0 ? "+" : "") + diff.toFixed(1) + " hPa/h";
         }
     }
-
     document.getElementById('forecast-val').innerText = getForecast(allP, lastHum);
-
     if (entriesR.length > 0) {
         const lastR = entriesR[entriesR.length-1].value;
         const diff = lastR - (entriesR.length > 1 ? entriesR[entriesR.length-2].value : lastR);
@@ -384,9 +443,8 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
         document.getElementById('curr-rain').innerText = lastR.toFixed(2) + " l/m²";
         document.getElementById('curr-rain').style.color = rainColor;
         document.getElementById('icon-rain').style.stroke = rainColor;
-        document.getElementById('rainCard').style.setProperty('--color-dry', rainColor);
+        document.getElementById('rainCard').style.setProperty('--accent-color', rainColor);
     }
-
     renderMainChart(entriesT, entriesH, hours);
     renderPresChart(entriesP, hours);
     renderRainChart(entriesR, rainHours);
@@ -394,15 +452,19 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
 
 function getXAxisConfig(hours) {
     return {
-        grid: { color: '#333' },
+        grid: { color: 'rgba(255, 255, 255, 0.03)' },
         ticks: {
-            color: '#bbb', autoSkip: false, maxRotation: 0,
+            color: '#444', 
+            autoSkip: true, 
+            maxRotation: 0,
             callback: function(v, i, t) {
                 const label = this.getLabelForValue(v);
-                if (hours <= 24) {
-                    if (i === 0) return label;
-                    const prev = this.getLabelForValue(t[i - 1]?.value);
-                    return label.substring(0, 2) !== prev?.substring(0, 2) ? label.substring(0, 2) + ':00' : '';
+                if (hours <= 48) {
+                    const prev = i > 0 ? this.getLabelForValue(t[i - 1]?.value) : null;
+                    if (prev && label.substring(0, 2) !== prev.substring(0, 2)) {
+                        return label.substring(0, 2) + ':00';
+                    }
+                    return null;
                 } else {
                     if (i === 0) return label.split(' ')[0];
                     const prev = this.getLabelForValue(t[i - 1]?.value);
@@ -418,7 +480,9 @@ function renderMainChart(entriesT, entriesH, hours) {
     const data = {
         labels: entriesT.map(e => getSmartLabel(e.date, hours)),
         datasets: [{ 
-            label: 'Temp', data: entriesT.map(e => e.value), fill: false, yAxisID: 'y', pointRadius: 0, tension: 0.3,
+            label: 'Temp', data: entriesT.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4,
+            borderColor: '#00d1b2',
+            backgroundColor: (context) => createVerticalGradient(context.chart.ctx, context.chart.chartArea, '#00d1b2'),
             segment: { borderColor: ctx => ctx.p0.parsed && ctx.p1.parsed ? getTempColor((ctx.p0.parsed.y + ctx.p1.parsed.y) / 2) : '#00d1b2' }
         }]
     };
@@ -426,11 +490,11 @@ function renderMainChart(entriesT, entriesH, hours) {
         charts['mainChart'].data = data; charts['mainChart'].options.scales.x = getXAxisConfig(hours); charts['mainChart'].update('none');
     } else {
         charts['mainChart'] = new Chart(ctx, {
-            type: 'line', data, plugins: [minMaxPlugin],
+            type: 'line', data, plugins: [minMaxPlugin, crosshairPlugin],
             options: {
-                responsive: true, maintainAspectRatio: false, animation: false,
-                plugins: { legend: { display: false }, title: { display: true, text: 'Temperaturverlauf (°C)', color: '#fff' } },
-                scales: { y: { grid: { color: '#333' }, ticks: { color: '#bbb' } }, x: getXAxisConfig(hours) }
+                responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig,
+                plugins: { legend: { display: false }, title: { display: true, text: 'Temperaturverlauf (°C)', color: '#444' } },
+                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#444' } }, x: getXAxisConfig(hours) }
             }
         });
     }
@@ -441,15 +505,22 @@ function renderPresChart(entriesP, hours) {
     const values = entriesP.map(e => e.value);
     if (charts['presChart']) {
         charts['presChart'].data.labels = entriesP.map(e => getSmartLabel(e.date, hours));
-        charts['presChart'].data.datasets[0].data = values; charts['presChart'].update('none');
+        charts['presChart'].data.datasets[0].data = values; 
+        charts['presChart'].options.scales.x = getXAxisConfig(hours);
+        charts['presChart'].update('none');
     } else {
         charts['presChart'] = new Chart(ctx, {
-            type: 'line', data: { labels: entriesP.map(e => getSmartLabel(e.date, hours)), datasets: [{ label: 'Druck', data: values, borderColor: 'var(--color-pres)', backgroundColor: '#a29bfe22', fill: true, pointRadius: 0, tension: 0.3 }] },
+            type: 'line', data: { labels: entriesP.map(e => getSmartLabel(e.date, hours)), datasets: [{ 
+                label: 'Druck', data: values, borderColor: '#a29bfe', 
+                backgroundColor: (context) => createVerticalGradient(context.chart.ctx, context.chart.chartArea, '#a29bfe'),
+                fill: true, pointRadius: 0, tension: 0.4 
+            }] },
             options: {
-                responsive: true, maintainAspectRatio: false, animation: false,
-                plugins: { legend: { display: false }, title: { display: true, text: 'Luftdruck (hPa)', color: '#fff' } },
-                scales: { y: { grid: { color: '#333' }, ticks: { color: '#bbb' } }, x: getXAxisConfig(hours) }
-            }
+                responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig,
+                plugins: { legend: { display: false }, title: { display: true, text: 'Luftdruck (hPa)', color: '#444' } },
+                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#444' } }, x: getXAxisConfig(hours) },
+            },
+            plugins: [crosshairPlugin]
         });
     }
 }
@@ -459,18 +530,23 @@ function renderRainChart(entriesR, hours) {
     const data = {
         labels: entriesR.map(e => getSmartLabel(e.date, hours, true)),
         datasets: [{
-            label: 'l/m²', data: entriesR.map(e => e.value), tension: 0, pointRadius: 0, borderWidth: 2,
+            label: 'l/m²', data: entriesR.map(e => e.value), tension: 0, pointRadius: 0, borderWidth: 2, fill: true,
+            backgroundColor: (context) => createVerticalGradient(context.chart.ctx, context.chart.chartArea, '#00bcd4'),
             segment: { borderColor: ctx => ctx.p0.parsed && ctx.p1.parsed ? getColorByDiff(ctx.p1.parsed.y - ctx.p0.parsed.y) : '#00bcd4' }
         }]
     };
-    if (charts['rainChart']) { charts['rainChart'].data = data; charts['rainChart'].update('none'); }
+    if (charts['rainChart']) { 
+        charts['rainChart'].data = data; 
+        charts['rainChart'].options.scales.x = getXAxisConfig(hours);
+        charts['rainChart'].update('none'); 
+    }
     else {
         charts['rainChart'] = new Chart(ctx, {
-            type: 'line', data,
+            type: 'line', data, plugins: [crosshairPlugin],
             options: {
-                responsive: true, maintainAspectRatio: false, animation: false,
-                plugins: { legend: { display: false }, title: { display: true, text: 'Regenmenge (l/m²)', color: '#fff' } },
-                scales: { y: { grid: { color: '#333' }, ticks: { color: '#bbb' } }, x: getXAxisConfig(hours) }
+                responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig,
+                plugins: { legend: { display: false }, title: { display: true, text: 'Regenmenge (l/m²)', color: '#444' } },
+                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#444' } }, x: getXAxisConfig(hours) }
             }
         });
     }
