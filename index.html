@@ -131,10 +131,32 @@
 
         .card-icon { width: 20px; height: 20px; margin-bottom: 8px; stroke: currentColor; opacity: 0.9; filter: drop-shadow(0 0 5px rgba(255,255,255,0.1)); }
 
+        .pres-text { color: var(--color-pres) !important; }
+        .min-text { color: var(--color-min) !important; }
+        .max-text { color: var(--color-max) !important; }
+        .dew-text { color: var(--color-dew) !important; }
+
+        .pres-rate { font-size: 0.5em; display: block; margin-top: 5px; font-weight: 400; color: #777 !important; }
+        .fore-info { font-size: 0.55em; color: #777 !important; margin-top: 5px; font-weight: 400; }
+
         .chart-box { background: rgba(20, 20, 20, 0.4); border-radius: 24px; padding: 15px 10px 45px 10px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.04); height: 320px; box-sizing: border-box; position: relative; backdrop-filter: blur(10px); }
         .section-header { margin: 30px 0 15px 0; padding: 0 5px; display: flex; justify-content: space-between; align-items: center; }
         .section-header h2 { font-size: 0.9em; text-transform: uppercase; color: #555; margin: 0; letter-spacing: 2px; font-weight: 800; }
         .sensor-info { margin: 20px 0 30px 0; font-size: 0.75em; color: #444; line-height: 1.6; padding: 0 15px; border-top: 1px solid rgba(255,255,255,0.03); padding-top: 20px; }
+
+        .rain-legend {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            margin-top: 15px;
+            margin-bottom: 25px;
+            font-size: 0.65em;
+            color: #888;
+            font-weight: 600;
+        }
+        .legend-item { display: flex; align-items: center; gap: 4px; white-space: nowrap; }
+        .legend-dot { width: 8px; height: 8px; border-radius: 50%; }
 
         @media (min-width: 600px) {
             body { padding: 20px; }
@@ -154,7 +176,6 @@
     <div class="main-title">Wetterstation Kirchheide, 170 m ü. NHN</div>
     <div id="last-update-ts" class="last-update">Zuletzt aktualisiert: --:-- Uhr</div>
 
-    <!-- Astronomie Reihe -->
     <div class="stats">
         <div class="card astro">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke="var(--color-astro)"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
@@ -179,7 +200,6 @@
         </div>
     </div>
 
-    <!-- Reihe 1: Temp, Min, Max -->
     <div class="stats">
         <div id="card-temp" class="card temp">
             <svg id="icon-temp" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
@@ -198,7 +218,6 @@
         </div>
     </div>
 
-    <!-- Reihe 2: Druck, Feuchte, Regen -->
     <div class="stats">
         <div class="card pres">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="m12 16 4-4-4-4M8 12h8"/></svg>
@@ -220,7 +239,6 @@
         </div>
     </div>
 
-    <!-- Reihe 3: Prognose, Taupunkt -->
     <div class="stats-split">
         <div class="card forecast">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M17.5 19a3.5 3.5 0 1 1-5.83-2.66 3 3 0 1 1 3.83-4.34 4.5 4.5 0 1 1 2 7M12 12V3m0 0l-3 3m3-3l3 3"/></svg>
@@ -237,7 +255,6 @@
         </div>
     </div>
 
-    <!-- Neue Position der Zeitraum-Auswahl -->
     <div class="controls-row">
         <label>Zeitraum</label>
         <select id="period" onchange="fetchData()">
@@ -263,15 +280,25 @@
         <select id="rainPeriod" onchange="fetchData()">
             <option value="1">1 Std</option>
             <option value="4">4 Std</option>
-            <option value="12">12 Std</option>
+            <option value="12" selected>12 Std</option>
             <option value="24">24 Std</option>
-            <option value="168" selected>7 Tage</option>
+            <option value="168">7 Tage</option>
             <option value="720">30 Tage</option>
         </select>
     </div>
 
-    <div class="chart-box">
-        <canvas id="rainChart"></canvas>
+    <div class="chart-box" style="height: auto; padding-bottom: 20px;">
+        <div style="height: 300px; position: relative;">
+            <canvas id="rainChart"></canvas>
+        </div>
+        <div class="rain-legend">
+            <div class="legend-item"><span class="legend-dot" style="background: var(--color-dry)"></span> Schauer</div>
+            <div class="legend-item"><span class="legend-dot" style="background: var(--color-light)"></span> Leicht</div>
+            <div class="legend-item"><span class="legend-dot" style="background: var(--color-mod)"></span> Mittel</div>
+            <div class="legend-item"><span class="legend-dot" style="background: var(--color-heavy)"></span> Stark</div>
+            <div class="legend-item"><span class="legend-dot" style="background: var(--color-extreme)"></span> Extrem</div>
+            <div style="margin-left: 5px; opacity: 0.6;">(l/m² pro h)</div>
+        </div>
     </div>
 
     <div class="sensor-info">
@@ -407,7 +434,7 @@ function getColorByDiff(diff) {
     if (diff < 0.2) return '#00bcd4'; 
     const rate = diff * 60; 
     if (rate <= 15.0) return '#ffeb3b'; if (rate <= 30.0) return '#ff9800'; 
-    if (rate <= 45.0) return '#f44336'; return '#9c27b0';                                   
+    if (rate <= 45.0) return '#f44336'; return '#9c27b0';                                    
 }
 
 function calculateDewPoint(temp, hum) {
@@ -508,7 +535,7 @@ function getXAxisConfig(hours) {
     return {
         grid: { color: 'rgba(255, 255, 255, 0.03)' },
         ticks: {
-            color: '#444', 
+            color: '#ffffff', // Beschriftung X-Achse in Weiß
             autoSkip: true, 
             maxRotation: 0,
             callback: function(v, i, t) {
@@ -544,8 +571,8 @@ function renderMainChart(entriesT, entriesH, hours) {
             type: 'line', data, plugins: [minMaxPlugin, crosshairPlugin],
             options: {
                 responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig,
-                plugins: { legend: { display: false }, title: { display: true, text: 'Temperaturverlauf (°C)', color: '#444' } },
-                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#444' } }, x: getXAxisConfig(hours) }
+                plugins: { legend: { display: false }, title: { display: true, text: 'Temperaturverlauf (°C)', color: '#ffffff' } }, // Titel in Weiß
+                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hours) } // Y-Ticks in Weiß
             }
         });
     }
@@ -560,8 +587,8 @@ function renderPresChart(entriesP, hours) {
             type: 'line', data: { labels: entriesP.map(e => getSmartLabel(e.date, hours)), datasets: [{ label: 'Druck', data: values, borderColor: '#a29bfe', backgroundColor: (context) => createVerticalGradient(context.chart.ctx, context.chart.chartArea, '#a29bfe'), fill: true, pointRadius: 0, tension: 0.4 }] },
             options: {
                 responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig,
-                plugins: { legend: { display: false }, title: { display: true, text: 'Luftdruck (hPa)', color: '#444' } },
-                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#444' } }, x: getXAxisConfig(hours) },
+                plugins: { legend: { display: false }, title: { display: true, text: 'Luftdruck (hPa)', color: '#ffffff' } }, // Titel in Weiß
+                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hours) }, // Y-Ticks in Weiß
             },
             plugins: [crosshairPlugin]
         });
@@ -580,8 +607,8 @@ function renderRainChart(entriesR, hours) {
             type: 'line', data, plugins: [crosshairPlugin],
             options: {
                 responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig,
-                plugins: { legend: { display: false }, title: { display: true, text: 'Regenmenge (l/m²)', color: '#444' } },
-                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#444' } }, x: getXAxisConfig(hours) }
+                plugins: { legend: { display: false }, title: { display: true, text: 'Regenmenge (l/m²)', color: '#ffffff' } }, // Titel in Weiß
+                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hours) } // Y-Ticks in Weiß
             }
         });
     }
