@@ -412,7 +412,7 @@ function getHumColor(h) {
 }
 
 function getColorByDiff(diff) {
-    if (diff < 0.2) return '#00bcd4'; 
+    if (diff < 0.01) return '#00bcd4'; 
     const rate = diff * 60; 
     if (rate <= 15.0) return '#ffeb3b'; if (rate <= 30.0) return '#ff9800'; 
     if (rate <= 45.0) return '#f44336'; return '#9c27b0';                                    
@@ -426,15 +426,15 @@ function calculateDewPoint(temp, hum) {
 
 function getForecast(allP, lastHum, lastT) {
     const dewPoint = calculateDewPoint(lastT, lastHum);
-    if (lastHum > 95 && (lastT - dewPoint) < 1.5) return "🌫️ Nebel möglich";
+    if (lastHum > 95 && (lastT - dewPoint) < 1.5) return " Nebel möglich";
     if (allP.length < 36) return "Ermittlung...";
     const currentP = allP[allP.length - 1].value, oldP = allP[allP.length - 36].value, diff = currentP - oldP;
-    if (diff < -3.0) return "⛈️ Unbeständig"; 
-    if (diff < -1.0) return lastHum > 75 ? "🌧️ Regenneigung" : "☁️ Bewölkt";
-    if (Math.abs(diff) <= 1.0) return lastHum > 80 ? "☁️ Trüb" : "⛅ Beständig";
-    if (diff > 3.0) return "☀️ Sonnig"; 
-    if (diff > 1.0) return "🌤️ Aufklarend";
-    return "⌛ Unklar";
+    if (diff < -3.0) return " Unbeständig"; 
+    if (diff < -1.0) return lastHum > 75 ? " Regenneigung" : " Bewölkt";
+    if (Math.abs(diff) <= 1.0) return lastHum > 80 ? " Trüb" : " Beständig";
+    if (diff > 3.0) return " Sonnig"; 
+    if (diff > 1.0) return " Aufklarend";
+    return " Unklar";
 }
 
 async function fetchYearlyRain(year, currentMonthIdx) {
@@ -513,20 +513,18 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
         lastHum = entriesH[entriesH.length-1].value; 
     }
 
-    // --- ERWEITERTE FROST- & REIFLOGIK ---
-    if (entriesT.length > 0 && entriesH.length > 0) {
-        const frostAlarm = document.getElementById('frost-alarm');
-        const currentDewPoint = calculateDewPoint(lastT, lastHum);
-        
-        // Alarm wenn Luft <= 3°C ODER Taupunkt <= 0°C (Reifgefahr)
-        if (lastT <= 3.0 || currentDewPoint <= 0.0) {
-            frostAlarm.style.display = 'block';
-            // Farbe anpassen: Tiefblau bei Frost unter 0, Cyan bei Reifgefahr
-            frostAlarm.style.color = lastT <= 0 ? 'var(--color-ice)' : 'var(--color-frost)';
-        } else {
-            frostAlarm.style.display = 'none';
-        }
+    // --- ANGEPASSTE FROSTLOGIK (KLAUS) ---
+    const frostAlarm = document.getElementById('frost-alarm');
+    // Bedingung: Lufttemperatur < 3°C UND Luftfeuchtigkeit > 70%
+    if (lastT < 3.0 && lastHum > 70.0) {
+        frostAlarm.style.display = 'block';
+        // Farbe anpassen: Dunkelblau bei Frost (<=0), Hellblau bei Frostgefahr (>0)
+        frostAlarm.style.color = lastT <= 0 ? 'var(--color-ice)' : 'var(--color-frost)';
+    } else {
+        frostAlarm.style.display = 'none';
+    }
 
+    if (entriesT.length > 0) {
         const color = getTempColor(lastT);
         document.getElementById('curr-temp').innerText = lastT.toFixed(1);
         document.getElementById('card-temp').style.setProperty('--accent-color', color);
@@ -535,13 +533,15 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
         const valsT = entriesT.map(e => e.value);
         document.getElementById('min-temp-val').innerText = Math.min(...valsT).toFixed(1);
         document.getElementById('max-temp-val').innerText = Math.max(...valsT).toFixed(1);
+    }
 
+    if (entriesH.length > 0) {
         const humColor = getHumColor(lastHum);
         document.getElementById('curr-hum').innerText = lastHum.toFixed(1);
         document.getElementById('card-hum').style.setProperty('--accent-color', humColor);
         document.getElementById('hum-display').style.color = humColor;
         document.getElementById('icon-hum').style.stroke = humColor;
-        document.getElementById('curr-dew').innerText = currentDewPoint.toFixed(1);
+        document.getElementById('curr-dew').innerText = calculateDewPoint(lastT, lastHum).toFixed(1);
     }
 
     if (entriesP.length > 0) {
