@@ -138,6 +138,7 @@
 
         .pres-rate { font-size: 0.5em; display: block; margin-top: 5px; font-weight: 400; color: #777 !important; }
         .fore-info { font-size: 0.55em; color: #777 !important; margin-top: 5px; font-weight: 400; }
+        .rain-sub { font-size: 0.6em; color: #aaa; font-weight: 600; margin-top: 2px; }
 
         .chart-box { background: rgba(20, 20, 20, 0.4); border-radius: 24px; padding: 15px 10px 45px 10px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.04); height: 320px; box-sizing: border-box; position: relative; backdrop-filter: blur(10px); }
         .section-header { margin: 30px 0 15px 0; padding: 0 5px; display: flex; justify-content: space-between; align-items: center; }
@@ -235,7 +236,13 @@
         <div id="rainCard" class="card rain">
             <svg id="icon-rain" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6M8 14v6M12 16v6"/></svg>
             <h3>Regenmenge</h3>
-            <div class="val-display" id="curr-rain-box"><span id="curr-rain">--</span></div>
+            <div class="val-display" style="flex-direction: column; align-items: center; gap: 2px;">
+                <div style="font-size: 0.85em; display: flex; align-items: baseline; gap: 5px;">
+                    <span style="font-size: 0.6em; color: #888; text-transform: uppercase;">Monat:</span>
+                    <span id="curr-rain">--</span>
+                </div>
+                <span id="year-rain" class="rain-sub">Jahr: -- l/m²</span>
+            </div>
         </div>
     </div>
 
@@ -317,6 +324,7 @@ const URL_R_BASE = `${URL_BASE}/Regenmesser`;
 
 const LAT = 52.0267;
 const LON = 8.9017;
+const MONTHS = ["Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
 let charts = {};
 
@@ -456,30 +464,68 @@ function getForecast(allP, lastHum, lastT) {
     return "⌛ Unklar";
 }
 
+async function fetchYearlyRain(year, currentMonthIdx) {
+    let sum = 0;
+    const promises = [];
+    for (let i = 0; i <= currentMonthIdx; i++) {
+        promises.push(fetch(`${URL_R_BASE}/${year}/${MONTHS[i]}.json?orderBy="$key"&limitToLast=1`).then(r => r.json()));
+    }
+    const results = await Promise.all(promises);
+    results.forEach(data => {
+        if (data) {
+            const keys = Object.keys(data);
+            if (keys.length > 0) sum += parseFloat(data[keys[0]].regen_l_m2) || 0;
+        }
+    });
+    return sum;
+}
+
 async function fetchData() {
     updateAstronomy();
     const hours = parseInt(document.getElementById('period').value);
     const rainHours = parseInt(document.getElementById('rainPeriod').value);
-    const months = ["Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
     const now = new Date();
     const cutoffGeneral = new Date(now.getTime() - (hours * 60 * 60 * 1000)), cutoffRain = new Date(now.getTime() - (rainHours * 60 * 60 * 1000));
+    
     try {
         const maxHours = Math.max(hours, rainHours, 12), limit = maxHours >= 168 ? 10000 : 2500;
-        const fetchPromises = [fetch(`${URL_T}?orderBy="$key"&limitToLast=${limit}`), fetch(`${URL_H}?orderBy="$key"&limitToLast=${limit}`), fetch(`${URL_P}?orderBy="$key"&limitToLast=${limit}`)];
-        const currentYear = now.getFullYear(), currentMonthStr = months[now.getMonth()], cutoffYear = cutoffRain.getFullYear(), cutoffMonthStr = months[cutoffRain.getMonth()];
-        fetchPromises.push(fetch(`${URL_R_BASE}/${currentYear}/${currentMonthStr}.json?orderBy="$key"&limitToLast=${limit}`));
-        if (currentMonthStr !== cutoffMonthStr || currentYear !== cutoffYear) fetchPromises.push(fetch(`${URL_R_BASE}/${cutoffYear}/${cutoffMonthStr}.json?orderBy="$key"&limitToLast=${limit}`));
+        const currentYear = now.getFullYear();
+        const currentMonthIdx = now.getMonth();
+        const currentMonthStr = MONTHS[currentMonthIdx];
+        
+        const fetchPromises = [
+            fetch(`${URL_T}?orderBy="$key"&limitToLast=${limit}`),
+            fetch(`${URL_H}?orderBy="$key"&limitToLast=${limit}`),
+            fetch(`${URL_P}?orderBy="$key"&limitToLast=${limit}`),
+            fetch(`${URL_R_BASE}/${currentYear}/${currentMonthStr}.json?orderBy="$key"&limitToLast=${limit}`)
+        ];
+
+        const cutoffYear = cutoffRain.getFullYear();
+        const cutoffMonthStr = MONTHS[cutoffRain.getMonth()];
+        if (currentMonthStr !== cutoffMonthStr || currentYear !== cutoffYear) {
+            fetchPromises.push(fetch(`${URL_R_BASE}/${cutoffYear}/${cutoffMonthStr}.json?orderBy="$key"&limitToLast=${limit}`));
+        }
+
         const responses = await Promise.all(fetchPromises);
-        const dataT = await responses[0].json(), dataH = await responses[1].json(), dataP = await responses[2].json();
-        const dataR_curr = await responses[3].json(), dataR_prev = responses[4] ? await responses[4].json() : null;
+        const dataT = await responses[0].json();
+        const dataH = await responses[1].json();
+        const dataP = await responses[2].json();
+        const dataR_curr = await responses[3].json();
+        const dataR_prev = responses[4] ? await responses[4].json() : null;
+
         const entriesT = Object.keys(dataT || {}).map(k => ({ id: k, date: getTimeFromId(k), value: dataT[k].value })).filter(e => e.date >= cutoffGeneral);
         const entriesH = Object.keys(dataH || {}).map(k => ({ id: k, date: getTimeFromId(k), value: dataH[k].value })).filter(e => e.date >= cutoffGeneral);
         const entriesP = Object.keys(dataP || {}).map(k => ({ id: k, date: getTimeFromId(k), value: dataP[k].value })).filter(e => e.date >= cutoffGeneral);
+        
         let mergedR = Object.assign({}, dataR_prev || {}, dataR_curr || {});
         let entriesR = Object.keys(mergedR).sort().map(k => {
             const parts = mergedR[k].zeitstempel.split(/[. :]/);
             return { date: new Date(parts[2], parts[1]-1, parts[0], parts[3], parts[4]), value: parseFloat(mergedR[k].regen_l_m2) || 0 };
         }).filter(e => e.date >= cutoffRain);
+
+        const yearlyTotal = await fetchYearlyRain(currentYear, currentMonthIdx);
+        document.getElementById('year-rain').innerText = `Jahr: ${yearlyTotal.toFixed(1)} l/m²`;
+
         updateUI(entriesT, entriesH, entriesP, entriesR, dataP ? Object.keys(dataP).map(k => ({ date: getTimeFromId(k), value: dataP[k].value })) : [], hours, rainHours);
     } catch (e) { console.error("Datenfehler:", e); }
 }
@@ -535,7 +581,7 @@ function getXAxisConfig(hours) {
     return {
         grid: { color: 'rgba(255, 255, 255, 0.03)' },
         ticks: {
-            color: '#ffffff', // Beschriftung X-Achse in Weiß
+            color: '#ffffff', 
             autoSkip: true, 
             maxRotation: 0,
             callback: function(v, i, t) {
@@ -571,8 +617,8 @@ function renderMainChart(entriesT, entriesH, hours) {
             type: 'line', data, plugins: [minMaxPlugin, crosshairPlugin],
             options: {
                 responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig,
-                plugins: { legend: { display: false }, title: { display: true, text: 'Temperaturverlauf (°C)', color: '#ffffff' } }, // Titel in Weiß
-                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hours) } // Y-Ticks in Weiß
+                plugins: { legend: { display: false }, title: { display: true, text: 'Temperaturverlauf (°C)', color: '#ffffff' } }, 
+                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hours) } 
             }
         });
     }
@@ -587,8 +633,8 @@ function renderPresChart(entriesP, hours) {
             type: 'line', data: { labels: entriesP.map(e => getSmartLabel(e.date, hours)), datasets: [{ label: 'Druck', data: values, borderColor: '#a29bfe', backgroundColor: (context) => createVerticalGradient(context.chart.ctx, context.chart.chartArea, '#a29bfe'), fill: true, pointRadius: 0, tension: 0.4 }] },
             options: {
                 responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig,
-                plugins: { legend: { display: false }, title: { display: true, text: 'Luftdruck (hPa)', color: '#ffffff' } }, // Titel in Weiß
-                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hours) }, // Y-Ticks in Weiß
+                plugins: { legend: { display: false }, title: { display: true, text: 'Luftdruck (hPa)', color: '#ffffff' } }, 
+                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hours) }, 
             },
             plugins: [crosshairPlugin]
         });
@@ -607,8 +653,8 @@ function renderRainChart(entriesR, hours) {
             type: 'line', data, plugins: [crosshairPlugin],
             options: {
                 responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig,
-                plugins: { legend: { display: false }, title: { display: true, text: 'Regenmenge (l/m²)', color: '#ffffff' } }, // Titel in Weiß
-                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hours) } // Y-Ticks in Weiß
+                plugins: { legend: { display: false }, title: { display: true, text: 'Regenmenge (l/m²)', color: '#ffffff' } }, 
+                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hours) } 
             }
         });
     }
