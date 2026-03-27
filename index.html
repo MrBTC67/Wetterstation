@@ -17,6 +17,7 @@
             --color-pres: #a29bfe; 
             --color-update: #00ff88; 
             --bg-body: #0f0f0f;
+            --color-frost: #00d4ff;
         }
         body { 
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
@@ -68,7 +69,6 @@
         .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
         .stats-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
         
-        /* Spezielle Klasse für die Temperatur-Reihe */
         .stats-temp .card {
             padding: 22px 10px;
             min-height: 80px;
@@ -133,6 +133,23 @@
 
         .card-icon { width: 20px; height: 20px; margin-bottom: 8px; stroke: currentColor; opacity: 0.9; filter: drop-shadow(0 0 5px rgba(255,255,255,0.1)); }
 
+        /* Frost Alarm Styles */
+        #frost-alarm {
+            position: absolute;
+            left: 10px;
+            top: 10px;
+            display: none;
+            color: var(--color-frost);
+            animation: frost-pulse 1.5s infinite ease-in-out;
+            filter: drop-shadow(0 0 8px var(--color-frost));
+        }
+
+        @keyframes frost-pulse {
+            0% { opacity: 0.3; transform: scale(0.9); }
+            50% { opacity: 1; transform: scale(1.1); }
+            100% { opacity: 0.3; transform: scale(0.9); }
+        }
+
         .pres-text { color: var(--color-pres) !important; }
         .min-text { color: var(--color-min) !important; }
         .max-text { color: var(--color-max) !important; }
@@ -172,6 +189,7 @@
             .card::before { width: 4px; height: 100%; }
             .val-display { font-size: 1.9em; }
             .card-icon { width: 28px; height: 28px; position: absolute; right: 18px; top: 18px; }
+            #frost-alarm { left: 18px; top: 18px; }
         }
     </style>
 </head>
@@ -181,9 +199,11 @@
     <div class="main-title">Wetterstation Kirchheide, 170 m ü. NHN</div>
     <div id="last-update-ts" class="last-update">Zuletzt aktualisiert: --:-- Uhr</div>
 
-    <!-- Temperatur-Reihe mit neuer Klasse stats-temp -->
     <div class="stats stats-temp">
         <div id="card-temp" class="card temp">
+            <div id="frost-alarm">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"></line><line x1="20" y1="12" x2="4" y2="12"></line><line x1="17.66" y1="6.34" x2="6.34" y2="17.66"></line><line x1="17.66" y1="17.66" x2="6.34" y2="6.34"></line></svg>
+            </div>
             <svg id="icon-temp" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
             <h3>Temperatur</h3>
             <div id="temp-display" class="val-display"><span id="curr-temp">--</span><span class="unit">°C</span></div>
@@ -303,8 +323,6 @@ const URL_H = `${URL_BASE}/humidity.json`;
 const URL_P = `${URL_BASE}/pressure.json`;
 const URL_R_BASE = `${URL_BASE}/Regenmesser`;
 
-const LAT = 52.0267;
-const LON = 8.9017;
 const MONTHS = ["Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
 let charts = {};
@@ -490,6 +508,16 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
         const lastDate = entriesT[entriesT.length - 1].date;
         document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${lastDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`;
         lastT = entriesT[entriesT.length-1].value; 
+        
+        // --- FROST ALARM LOGIK ---
+        const frostAlarm = document.getElementById('frost-alarm');
+        if (lastT <= 3.0) {
+            frostAlarm.style.display = 'block';
+        } else {
+            frostAlarm.style.display = 'none';
+        }
+        // -------------------------
+
         const color = getTempColor(lastT);
         document.getElementById('curr-temp').innerText = lastT.toFixed(1);
         document.getElementById('card-temp').style.setProperty('--accent-color', color);
