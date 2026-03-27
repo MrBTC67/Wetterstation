@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wetterstation Klaus</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/suncalc/1.9.0/suncalc.min.js"></script>
     <style>
         :root { 
             --color-dry: #00bcd4; --color-light: #ffeb3b; --color-mod: #ff9800; 
@@ -16,7 +15,6 @@
             --color-forecast: #ffa500;
             --color-dew: #ffff00; 
             --color-pres: #a29bfe; 
-            --color-astro: #f1c40f;
             --color-update: #00ff88; 
             --bg-body: #0f0f0f;
         }
@@ -70,6 +68,15 @@
         .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
         .stats-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
         
+        /* Spezielle Klasse für die Temperatur-Reihe */
+        .stats-temp .card {
+            padding: 22px 10px;
+            min-height: 80px;
+        }
+        .stats-temp .val-display {
+            font-size: 1.55em;
+        }
+
         .card { 
             position: relative;
             padding: 15px 10px; 
@@ -123,11 +130,6 @@
         .card.rain { --accent-color: var(--color-dry); }
         .card.forecast { --accent-color: var(--color-forecast); }
         .card.dew-card { --accent-color: var(--color-dew); }
-        .card.astro { --accent-color: var(--color-astro); }
-
-        .astro-time { font-size: 0.85em; color: #bbb; font-weight: 600; }
-        .moon-info { display: flex; align-items: center; gap: 8px; font-size: 0.9em; color: #fff; font-weight: bold; }
-        .moon-phase-icon { font-size: 1.5em; filter: drop-shadow(0 0 5px var(--color-astro)); }
 
         .card-icon { width: 20px; height: 20px; margin-bottom: 8px; stroke: currentColor; opacity: 0.9; filter: drop-shadow(0 0 5px rgba(255,255,255,0.1)); }
 
@@ -164,6 +166,8 @@
             .container { padding: 35px; }
             .main-title { font-size: 1.8em; }
             .stats, .stats-split { gap: 18px; }
+            .stats-temp .card { padding: 32px 18px; }
+            .stats-temp .val-display { font-size: 2.3em; }
             .card { padding: 24px 18px; }
             .card::before { width: 4px; height: 100%; }
             .val-display { font-size: 1.9em; }
@@ -177,31 +181,8 @@
     <div class="main-title">Wetterstation Kirchheide, 170 m ü. NHN</div>
     <div id="last-update-ts" class="last-update">Zuletzt aktualisiert: --:-- Uhr</div>
 
-    <div class="stats">
-        <div class="card astro">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke="var(--color-astro)"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-            <h3>Sonne (Lemgo)</h3>
-            <div class="astro-time">Auf: <span id="sun-rise">--:--</span></div>
-            <div class="astro-time">Unter: <span id="sun-set">--:--</span></div>
-        </div>
-        <div class="card astro">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke="var(--color-astro)"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/></svg>
-            <h3>Mondphase</h3>
-            <div class="moon-info">
-                <span id="moon-phase-icon" class="moon-phase-icon"></span>
-                <span id="moon-phase-name">--</span>
-            </div>
-            <div style="font-size: 0.65em; color: #666; margin-top: 5px;">Bel.: <span id="moon-illum">--</span>%</div>
-        </div>
-        <div class="card astro">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5" stroke="var(--color-astro)"><path d="M12 3v18M3 12h18"/></svg>
-            <h3>Mond (Lemgo)</h3>
-            <div class="astro-time">Auf: <span id="moon-rise">--:--</span></div>
-            <div class="astro-time">Unter: <span id="moon-set">--:--</span></div>
-        </div>
-    </div>
-
-    <div class="stats">
+    <!-- Temperatur-Reihe mit neuer Klasse stats-temp -->
+    <div class="stats stats-temp">
         <div id="card-temp" class="card temp">
             <svg id="icon-temp" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
             <h3>Temperatur</h3>
@@ -327,32 +308,6 @@ const LON = 8.9017;
 const MONTHS = ["Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
 let charts = {};
-
-function updateAstronomy() {
-    const now = new Date();
-    const sunTimes = SunCalc.getTimes(now, LAT, LON);
-    document.getElementById('sun-rise').innerText = sunTimes.sunrise.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-    document.getElementById('sun-set').innerText = sunTimes.sunset.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-    const moonTimes = SunCalc.getMoonTimes(now, LAT, LON);
-    if (moonTimes.rise) document.getElementById('moon-rise').innerText = moonTimes.rise.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-    else document.getElementById('moon-rise').innerText = "N/A";
-    if (moonTimes.set) document.getElementById('moon-set').innerText = moonTimes.set.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-    else document.getElementById('moon-set').innerText = "N/A";
-    const moonIllum = SunCalc.getMoonIllumination(now);
-    const phase = moonIllum.phase;
-    document.getElementById('moon-illum').innerText = (moonIllum.fraction * 100).toFixed(0);
-    let phaseName = ""; let phaseIcon = "";
-    if (phase <= 0.03 || phase > 0.97) { phaseName = "Neumond"; phaseIcon = "🌑"; }
-    else if (phase <= 0.22) { phaseName = "Zun. Sichel"; phaseIcon = "🌒"; }
-    else if (phase <= 0.28) { phaseName = "Erstes Viertel"; phaseIcon = "🌓"; }
-    else if (phase <= 0.47) { phaseName = "Zun. Mond"; phaseIcon = "🌔"; }
-    else if (phase <= 0.53) { phaseName = "Vollmond"; phaseIcon = "🌕"; }
-    else if (phase <= 0.72) { phaseName = "Abn. Mond"; phaseIcon = "🌖"; }
-    else if (phase <= 0.78) { phaseName = "Letztes Viertel"; phaseIcon = "🌗"; }
-    else { phaseName = "Abn. Sichel"; phaseIcon = "🌘"; }
-    document.getElementById('moon-phase-name').innerText = phaseName;
-    document.getElementById('moon-phase-icon').innerText = phaseIcon;
-}
 
 function createVerticalGradient(ctx, chartArea, color) {
     if (!chartArea) return null;
@@ -481,7 +436,6 @@ async function fetchYearlyRain(year, currentMonthIdx) {
 }
 
 async function fetchData() {
-    updateAstronomy();
     const hours = parseInt(document.getElementById('period').value);
     const rainHours = parseInt(document.getElementById('rainPeriod').value);
     const now = new Date();
