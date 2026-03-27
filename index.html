@@ -18,6 +18,7 @@
             --color-update: #00ff88; 
             --bg-body: #0f0f0f;
             --color-frost: #00d4ff;
+            --color-ice: #0078ff;
         }
         body { 
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
@@ -133,7 +134,6 @@
 
         .card-icon { width: 20px; height: 20px; margin-bottom: 8px; stroke: currentColor; opacity: 0.9; filter: drop-shadow(0 0 5px rgba(255,255,255,0.1)); }
 
-        /* Frost Alarm Styles */
         #frost-alarm {
             position: absolute;
             left: 10px;
@@ -508,15 +508,24 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
         const lastDate = entriesT[entriesT.length - 1].date;
         document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${lastDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`;
         lastT = entriesT[entriesT.length-1].value; 
-        
-        // --- FROST ALARM LOGIK ---
+    }
+    if (entriesH.length > 0) {
+        lastHum = entriesH[entriesH.length-1].value; 
+    }
+
+    // --- ERWEITERTE FROST- & REIFLOGIK ---
+    if (entriesT.length > 0 && entriesH.length > 0) {
         const frostAlarm = document.getElementById('frost-alarm');
-        if (lastT <= 3.0) {
+        const currentDewPoint = calculateDewPoint(lastT, lastHum);
+        
+        // Alarm wenn Luft <= 3°C ODER Taupunkt <= 0°C (Reifgefahr)
+        if (lastT <= 3.0 || currentDewPoint <= 0.0) {
             frostAlarm.style.display = 'block';
+            // Farbe anpassen: Tiefblau bei Frost unter 0, Cyan bei Reifgefahr
+            frostAlarm.style.color = lastT <= 0 ? 'var(--color-ice)' : 'var(--color-frost)';
         } else {
             frostAlarm.style.display = 'none';
         }
-        // -------------------------
 
         const color = getTempColor(lastT);
         document.getElementById('curr-temp').innerText = lastT.toFixed(1);
@@ -526,16 +535,15 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
         const valsT = entriesT.map(e => e.value);
         document.getElementById('min-temp-val').innerText = Math.min(...valsT).toFixed(1);
         document.getElementById('max-temp-val').innerText = Math.max(...valsT).toFixed(1);
-    }
-    if (entriesH.length > 0) {
-        lastHum = entriesH[entriesH.length-1].value; 
-        const color = getHumColor(lastHum);
+
+        const humColor = getHumColor(lastHum);
         document.getElementById('curr-hum').innerText = lastHum.toFixed(1);
-        document.getElementById('card-hum').style.setProperty('--accent-color', color);
-        document.getElementById('hum-display').style.color = color;
-        document.getElementById('icon-hum').style.stroke = color;
+        document.getElementById('card-hum').style.setProperty('--accent-color', humColor);
+        document.getElementById('hum-display').style.color = humColor;
+        document.getElementById('icon-hum').style.stroke = humColor;
+        document.getElementById('curr-dew').innerText = currentDewPoint.toFixed(1);
     }
-    if (lastT !== 0 && lastHum !== 0) document.getElementById('curr-dew').innerText = calculateDewPoint(lastT, lastHum).toFixed(1);
+
     if (entriesP.length > 0) {
         document.getElementById('curr-pres').innerText = entriesP[entriesP.length-1].value.toFixed(0);
         if (entriesP.length > 12) {
