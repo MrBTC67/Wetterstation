@@ -82,8 +82,7 @@
         select { background: #1a1a1a; color: white; border: 1px solid #333; padding: 6px 12px; border-radius: 10px; cursor: pointer; font-size: 13px; outline: none; transition: border 0.3s; }
         select:hover { border-color: var(--color-temp); }
         
-        /* Grid Anpassung für 2 oder 3 Spalten */
-        .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 12px; }
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
         .stats-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
         
         .stats-temp .card { padding: 22px 10px; min-height: 80px; }
@@ -140,7 +139,7 @@
         .card.max { --accent-color: var(--color-max); }
         .card.pres { --accent-color: var(--color-pres); }
         .card.hum { --accent-color: var(--color-temp); }
-        .card.rain { --accent-color: var(--color-dry); margin: 15px auto 0 auto; max-width: 400px; width: 100%; }
+        .card.rain { --accent-color: var(--color-dry); }
         .card.forecast { --accent-color: var(--color-forecast); }
         .card.dew-card { --accent-color: var(--color-dew); }
 
@@ -172,7 +171,7 @@
         
         .rain-line { font-size: 0.85em; display: flex; align-items: baseline; gap: 5px; color: #fff; font-weight: 600; margin-top: 2px; }
         .rain-label { font-size: 0.65em; color: #888; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800; }
-        #day-rain-val { transition: color 0.4s ease; }
+        #day-rain, #curr-rain, #year-rain { transition: color 0.4s ease; }
 
         .chart-box { background: rgba(20, 20, 20, 0.4); border-radius: 24px; padding: 15px 10px 45px 10px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.04); height: 320px; box-sizing: border-box; position: relative; backdrop-filter: blur(10px); }
         .section-header { margin: 30px 0 15px 0; padding: 0 5px; display: flex; justify-content: space-between; align-items: center; }
@@ -270,6 +269,15 @@
             <h3>Feuchte</h3>
             <div id="hum-display" class="val-display"><span id="curr-hum">--</span><span class="unit">%</span></div>
         </div>
+        <div id="rainCard" class="card rain">
+            <svg id="icon-rain" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6M8 14v6M12 16v6"/></svg>
+            <h3>Regenmenge</h3>
+            <div class="val-display" style="flex-direction: column; align-items: center; gap: 2px;">
+                <div class="rain-line"><span class="rain-label">Tag:</span> <span id="day-rain">--</span></div>
+                <div class="rain-line"><span class="rain-label">Monat:</span> <span id="curr-rain">--</span></div>
+                <div class="rain-line"><span class="rain-label">Jahr:</span> <span id="year-rain">--</span></div>
+            </div>
+        </div>
     </div>
 
     <div class="stats-split">
@@ -331,17 +339,6 @@
             <div class="legend-item"><span class="legend-dot" style="background: var(--color-heavy)"></span> Stark</div>
             <div class="legend-item"><span class="legend-dot" style="background: var(--color-extreme)"></span> Extrem</div>
             <div style="margin-left: 5px; opacity: 0.6;">(l/m² pro h)</div>
-        </div>
-    </div>
-
-    <!-- Regenmenge-Fenster jetzt HIER platziert -->
-    <div id="rainCard" class="card rain">
-        <svg id="icon-rain" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6M8 14v6M12 16v6"/></svg>
-        <h3 id="rain-title">Regenmenge</h3>
-        <div class="val-display" style="flex-direction: column; align-items: center; gap: 2px;">
-            <div class="rain-line"><span class="rain-label">Tag:</span> <span id="day-rain-val">--</span></div>
-            <div class="rain-line"><span class="rain-label">Monat:</span> <span id="curr-rain">--</span></div>
-            <div class="rain-line"><span class="rain-label">Jahr:</span> <span id="year-rain">--</span></div>
         </div>
     </div>
 
@@ -599,7 +596,7 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
         const entries24 = entriesR.filter(e => e.date >= cutoff24);
         if (entries24.length > 1) {
             const val24 = entries24[entries24.length-1].value - entries24[0].value;
-            document.getElementById('day-rain-val').innerText = `${val24.toFixed(1)} l/m²`;
+            document.getElementById('day-rain').innerText = `${val24.toFixed(1)} l/m²`;
         }
 
         document.getElementById('curr-rain').innerText = lastR.toFixed(2) + " l/m²";
@@ -612,9 +609,9 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
         document.getElementById('icon-rain').style.stroke = rainColor;
         document.getElementById('rainCard').style.setProperty('--accent-color', rainColor);
 
-        // --- Färbelogik für Titel & Tagesmenge ---
-        const rainTitle = document.getElementById('rain-title');
-        const dayRainText = document.getElementById('day-rain-val');
+        // --- Färbelogik für Überschrift & Tagesmenge ---
+        const rainHeader = document.querySelector('#rainCard h3');
+        const dayRainText = document.getElementById('day-rain');
         
         if (rainRate > 0.1) {
             let color;
@@ -623,11 +620,11 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
             else if (rainRate < 10.0) color = '#4fc3f7';
             else color = '#29b6f6';
             
-            rainTitle.style.color = color;
+            rainHeader.style.color = color;
             dayRainText.style.color = color;
         } else {
-            rainTitle.style.color = '#888';
-            dayRainText.style.color = '#fff'; 
+            rainHeader.style.color = '#888';
+            dayRainText.style.color = '#fff'; // Standard weiß
         }
 
         const cutoffGraph = new Date(now.getTime() - (rainHours * 60 * 60 * 1000));
