@@ -148,6 +148,16 @@
 
         .card-icon { width: 20px; height: 20px; margin-bottom: 8px; stroke: currentColor; opacity: 0.9; filter: drop-shadow(0 0 5px rgba(255,255,255,0.1)); }
 
+        /* Große Sonne Styling */
+        #card-bright .card-icon {
+            width: 48px;
+            height: 48px;
+            margin-top: 5px;
+            margin-bottom: 5px;
+            filter: drop-shadow(0 0 12px currentColor);
+            transition: color 0.5s ease, filter 0.5s ease;
+        }
+
         #frost-alarm {
             position: absolute;
             left: 10px;
@@ -205,6 +215,7 @@
             .card::before { width: 4px; height: 100%; }
             .val-display { font-size: 1.9em; }
             .card-icon { width: 28px; height: 28px; position: absolute; right: 18px; top: 18px; }
+            #card-bright .card-icon { width: 70px; height: 70px; position: relative; right: auto; top: auto; }
             #frost-alarm { left: 18px; top: 18px; }
             .info-tooltip { right: 50%; transform: translateX(50%); top: 30px; }
             #rainCard h3 { font-size: 0.95em; }
@@ -285,7 +296,7 @@
         </div>
     </div>
 
-    <!-- Reihe 3 (Helligkeit jetzt an letzter Stelle, unter Regenmenge) -->
+    <!-- Reihe 3 -->
     <div class="stats">
         <div class="card dew-card">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
@@ -302,8 +313,8 @@
         </div>
         <div id="card-bright" class="card bright">
             <svg id="icon-sun" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
-            <h3>Helligkeit</h3>
-            <div id="bright-display" class="val-display"><span id="curr-bright">--</span><span class="unit"> Lux</span></div>
+            <h3>Tageslicht</h3>
+            <!-- Keine Zahlenwerte mehr im Fenster -->
         </div>
     </div>
 
@@ -476,22 +487,15 @@ function getColorByDiff(diff) {
     if (rate <= 45.0) return '#f44336'; return '#9c27b0';                                     
 }
 
-/**
- * Berechnet die Sonnenfarbe basierend auf Klaus' Regeln:
- * > 2600: Gelb
- * < 1000: Grau
- * Dazwischen: Fließender Übergang
- */
 function getSunColor(lux) {
-    if (lux >= 2600) return 'rgb(255, 204, 0)'; // Sattes Gelb
-    if (lux <= 1000) return 'rgb(85, 85, 85)';   // Dunkles Grau
+    if (lux >= 2600) return 'rgb(255, 204, 0)'; // Ganz gelbe Sonne bei Sonnenschein
+    if (lux <= 1000) return 'rgb(85, 85, 85)';   // Graue Sonne
     
-    // Lineare Interpolation zwischen Grau (85, 85, 85) und Gelb (255, 204, 0)
+    // Übergang dazwischen
     const ratio = (lux - 1000) / (2600 - 1000);
     const r = Math.floor(85 + (255 - 85) * ratio);
     const g = Math.floor(85 + (204 - 85) * ratio);
     const b = Math.floor(85 + (0 - 85) * ratio);
-    
     return `rgb(${r}, ${g}, ${b})`;
 }
 
@@ -628,16 +632,12 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesR, allP, hours,
         }
     }
 
-    // Helligkeit UI mit dynamischer Sonnenfarbe
+    // Tageslicht UI: Nur die farbige Sonne
     if (entriesB.length > 0) {
         const lastB = Number(entriesB[entriesB.length-1].value) || 0;
         const sunColor = getSunColor(lastB);
-        document.getElementById('curr-bright').innerText = lastB.toFixed(0);
-        document.getElementById('icon-sun').style.stroke = sunColor;
+        document.getElementById('icon-sun').style.color = sunColor;
         document.getElementById('card-bright').style.setProperty('--accent-color', sunColor);
-        document.getElementById('bright-display').style.color = sunColor;
-    } else {
-        document.getElementById('curr-bright').innerText = "--";
     }
 
     document.getElementById('forecast-val').innerText = getForecast(allP, lastHum, lastT);
@@ -761,10 +761,10 @@ function renderBrightChart(entriesB, hours) {
     if (charts['brightChart']) { charts['brightChart'].data.labels = entriesB.map(e => getSmartLabel(e.date, hours)); charts['brightChart'].data.datasets[0].data = values; charts['brightChart'].options.scales.x = getXAxisConfig(hours); charts['brightChart'].update('none'); }
     else {
         charts['brightChart'] = new Chart(ctx, {
-            type: 'line', data: { labels: entriesB.map(e => getSmartLabel(e.date, hours)), datasets: [{ label: 'Lux', data: values, borderColor: '#ffcc00', backgroundColor: (context) => createVerticalGradient(context.chart.ctx, context.chart.chartArea, '#ffcc00'), fill: true, pointRadius: 0, tension: 0.4 }] },
+            type: 'line', data: { labels: entriesB.map(e => getSmartLabel(e.date, hours)), datasets: [{ label: 'Wert', data: values, borderColor: '#ffcc00', backgroundColor: (context) => createVerticalGradient(context.chart.ctx, context.chart.chartArea, '#ffcc00'), fill: true, pointRadius: 0, tension: 0.4 }] },
             options: {
                 responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig,
-                plugins: { legend: { display: false }, title: { display: true, text: 'Helligkeit (Lux)', color: '#ffffff' } }, 
+                plugins: { legend: { display: false }, title: { display: true, text: 'Tageslichtverlauf', color: '#ffffff' } }, 
                 scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' }, beginAtZero: true }, x: getXAxisConfig(hours) }, 
             },
             plugins: [crosshairPlugin]
