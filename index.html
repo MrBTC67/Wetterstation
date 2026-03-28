@@ -30,17 +30,32 @@
             background-image: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #0f0f0f 100%);
             background-attachment: fixed;
         }
-        .container { max-width: 900px; margin: auto; background: rgba(0, 0, 0, 0.3); padding: 12px; border-radius: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.9); border: 1px solid rgba(255,255,255,0.03); }
+        .container { max-width: 900px; margin: auto; background: rgba(0, 0, 0, 0.3); padding: 12px; border-radius: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.9); border: 1px solid rgba(255,255,255,0.03); position: relative; }
         
+        .header-box { display: flex; justify-content: center; align-items: center; gap: 15px; position: relative; margin: 10px 0 5px 0; }
         .main-title {
             font-size: 1.3em;
-            margin: 10px 0 5px 0;
             background: linear-gradient(135deg, var(--color-temp), #fff);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             font-weight: 800;
             letter-spacing: 1px;
+            margin: 0;
         }
+        .altitude {
+            font-size: 0.55em;
+            -webkit-text-fill-color: white; 
+            opacity: 0.6;
+            margin-left: 8px;
+            font-weight: 400;
+            vertical-align: middle;
+        }
+
+        .info-wrapper { position: relative; cursor: help; }
+        .info-icon { width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 0.7em; font-weight: bold; color: var(--color-temp); }
+        .info-tooltip { visibility: hidden; width: 280px; background: rgba(20, 20, 30, 0.95); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 15px; position: absolute; z-index: 100; top: 35px; right: 0; text-align: left; font-size: 0.75em; line-height: 1.5; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
+        .info-wrapper:hover .info-tooltip { visibility: visible; }
+        .info-tooltip b { color: var(--color-temp); display: block; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 3px; }
 
         .last-update {
             font-size: 0.75em;
@@ -70,13 +85,8 @@
         .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
         .stats-split { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
         
-        .stats-temp .card {
-            padding: 22px 10px;
-            min-height: 80px;
-        }
-        .stats-temp .val-display {
-            font-size: 1.55em;
-        }
+        .stats-temp .card { padding: 22px 10px; min-height: 80px; }
+        .stats-temp .val-display { font-size: 1.55em; }
 
         .card { 
             position: relative;
@@ -118,6 +128,7 @@
             text-transform: uppercase; 
             letter-spacing: 1.5px; 
             font-weight: 800;
+            transition: color 0.4s ease;
         }
         
         .val-display { font-size: 1.25em; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 4px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); transition: color 0.5s ease; }
@@ -157,7 +168,10 @@
 
         .pres-rate { font-size: 0.5em; display: block; margin-top: 5px; font-weight: 400; color: #777 !important; }
         .fore-info { font-size: 0.55em; color: #777 !important; margin-top: 5px; font-weight: 400; }
-        .rain-sub { font-size: 0.6em; color: #aaa; font-weight: 600; margin-top: 2px; }
+        
+        .rain-line { font-size: 0.85em; display: flex; align-items: baseline; gap: 5px; color: #fff; font-weight: 600; margin-top: 2px; }
+        .rain-label { font-size: 0.65em; color: #888; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800; }
+        #day-rain, #curr-rain, #year-rain { transition: color 0.4s ease; }
 
         .chart-box { background: rgba(20, 20, 20, 0.4); border-radius: 24px; padding: 15px 10px 45px 10px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.04); height: 320px; box-sizing: border-box; position: relative; backdrop-filter: blur(10px); }
         .section-header { margin: 30px 0 15px 0; padding: 0 5px; display: flex; justify-content: space-between; align-items: center; }
@@ -190,13 +204,34 @@
             .val-display { font-size: 1.9em; }
             .card-icon { width: 28px; height: 28px; position: absolute; right: 18px; top: 18px; }
             #frost-alarm { left: 18px; top: 18px; }
+            .info-tooltip { right: 50%; transform: translateX(50%); top: 30px; }
         }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <div class="main-title">Wetterstation Kirchheide, 170 m ü. NHN</div>
+    <div class="header-box">
+        <div class="main-title">Wetterstation Kirchheide <span class="altitude">170m ü. NHN.</span></div>
+        <div class="info-wrapper">
+            <div class="info-icon">i</div>
+            <div class="info-tooltip">
+                <b>INFO & LEGENDE</b>
+                <strong>Regen (Intensität):</strong><br>
+                <span style="color:var(--color-dry)">● Cyan:</span> Schauer<br>
+                <span style="color:var(--color-light)">● Gelb:</span> Leicht<br>
+                <span style="color:var(--color-mod)">● Orange:</span> Mittel<br>
+                <span style="color:var(--color-heavy)">● Rot:</span> Stark / Extrem
+                <hr>
+                <strong>Frost-Alarm (Schneeflocke):</strong><br>
+                Aktiv bei < 3°C & > 70% Feuchte.<br>
+                <span style="color:var(--color-frost)">Hellblau:</span> Gefahr | <span style="color:var(--color-ice)">Dunkelblau:</span> Frost.
+                <hr>
+                <strong>Taupunkt:</strong><br>
+                Temperatur, bei der Luftfeuchtigkeit kondensiert (Wichtig für Optik-Beschlag).
+            </div>
+        </div>
+    </div>
     <div id="last-update-ts" class="last-update">Zuletzt aktualisiert: --:-- Uhr</div>
 
     <div class="stats stats-temp">
@@ -238,11 +273,9 @@
             <svg id="icon-rain" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6M8 14v6M12 16v6"/></svg>
             <h3>Regenmenge</h3>
             <div class="val-display" style="flex-direction: column; align-items: center; gap: 2px;">
-                <div style="font-size: 0.85em; display: flex; align-items: baseline; gap: 5px;">
-                    <span style="font-size: 0.6em; color: #888; text-transform: uppercase;">Monat:</span>
-                    <span id="curr-rain">--</span>
-                </div>
-                <span id="year-rain" class="rain-sub">Jahr: -- l/m²</span>
+                <div class="rain-line"><span class="rain-label">Tag:</span> <span id="day-rain">--</span></div>
+                <div class="rain-line"><span class="rain-label">Monat:</span> <span id="curr-rain">--</span></div>
+                <div class="rain-line"><span class="rain-label">Jahr:</span> <span id="year-rain">--</span></div>
             </div>
         </div>
     </div>
@@ -415,7 +448,7 @@ function getColorByDiff(diff) {
     if (diff < 0.01) return '#00bcd4'; 
     const rate = diff * 60; 
     if (rate <= 15.0) return '#ffeb3b'; if (rate <= 30.0) return '#ff9800'; 
-    if (rate <= 45.0) return '#f44336'; return '#9c27b0';                                    
+    if (rate <= 45.0) return '#f44336'; return '#9c27b0';                                     
 }
 
 function calculateDewPoint(temp, hum) {
@@ -457,10 +490,11 @@ async function fetchData() {
     const hours = parseInt(document.getElementById('period').value);
     const rainHours = parseInt(document.getElementById('rainPeriod').value);
     const now = new Date();
-    const cutoffGeneral = new Date(now.getTime() - (hours * 60 * 60 * 1000)), cutoffRain = new Date(now.getTime() - (rainHours * 60 * 60 * 1000));
+    const cutoffGeneral = new Date(now.getTime() - (hours * 60 * 60 * 1000));
+    const cutoffRain = new Date(now.getTime() - (Math.max(rainHours, 24) * 60 * 60 * 1000)); 
     
     try {
-        const maxHours = Math.max(hours, rainHours, 12), limit = maxHours >= 168 ? 10000 : 2500;
+        const maxHours = Math.max(hours, rainHours, 24), limit = maxHours >= 168 ? 10000 : 2500;
         const currentYear = now.getFullYear();
         const currentMonthIdx = now.getMonth();
         const currentMonthStr = MONTHS[currentMonthIdx];
@@ -496,14 +530,14 @@ async function fetchData() {
         }).filter(e => e.date >= cutoffRain);
 
         const yearlyTotal = await fetchYearlyRain(currentYear, currentMonthIdx);
-        document.getElementById('year-rain').innerText = `Jahr: ${yearlyTotal.toFixed(1)} l/m²`;
-
-        updateUI(entriesT, entriesH, entriesP, entriesR, dataP ? Object.keys(dataP).map(k => ({ date: getTimeFromId(k), value: dataP[k].value })) : [], hours, rainHours);
+        updateUI(entriesT, entriesH, entriesP, entriesR, dataP ? Object.keys(dataP).map(k => ({ date: getTimeFromId(k), value: dataP[k].value })) : [], hours, rainHours, yearlyTotal);
     } catch (e) { console.error("Datenfehler:", e); }
 }
 
-function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours) {
+function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours, yearlyTotal) {
     let lastT = 0, lastHum = 0;
+    const now = new Date();
+    
     if (entriesT.length > 0) {
         const lastDate = entriesT[entriesT.length - 1].date;
         document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${lastDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`;
@@ -513,12 +547,9 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
         lastHum = entriesH[entriesH.length-1].value; 
     }
 
-    // --- ANGEPASSTE FROSTLOGIK (KLAUS) ---
     const frostAlarm = document.getElementById('frost-alarm');
-    // Bedingung: Lufttemperatur < 3°C UND Luftfeuchtigkeit > 70%
     if (lastT < 3.0 && lastHum > 70.0) {
         frostAlarm.style.display = 'block';
-        // Farbe anpassen: Dunkelblau bei Frost (<=0), Hellblau bei Frostgefahr (>0)
         frostAlarm.style.color = lastT <= 0 ? 'var(--color-ice)' : 'var(--color-frost)';
     } else {
         frostAlarm.style.display = 'none';
@@ -553,18 +584,56 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
         }
     }
     document.getElementById('forecast-val').innerText = getForecast(allP, lastHum, lastT);
+
     if (entriesR.length > 0) {
         const lastR = entriesR[entriesR.length-1].value;
         const diff = lastR - (entriesR.length > 1 ? entriesR[entriesR.length-2].value : lastR);
+        const rainRate = (diff > 0 ? diff : 0) * 60;
         const rainColor = getColorByDiff(diff > 0 ? diff : 0);
+        
+        // --- 24h Berechnung ---
+        const cutoff24 = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+        const entries24 = entriesR.filter(e => e.date >= cutoff24);
+        if (entries24.length > 1) {
+            const val24 = entries24[entries24.length-1].value - entries24[0].value;
+            document.getElementById('day-rain').innerText = `${val24.toFixed(1)} l/m²`;
+        }
+
         document.getElementById('curr-rain').innerText = lastR.toFixed(2) + " l/m²";
-        document.getElementById('curr-rain').style.color = rainColor;
+        document.getElementById('year-rain').innerText = yearlyTotal.toFixed(1) + " l/m²";
+        
+        // Monat und Jahr immer weiß
+        document.getElementById('curr-rain').style.color = '#fff';
+        document.getElementById('year-rain').style.color = '#fff';
+        
         document.getElementById('icon-rain').style.stroke = rainColor;
         document.getElementById('rainCard').style.setProperty('--accent-color', rainColor);
+
+        // --- Färbelogik für Überschrift & Tagesmenge ---
+        const rainHeader = document.querySelector('#rainCard h3');
+        const dayRainText = document.getElementById('day-rain');
+        
+        if (rainRate > 0.1) {
+            let color;
+            if (rainRate < 0.5) color = '#b3e5fc';
+            else if (rainRate < 2.0) color = '#81d4fa';
+            else if (rainRate < 10.0) color = '#4fc3f7';
+            else color = '#29b6f6';
+            
+            rainHeader.style.color = color;
+            dayRainText.style.color = color;
+        } else {
+            rainHeader.style.color = '#888';
+            dayRainText.style.color = '#fff'; // Standard weiß
+        }
+
+        const cutoffGraph = new Date(now.getTime() - (rainHours * 60 * 60 * 1000));
+        const entriesGraph = entriesR.filter(e => e.date >= cutoffGraph);
+        renderRainChart(entriesGraph, rainHours);
     }
+    
     renderMainChart(entriesT, entriesH, hours);
     renderPresChart(entriesP, hours);
-    renderRainChart(entriesR, rainHours);
 }
 
 function getXAxisConfig(hours) {
