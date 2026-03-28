@@ -214,7 +214,7 @@
 
 <div class="container">
     <div class="header-box">
-        <div class="main-title">Wetterstation Kirchheide <span class="altitude">170m ü. NHN.</span></div>
+        <div class="main-title">Wetterstation Kirchheide <span class="altitude">160m ü. NHN.</span></div>
         <div class="info-wrapper">
             <div class="info-icon">i</div>
             <div class="info-tooltip">
@@ -357,6 +357,9 @@ const URL_H = `${URL_BASE}/humidity.json`;
 const URL_P = `${URL_BASE}/pressure.json`;
 const URL_R_BASE = `${URL_BASE}/Regenmesser`;
 
+// KORREKTUR-OFFSET: Anpassung von gemessenen 1000hPa auf 1014.5hPa (Basis 1022hPa/100m)
+const PRES_OFFSET = 14.5;
+
 const MONTHS = ["Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
 let charts = {};
@@ -462,7 +465,8 @@ function getForecast(allP, lastHum, lastT) {
     const dewPoint = calculateDewPoint(lastT, lastHum);
     if (lastHum > 95 && (lastT - dewPoint) < 1.5) return " Nebel möglich";
     if (allP.length < 36) return "Ermittlung...";
-    const currentP = allP[allP.length - 1].value, oldP = allP[allP.length - 36].value, diff = currentP - oldP;
+    // Prognose-Rechnung inkl. Offset Korrektur für alle P-Werte
+    const currentP = allP[allP.length - 1].value + PRES_OFFSET, oldP = allP[allP.length - 36].value + PRES_OFFSET, diff = currentP - oldP;
     if (diff < -3.0) return " Unbeständig"; 
     if (diff < -1.0) return lastHum > 75 ? " Regenneigung" : " Bewölkt";
     if (Math.abs(diff) <= 1.0) return lastHum > 80 ? " Trüb" : " Beständig";
@@ -530,7 +534,6 @@ async function fetchData() {
             return { date: new Date(parts[2], parts[1]-1, parts[0], parts[3], parts[4]), value: parseFloat(mergedR[k].regen_l_m2) || 0 };
         }).filter(e => e.date >= cutoffRain);
 
-        // --- DOWNSAMPLING LOGIK FÜR REGENMESSER ---
         if (rainHours >= 168) {
             entriesR = entriesR.filter((_, index) => index % 10 === 0);
         }
@@ -581,10 +584,13 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
         document.getElementById('curr-temp-dew').innerText = calculateDewPoint(lastT, lastHum).toFixed(1);
     }
 
+    // KORREKTUR: Luftdruck UI mit Offset
     if (entriesP.length > 0) {
-        document.getElementById('curr-pres').innerText = entriesP[entriesP.length-1].value.toFixed(0);
+        const correctedLastP = entriesP[entriesP.length-1].value + PRES_OFFSET;
+        document.getElementById('curr-pres').innerText = correctedLastP.toFixed(0);
+        
         if (entriesP.length > 12) {
-            const diff = entriesP[entriesP.length-1].value - entriesP[entriesP.length-12].value;
+            const diff = (entriesP[entriesP.length-1].value + PRES_OFFSET) - (entriesP[entriesP.length-12].value + PRES_OFFSET);
             document.getElementById('pres-trend-arrow').innerText = diff > 0.2 ? " ↑" : diff < -0.2 ? " ↓" : " →";
             document.getElementById('pres-rate-val').innerText = (diff > 0 ? "+" : "") + diff.toFixed(1) + " hPa/h";
         }
@@ -592,7 +598,6 @@ function updateUI(entriesT, entriesH, entriesP, entriesR, allP, hours, rainHours
     document.getElementById('forecast-val').innerText = getForecast(allP, lastHum, lastT);
 
     if (entriesR.length > 0) {
-        // --- OFFSET METHODE FÜR REGENLEERUNG ---
         let correctedR = [];
         let runningOffset = 0; 
         
@@ -700,9 +705,10 @@ function renderMainChart(entriesT, entriesH, hours) {
     }
 }
 
+// KORREKTUR: Druck Chart mit Offset
 function renderPresChart(entriesP, hours) {
     const ctx = document.getElementById('presChart').getContext('2d');
-    const values = entriesP.map(e => e.value);
+    const values = entriesP.map(e => e.value + PRES_OFFSET); 
     if (charts['presChart']) { charts['presChart'].data.labels = entriesP.map(e => getSmartLabel(e.date, hours)); charts['presChart'].data.datasets[0].data = values; charts['presChart'].options.scales.x = getXAxisConfig(hours); charts['presChart'].update('none'); }
     else {
         charts['presChart'] = new Chart(ctx, {
