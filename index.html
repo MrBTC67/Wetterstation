@@ -113,6 +113,11 @@
     </div>
 
     <div class="stats">
+        <div id="card-hum" class="card hum">
+            <svg id="icon-hum" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
+            <h3>Feuchte</h3>
+            <div id="hum-display" class="val-display"><span id="curr-hum">--</span><span class="unit">%</span></div>
+        </div>
         <div class="card pres">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="m12 16 4-4-4-4M8 12h8"/></svg>
             <h3>Luftdruck</h3>
@@ -120,11 +125,6 @@
                 <div><span id="curr-pres">--</span><span class="unit"> hPa</span><span id="pres-trend-arrow" class="pres-trend-icon"></span></div>
                 <span id="pres-rate-val" class="pres-rate">-- hPa/h</span>
             </div>
-        </div>
-        <div id="card-hum" class="card hum">
-            <svg id="icon-hum" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
-            <h3>Feuchte</h3>
-            <div id="hum-display" class="val-display"><span id="curr-hum">--</span><span class="unit">%</span></div>
         </div>
         <div id="rainCard" class="card rain">
             <svg id="icon-rain" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6M8 14v6M12 16v6"/></svg>
@@ -240,9 +240,6 @@ function createVerticalGradient(ctx, chartArea, color) {
     return gradient;
 }
 
-/**
- * Downsampling Funktion
- */
 function downsampleData(entries, bucketMinutes) {
     if (!entries || entries.length === 0 || bucketMinutes <= 1) return entries;
     const result = [];
@@ -399,51 +396,28 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
     if (entriesB.length > 0) { const sunColor = getSunColor(Number(entriesB[entriesB.length-1].value)); document.getElementById('icon-sun').style.color = sunColor; document.getElementById('card-bright').style.setProperty('--accent-color', sunColor); }
     document.getElementById('forecast-val').innerText = getForecast(allP, lastHum, lastT);
 
-    // --- REGEN LOGIK UPDATE (Start am 27.03.) ---
     if (entriesR.length > 0) {
         let totalRainSum = 0, sumAtMidnight = 0;
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const startOfStats = new Date(2026, 2, 27); // Fixer Start 27.03.
-        
-        // Filter: Nur Daten ab dem Start am 27.03.
+        const startOfStats = new Date(2026, 2, 27); 
         let entriesRForCalc = entriesR.filter(e => e.date >= startOfStats);
-
         if (entriesRForCalc.length > 0) {
-            // Nullpunkt ist der erste Wert der Liste (z.B. -5,0)
             let lastValue = Number(entriesRForCalc[0].value) || 0; 
-            
-            // Schleife startet erst beim ZWEITEN Element, um den Anfangssprung zu vermeiden
             for (let i = 1; i < entriesRForCalc.length; i++) {
                 const currentRaw = Number(entriesRForCalc[i].value) || 0;
                 const diff = currentRaw - lastValue;
-                
-                if (diff >= HYST_START) { 
-                    totalRainSum += diff; 
-                    lastValue = currentRaw; 
-                } 
-                else if (diff < -HYST_DROP) { 
-                    // Baseline nachführen bei Verdunstung/Sinken
-                    lastValue = currentRaw; 
-                } 
-                
-                if (entriesRForCalc[i].date < startOfToday) {
-                    sumAtMidnight = totalRainSum;
-                }
+                if (diff >= HYST_START) { totalRainSum += diff; lastValue = currentRaw; } 
+                else if (diff < -HYST_DROP) { lastValue = currentRaw; } 
+                if (entriesRForCalc[i].date < startOfToday) { sumAtMidnight = totalRainSum; }
             }
         }
-
-        // Monats- & Jahresmenge = Kumulierter Wert ab 27.03.
         document.getElementById('curr-rain').innerText = totalRainSum.toFixed(2);
         document.getElementById('year-rain').innerText = totalRainSum.toFixed(2);
-        
         let valToday = Math.max(0, totalRainSum - sumAtMidnight);
         document.getElementById('day-rain').innerText = valToday.toFixed(1);
-        
         const rainColor = getColorByDiff(valToday / 24); 
         document.getElementById('icon-rain').style.stroke = rainColor; 
         document.getElementById('rainCard').style.setProperty('--accent-color', rainColor);
-        
-        // Chart: Relativ zum Tagesbeginn
         const rainCutoff = new Date(now.getTime() - rainHours * 3600000);
         const chartSlice = entriesR.filter(e => e.date >= rainCutoff);
         let rawChartData = [];
