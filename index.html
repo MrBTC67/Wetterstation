@@ -213,10 +213,11 @@
 
 <script>
 // ==========================================
-// REGEN-HYSTERESE EINSTELLUNGEN
+// EINSTELLUNGEN
 // ==========================================
 const HYST_START = 0.3; 
 const HYST_DROP = 0.3;  
+const SUN_THRESHOLD = 4000; 
 // ==========================================
 
 const URL_BASE = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app";
@@ -227,7 +228,6 @@ const URL_B = `${URL_BASE}/brightness.json`;
 const URL_R_BASE = `${URL_BASE}/Regenmesser`;
 
 const PRES_OFFSET = 14.5;
-const SUN_THRESHOLD = 4000; 
 const MONTHS = ["Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
 let charts = {};
@@ -242,35 +242,22 @@ function createVerticalGradient(ctx, chartArea, color) {
 
 /**
  * Downsampling Funktion
- * Fasst Datenpunkte in Buckets zusammen (Mittelwert)
  */
 function downsampleData(entries, bucketMinutes) {
     if (!entries || entries.length === 0 || bucketMinutes <= 1) return entries;
     const result = [];
     const bucketMs = bucketMinutes * 60000;
-    
     let currentBucketStart = entries[0].date.getTime();
-    let sum = 0;
-    let count = 0;
-    
+    let sum = 0, count = 0;
     for (const entry of entries) {
         if (entry.date.getTime() < currentBucketStart + bucketMs) {
-            sum += entry.value;
-            count++;
+            sum += entry.value; count++;
         } else {
-            result.push({
-                date: new Date(currentBucketStart + bucketMs / 2),
-                value: sum / count
-            });
-            currentBucketStart = entry.date.getTime();
-            sum = entry.value;
-            count = 1;
+            result.push({ date: new Date(currentBucketStart + bucketMs / 2), value: sum / count });
+            currentBucketStart = entry.date.getTime(); sum = entry.value; count = 1;
         }
     }
-    // Letzten Bucket hinzufügen
-    if (count > 0) {
-        result.push({ date: new Date(currentBucketStart + bucketMs / 2), value: sum / count });
-    }
+    if (count > 0) result.push({ date: new Date(currentBucketStart + bucketMs / 2), value: sum / count });
     return result;
 }
 
@@ -362,13 +349,11 @@ async function fetchData() {
         const maxHours = Math.max(hours, rainHours, sunHoursPeriod, 168), limit = maxHours >= 168 ? 20000 : 8000, currentYear = now.getFullYear(), currentMonthStr = MONTHS[now.getMonth()];
         const responses = await Promise.all([fetch(`${URL_T}?orderBy="$key"&limitToLast=${limit}`), fetch(`${URL_H}?orderBy="$key"&limitToLast=${limit}`), fetch(`${URL_P}?orderBy="$key"&limitToLast=${limit}`), fetch(`${URL_B}?orderBy="$key"&limitToLast=${limit}`), fetch(`${URL_R_BASE}/${currentYear}/${currentMonthStr}.json?orderBy="$key"&limitToLast=${limit}`)]);
         const dataT = await responses[0].json(), dataH = await responses[1].json(), dataP = await responses[2].json(), dataB = await responses[3].json(), dataR_curr = await responses[4].json();
-        
         const entriesT = Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= cutoffGeneral);
         const entriesH = Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= cutoffGeneral);
         const entriesP = Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffGeneral);
         const entriesB_all = Object.keys(dataB || {}).map(k => ({ date: getUniversalDate(k), value: Number((typeof dataB[k] === 'object' ? dataB[k].brightness : dataB[k]) ?? 0) }));
-        let entriesR = Object.keys(dataR_curr || {}).sort().map(k => { const p = dataR_curr[k].zeitstempel.split(/[. :]/); return { date: new Date(p[2], p[1]-1, p[0], p[3], p[4]), value: parseFloat(dataR_curr[k].regen_l_m2) || 0 }; }).filter(e => e.date >= cutoffRain);
-        
+        let entriesR = Object.keys(dataR_curr || {}).sort().map(k => { const p = dataR_curr[k].zeitstempel.split(/[. :]/); return { date: new Date(p[2], p[1]-1, p[0], p[3], p[4]), value: parseFloat(dataR_curr[k].regen_l_m2) || 0 }; });
         const yearlyTotal = await fetchYearlyRain(currentYear, now.getMonth());
         updateUI(entriesT, entriesH, entriesP, entriesB_all.filter(e => e.date >= cutoffSun), entriesB_all, entriesR, dataP ? Object.keys(dataP).map(k => ({ date: getUniversalDate(k), value: dataP[k].value })) : [], hours, rainHours, sunHoursPeriod, yearlyTotal);
     } catch (e) { console.error("Datenfehler:", e); }
@@ -382,12 +367,7 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${dispDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`;
     }
 
-    // Downsampling-Check für Zeiträume > 6 Tage (144h)
-    const downsampleCheck = (arr, hrs) => {
-        if (hrs >= 720) return downsampleData(arr, 60); // 1h Buckets für 30 Tage
-        if (hrs >= 168) return downsampleData(arr, 15); // 15min Buckets für 7 Tage
-        return arr;
-    };
+    const downsampleCheck = (arr, hrs) => { if (hrs >= 720) return downsampleData(arr, 60); if (hrs >= 168) return downsampleData(arr, 15); return arr; };
 
     if (entriesT.length > 0) {
         lastT = Number(entriesT[entriesT.length-1].value); const color = getTempColor(lastT);
@@ -403,7 +383,6 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
     }
     const frostAlarm = document.getElementById('frost-alarm');
     if (lastT < 3.0 && lastHum > 70.0) { frostAlarm.style.display = 'block'; frostAlarm.style.color = lastT <= 0 ? 'var(--color-ice)' : 'var(--color-frost)'; } else { frostAlarm.style.display = 'none'; }
-    
     if (entriesP.length > 0) {
         const lastP = (Number(entriesP[entriesP.length-1].value) || 0) + PRES_OFFSET; document.getElementById('curr-pres').innerText = lastP.toFixed(0);
         if (entriesP.length > 12) {
@@ -420,30 +399,51 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
     if (entriesB.length > 0) { const sunColor = getSunColor(Number(entriesB[entriesB.length-1].value)); document.getElementById('icon-sun').style.color = sunColor; document.getElementById('card-bright').style.setProperty('--accent-color', sunColor); }
     document.getElementById('forecast-val').innerText = getForecast(allP, lastHum, lastT);
 
-    // --- REGEN LOGIK ---
+    // --- REGEN LOGIK UPDATE (Start am 27.03.) ---
     if (entriesR.length > 0) {
-        let entriesRForCalc = entriesR;
-        if (now.getMonth() === 2 && now.getFullYear() === 2026) {
-            const startOfVorgestern = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 2);
-            entriesRForCalc = entriesR.filter(e => e.date >= startOfVorgestern);
-        }
-
-        let correctedR = [], totalRainSum = 0;
+        let totalRainSum = 0, sumAtMidnight = 0;
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        let sumAtMidnight = 0;
+        const startOfStats = new Date(2026, 2, 27); // Fixer Start 27.03.
+        
+        // Filter: Nur Daten ab dem Start am 27.03.
+        let entriesRForCalc = entriesR.filter(e => e.date >= startOfStats);
 
         if (entriesRForCalc.length > 0) {
-            let lastValue = Math.min(...entriesRForCalc.slice(0, 120).map(e => e.value)); 
-            for (let i = 0; i < entriesRForCalc.length; i++) {
+            // Nullpunkt ist der erste Wert der Liste (z.B. -5,0)
+            let lastValue = Number(entriesRForCalc[0].value) || 0; 
+            
+            // Schleife startet erst beim ZWEITEN Element, um den Anfangssprung zu vermeiden
+            for (let i = 1; i < entriesRForCalc.length; i++) {
                 const currentRaw = Number(entriesRForCalc[i].value) || 0;
                 const diff = currentRaw - lastValue;
-                if (diff >= HYST_START) { totalRainSum += diff; lastValue = currentRaw; } 
-                else if (diff < -HYST_DROP) { lastValue = currentRaw; } 
-                if (entriesRForCalc[i].date < startOfToday) sumAtMidnight = totalRainSum;
-                correctedR.push({ date: entriesRForCalc[i].date, value: totalRainSum });
+                
+                if (diff >= HYST_START) { 
+                    totalRainSum += diff; 
+                    lastValue = currentRaw; 
+                } 
+                else if (diff < -HYST_DROP) { 
+                    // Baseline nachführen bei Verdunstung/Sinken
+                    lastValue = currentRaw; 
+                } 
+                
+                if (entriesRForCalc[i].date < startOfToday) {
+                    sumAtMidnight = totalRainSum;
+                }
             }
         }
 
+        // Monats- & Jahresmenge = Kumulierter Wert ab 27.03.
+        document.getElementById('curr-rain').innerText = totalRainSum.toFixed(2);
+        document.getElementById('year-rain').innerText = totalRainSum.toFixed(2);
+        
+        let valToday = Math.max(0, totalRainSum - sumAtMidnight);
+        document.getElementById('day-rain').innerText = valToday.toFixed(1);
+        
+        const rainColor = getColorByDiff(valToday / 24); 
+        document.getElementById('icon-rain').style.stroke = rainColor; 
+        document.getElementById('rainCard').style.setProperty('--accent-color', rainColor);
+        
+        // Chart: Relativ zum Tagesbeginn
         const rainCutoff = new Date(now.getTime() - rainHours * 3600000);
         const chartSlice = entriesR.filter(e => e.date >= rainCutoff);
         let rawChartData = [];
@@ -459,21 +459,9 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
                 rawChartData.push({ date: e.date, value: Math.max(0, e.value - dayBaselines[dayKey]) });
             });
         }
-
-        document.getElementById('curr-rain').innerText = totalRainSum.toFixed(2);
-        let valToday = Math.max(0, totalRainSum - sumAtMidnight);
-        document.getElementById('day-rain').innerText = valToday.toFixed(1);
-        document.getElementById('year-rain').innerText = ((Number(yearlyTotal) || 0) + totalRainSum).toFixed(1);
-        const rainColor = getColorByDiff(valToday / 24); 
-        document.getElementById('icon-rain').style.stroke = rainColor; 
-        document.getElementById('rainCard').style.setProperty('--accent-color', rainColor);
-        
-        // Downsampling für Regen-Chart (Letzter Wert im Bucket, da kumulativ im Tag)
-        const rainChartDataDownsampled = rainHours >= 168 ? downsampleData(rawChartData, rainHours >= 720 ? 60 : 15) : rawChartData;
-        renderRainChart(rainChartDataDownsampled, rainHours);
+        renderRainChart(downsampleCheck(rawChartData, rainHours), rainHours);
     }
-
-    // Downsampling auf Charts anwenden
+    
     renderMainChart(downsampleCheck(entriesT, hours), hours); 
     renderPresChart(downsampleCheck(entriesP, hours), hours); 
     renderBrightChart(downsampleCheck(entriesB, sunHoursPeriod), sunHoursPeriod);
