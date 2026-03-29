@@ -9,133 +9,42 @@
         :root { 
             --color-dry: #00bcd4; --color-light: #ffeb3b; --color-mod: #ff9800; 
             --color-heavy: #f44336; --color-extreme: #9c27b0; 
-            --color-temp: #00d1b2;
-            --color-min: #3b82f6; 
-            --color-max: #ff3860; 
-            --color-forecast: #ffa500;
-            --color-dew: #ffff00; 
-            --color-pres: #a29bfe; 
-            --color-bright: #ffcc00;
-            --color-update: #00ff88; 
-            --bg-body: #0f0f0f;
-            --color-frost: #00d4ff;
-            --color-ice: #0078ff;
+            --color-temp: #00d1b2; --color-min: #3b82f6; 
+            --color-max: #ff3860; --color-forecast: #ffa500;
+            --color-dew: #ffff00; --color-pres: #a29bfe; 
+            --color-bright: #ffcc00; --color-update: #00ff88; 
+            --bg-body: #0f0f0f; --color-frost: #00d4ff; --color-ice: #0078ff;
         }
         body { 
             font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background: var(--bg-body); 
-            color: white; 
-            text-align: center; 
-            padding: 5px; 
-            margin: 0; 
+            background: var(--bg-body); color: white; text-align: center; 
+            padding: 5px; margin: 0; 
             background-image: radial-gradient(circle at 50% 0%, #1a1a2e 0%, #0f0f0f 100%);
             background-attachment: fixed;
         }
         .container { max-width: 900px; margin: auto; background: rgba(0, 0, 0, 0.3); padding: 12px; border-radius: 28px; box-shadow: 0 20px 60px rgba(0,0,0,0.9); border: 1px solid rgba(255,255,255,0.03); position: relative; }
-        
         .header-box { display: flex; justify-content: center; align-items: center; gap: 15px; position: relative; margin: 10px 0 5px 0; }
-        .title-group { display: flex; flex-direction: column; align-items: center; }
-        
-        .main-title {
-            font-size: 1.3em;
-            background: linear-gradient(135deg, var(--color-temp), #fff);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            font-weight: 800;
-            letter-spacing: 1px;
-            margin: 0;
-            line-height: 1.2;
-        }
-        .altitude {
-            font-size: 0.55em;
-            color: white;
-            -webkit-text-fill-color: white; 
-            opacity: 0.6;
-            font-weight: 400;
-            margin-top: 2px;
-        }
-        
+        .main-title { font-size: 1.3em; background: linear-gradient(135deg, var(--color-temp), #fff); -webkit-background-clip: text; -webkit-text-fill-color: transparent; font-weight: 800; letter-spacing: 1px; margin: 0; }
+        .altitude { font-size: 0.55em; -webkit-text-fill-color: white; opacity: 0.6; margin-left: 8px; font-weight: 400; vertical-align: middle; }
         .info-wrapper { position: relative; cursor: help; }
         .info-icon { width: 22px; height: 22px; border-radius: 50%; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); display: flex; align-items: center; justify-content: center; font-size: 0.7em; font-weight: bold; color: var(--color-temp); }
         .info-tooltip { visibility: hidden; width: 280px; background: rgba(20, 20, 30, 0.95); backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; padding: 15px; position: absolute; z-index: 100; top: 35px; right: 0; text-align: left; font-size: 0.75em; line-height: 1.5; box-shadow: 0 10px 30px rgba(0,0,0,0.8); }
         .info-wrapper:hover .info-tooltip { visibility: visible; }
         .info-tooltip b { color: var(--color-temp); display: block; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 3px; }
-
-        .last-update {
-            font-size: 0.75em;
-            color: var(--color-update);
-            margin-bottom: 20px;
-            font-weight: 600;
-            opacity: 0.9;
-            text-shadow: 0 0 8px rgba(0, 255, 136, 0.3);
-        }
-
-        .controls-row { 
-            margin-bottom: 20px; 
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center; 
-            gap: 10px; 
-            padding: 12px 18px;
-            background: rgba(255,255,255,0.03);
-            border-radius: 16px;
-            backdrop-filter: blur(15px);
-            border: 1px solid rgba(255,255,255,0.05);
-        }
+        .last-update { font-size: 0.75em; color: var(--color-update); margin-bottom: 20px; font-weight: 600; opacity: 0.9; text-shadow: 0 0 8px rgba(0, 255, 136, 0.3); }
+        .controls-row { margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 12px 18px; background: rgba(255,255,255,0.03); border-radius: 16px; backdrop-filter: blur(15px); border: 1px solid rgba(255,255,255,0.05); }
         .controls-row label { font-size: 0.8em; color: #777; font-weight: bold; }
         select { background: #1a1a1a; color: white; border: 1px solid #333; padding: 6px 12px; border-radius: 10px; cursor: pointer; font-size: 13px; outline: none; transition: border 0.3s; }
         select:hover { border-color: var(--color-temp); }
-        
         .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
         .stats-temp .card { padding: 22px 10px; min-height: 80px; }
         .stats-temp .val-display { font-size: 1.55em; }
-
-        .card { 
-            position: relative;
-            padding: 15px 10px; 
-            background: linear-gradient(165deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); 
-            border-radius: 20px; 
-            border: 1px solid rgba(255,255,255,0.1);
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            overflow: hidden;
-            backdrop-filter: blur(20px);
-            -webkit-backdrop-filter: blur(20px);
-            box-shadow: inset 0 1px 1px rgba(255,255,255,0.1);
-        }
-
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 3px;
-            background: var(--accent-color, var(--color-temp));
-            box-shadow: 0 2px 10px var(--accent-color, var(--color-temp));
-            opacity: 0.8;
-            transition: background 0.5s ease, box-shadow 0.5s ease;
-        }
-
-        .card:hover { 
-            transform: translateY(-6px) scale(1.02); 
-            background: linear-gradient(165deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%);
-            border-color: var(--accent-color, var(--color-temp));
-            box-shadow: 0 15px 30px rgba(0,0,0,0.6), 0 0 15px rgba(255,255,255,0.05);
-        }
-
-        .card h3 { 
-            margin: 0 0 8px 0; 
-            font-size: 0.65em; 
-            color: #888; 
-            text-transform: uppercase; 
-            letter-spacing: 1.5px; 
-            font-weight: 800;
-            transition: color 0.4s ease;
-        }
-
+        .card { position: relative; padding: 15px 10px; background: linear-gradient(165deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.02) 100%); border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); display: flex; flex-direction: column; align-items: center; overflow: hidden; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); box-shadow: inset 0 1px 1px rgba(255,255,255,0.1); }
+        .card::before { content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; background: var(--accent-color, var(--color-temp)); box-shadow: 0 2px 10px var(--accent-color, var(--color-temp)); opacity: 0.8; transition: background 0.5s ease, box-shadow 0.5s ease; }
+        .card:hover { transform: translateY(-6px) scale(1.02); background: linear-gradient(165deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.04) 100%); border-color: var(--accent-color, var(--color-temp)); box-shadow: 0 15px 30px rgba(0,0,0,0.6), 0 0 15px rgba(255,255,255,0.05); }
+        .card h3 { margin: 0 0 8px 0; font-size: 0.65em; color: #888; text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800; transition: color 0.4s ease; }
         .val-display { font-size: 1.25em; font-weight: 800; color: #fff; display: flex; align-items: center; gap: 4px; text-shadow: 0 2px 10px rgba(0,0,0,0.5); transition: color 0.5s ease; }
         .unit { font-size: 0.7em; font-weight: 400; color: #666; }
-        
         .card.temp { --accent-color: var(--color-temp); }
         .card.min { --accent-color: var(--color-min); }
         .card.max { --accent-color: var(--color-max); }
@@ -145,89 +54,43 @@
         .card.forecast { --accent-color: var(--color-forecast); }
         .card.dew-card { --accent-color: var(--color-dew); }
         .card.bright { --accent-color: var(--color-bright); }
-
         .card-icon { width: 20px; height: 20px; margin-bottom: 8px; stroke: currentColor; opacity: 0.9; filter: drop-shadow(0 0 5px rgba(255,255,255,0.1)); }
-
-        #card-bright .card-icon {
-            width: 32px;
-            height: 32px;
-            margin-top: 2px;
-            margin-bottom: 5px;
-            filter: drop-shadow(0 0 8px currentColor);
-            transition: color 0.5s ease, filter 0.5s ease;
-        }
-
-        #frost-alarm {
-            position: absolute;
-            left: 10px;
-            top: 10px;
-            display: none;
-            color: var(--color-frost);
-            animation: frost-pulse 1.5s infinite ease-in-out;
-            filter: drop-shadow(0 0 8px var(--color-frost));
-        }
-
-        @keyframes frost-pulse {
-            0% { opacity: 0.3; transform: scale(0.9); }
-            50% { opacity: 1; transform: scale(1.1); }
-            100% { opacity: 0.3; transform: scale(0.9); }
-        }
-
+        #card-bright .card-icon { width: 32px; height: 32px; margin-top: 2px; margin-bottom: 5px; filter: drop-shadow(0 0 8px currentColor); transition: color 0.5s ease, filter 0.5s ease; }
+        #frost-alarm { position: absolute; left: 10px; top: 10px; display: none; color: var(--color-frost); animation: frost-pulse 1.5s infinite ease-in-out; filter: drop-shadow(0 0 8px var(--color-frost)); }
+        @keyframes frost-pulse { 0% { opacity: 0.3; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0.3; transform: scale(0.9); } }
         .pres-text { color: var(--color-pres) !important; }
         .min-text { color: var(--color-min) !important; }
         .max-text { color: var(--color-max) !important; }
         .dew-text { color: var(--color-dew) !important; }
-
         .pres-rate { font-size: 0.5em; display: block; margin-top: 5px; font-weight: 400; color: #777 !important; }
         .fore-info { font-size: 0.55em; color: #777 !important; margin-top: 5px; font-weight: 400; }
-        
         .rain-line { font-size: 0.85em; display: flex; align-items: baseline; gap: 5px; color: #fff; font-weight: 600; margin-top: 2px; }
         .rain-label { font-size: 0.65em; color: #888; text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800; }
-
         .chart-box { background: rgba(20, 20, 20, 0.4); border-radius: 24px; padding: 15px 10px 45px 10px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.04); height: 320px; box-sizing: border-box; position: relative; backdrop-filter: blur(10px); }
         .section-header { margin: 30px 0 15px 0; padding: 0 5px; display: flex; justify-content: space-between; align-items: center; }
         .section-header h2 { font-size: 0.9em; text-transform: uppercase; color: #555; margin: 0; letter-spacing: 2px; font-weight: 800; }
         .sensor-info { margin: 20px 0 30px 0; font-size: 0.75em; color: #444; line-height: 1.6; padding: 0 15px; border-top: 1px solid rgba(255,255,255,0.03); padding-top: 20px; }
-
-        @media (min-width: 600px) {
-            body { padding: 20px; }
-            .container { padding: 35px; }
-            .main-title { font-size: 1.8em; }
-            .stats { gap: 18px; }
-            .stats-temp .card { padding: 32px 18px; }
-            .stats-temp .val-display { font-size: 2.3em; }
-            .card { padding: 24px 18px; }
-            .card::before { width: 4px; height: 100%; }
-            .val-display { font-size: 1.9em; }
-            .card-icon { width: 28px; height: 28px; position: absolute; right: 18px; top: 18px; }
-            #card-bright .card-icon { width: 48px; height: 48px; position: relative; right: auto; top: auto; }
-            #frost-alarm { left: 18px; top: 18px; }
-            .info-tooltip { right: 50%; transform: translateX(50%); top: 30px; }
-        }
+        @media (min-width: 600px) { body { padding: 20px; } .container { padding: 35px; } .main-title { font-size: 1.8em; } .stats { gap: 18px; } .stats-temp .card { padding: 32px 18px; } .stats-temp .val-display { font-size: 2.3em; } .card { padding: 24px 18px; } .card::before { width: 4px; height: 100%; } .val-display { font-size: 1.9em; } .card-icon { width: 28px; height: 28px; position: absolute; right: 18px; top: 18px; } #card-bright .card-icon { width: 48px; height: 48px; position: relative; right: auto; top: auto; } #frost-alarm { left: 18px; top: 18px; } .info-tooltip { right: 50%; transform: translateX(50%); top: 30px; } }
     </style>
 </head>
 <body>
-
 <div class="container">
     <div class="header-box">
-        <div class="title-group">
-            <div class="main-title">Wetterstation Kirchheide</div>
-            <div class="altitude">160m ü. NHN.</div>
-        </div>
+        <div class="main-title">Wetterstation Kirchheide <span class="altitude">160m ü. NHN.</span></div>
         <div class="info-wrapper">
             <div class="info-icon">i</div>
             <div class="info-tooltip">
                 <b>INFO & LEGENDE</b>
                 <strong>Sonnenstunden:</strong><br>
-                Berechnet die Zeit heute (MESZ), in der die Helligkeit über dem Schwellenwert lag.
+                Berechnet die Zeit heute, in der die Helligkeit über dem Schwellenwert für direkten Sonnenschein lag.
                 <hr>
                 <strong>Frost-Alarm:</strong><br>
                 Aktiv bei < 3°C & > 70% Feuchte.
             </div>
         </div>
     </div>
-    <div id="last-update-ts" class="last-update">Zuletzt aktualisiert: --:-- Uhr (MESZ)</div>
-
+    <div id="last-update-ts" class="last-update">Zuletzt aktualisiert: --:-- Uhr</div>
+    
     <div class="stats stats-temp">
         <div id="card-temp" class="card temp">
             <div id="frost-alarm">
@@ -300,7 +163,7 @@
     </div>
 
     <div class="controls-row">
-        <label>Zeitraum (Zeitachsen-lokal)</label>
+        <label>Allg. Zeitraum</label>
         <select id="period" onchange="fetchData()">
             <option value="1">1 Std</option>
             <option value="4">4 Std</option>
@@ -311,12 +174,8 @@
         </select>
     </div>
 
-    <div class="chart-box">
-        <canvas id="mainChart"></canvas>
-    </div>
-    <div class="chart-box">
-        <canvas id="presChart"></canvas>
-    </div>
+    <div class="chart-box"><canvas id="mainChart"></canvas></div>
+    <div class="chart-box"><canvas id="presChart"></canvas></div>
 
     <div class="section-header">
         <h2>Sonnenschein & Helligkeit</h2>
@@ -328,9 +187,7 @@
             <option value="720">30 Tage</option>
         </select>
     </div>
-    <div class="chart-box">
-        <canvas id="brightChart"></canvas>
-    </div>
+    <div class="chart-box"><canvas id="brightChart"></canvas></div>
 
     <div class="section-header">
         <h2>Niederschlags-Historie</h2>
@@ -344,19 +201,24 @@
     </div>
 
     <div class="chart-box" style="height: auto; padding-bottom: 20px;">
-        <div style="height: 300px; position: relative;">
-            <canvas id="rainChart"></canvas>
-        </div>
+        <div style="height: 300px; position: relative;"><canvas id="rainChart"></canvas></div>
     </div>
 
     <div class="sensor-info">
         Präzisions-Sensor: <strong>Sensirion SHT3x</strong> & Digitaler Lichtsensor<br>
-        Datenintervall: 1 Minute | Helligkeit/Regen: <strong>UTC+2</strong> | Temp/Druck: <strong>UTC+1</strong><br>
-        Sonnen-Schwellenwert: > 4000 Einheiten
+        Datenintervall: 1 Minute<br>
+        Sonnen-Schwellenwert: > 3500 Einheiten
     </div>
 </div>
 
 <script>
+// ==========================================
+// REGEN-HYSTERESE EINSTELLUNGEN
+// ==========================================
+const HYST_START = 0.3; // Start-Schwelle: Regen zählt erst ab 0.3 mm Zuwachs
+const HYST_DROP = 0.3;  // Drop-Schwelle: Sinken um > 0.3 mm wird als Verdunstung gewertet
+// ==========================================
+
 const URL_BASE = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app";
 const URL_T = `${URL_BASE}/temperature.json`;
 const URL_H = `${URL_BASE}/humidity.json`;
@@ -365,17 +227,10 @@ const URL_B = `${URL_BASE}/brightness.json`;
 const URL_R_BASE = `${URL_BASE}/Regenmesser`;
 
 const PRES_OFFSET = 14.5;
-const SUN_THRESHOLD = 4000; 
+const SUN_THRESHOLD = 3500; 
 const MONTHS = ["Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
 let charts = {};
-
-function getOffsetDate(date, offsetHours = 2) {
-    if (!(date instanceof Date) || isNaN(date)) return date;
-    const offsetDate = new Date(date.getTime());
-    offsetDate.setHours(offsetDate.getHours() + offsetHours);
-    return offsetDate;
-}
 
 function createVerticalGradient(ctx, chartArea, color) {
     if (!chartArea) return null;
@@ -392,15 +247,8 @@ const crosshairPlugin = {
         if (chart.tooltip?._active?.length) {
             const activePoint = chart.tooltip._active[0];
             const xPos = activePoint.element.x;
-            ctx.save();
-            ctx.beginPath();
-            ctx.moveTo(xPos, top);
-            ctx.lineTo(xPos, bottom);
-            ctx.lineWidth = 1;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-            ctx.setLineDash([5, 5]);
-            ctx.stroke();
-            ctx.restore();
+            ctx.save(); ctx.beginPath(); ctx.moveTo(xPos, top); ctx.lineTo(xPos, bottom); ctx.lineWidth = 1;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.restore();
         }
     }
 };
@@ -416,13 +264,10 @@ const minMaxPlugin = {
         let minIdx = dataset.indexOf(minVal), maxIdx = dataset.indexOf(maxVal);
         const drawPointer = (index, value, color) => {
             const px = x.getPixelForValue(index), py = y.getPixelForValue(value);
-            ctx.save();
-            ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineWidth = 2;
-            ctx.textAlign = 'center'; ctx.font = 'bold 11px sans-serif';
+            ctx.save(); ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.textAlign = 'center'; ctx.font = 'bold 11px sans-serif';
             const offset = 25, arrowHead = 6;
             ctx.beginPath(); ctx.moveTo(px, py - offset); ctx.lineTo(px, py - 6); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(px, py - 6);
-            ctx.lineTo(px - arrowHead, py - 6 - arrowHead); ctx.lineTo(px + arrowHead, py - 6 - arrowHead);
+            ctx.beginPath(); ctx.moveTo(px, py - 6); ctx.lineTo(px - arrowHead, py - 6 - arrowHead); ctx.lineTo(px + arrowHead, py - 6 - arrowHead);
             ctx.fill(); ctx.fillText((Number(value) || 0).toFixed(1) + '°', px, py - offset - 5); ctx.restore();
         };
         drawPointer(maxIdx, maxVal, '#ff3860'); drawPointer(minIdx, minVal, '#3b82f6');
@@ -433,11 +278,7 @@ const globalInteractionConfig = { mode: 'index', intersect: false };
 
 function getUniversalDate(id) {
     if (/^\d{8}_\d{4}$/.test(id)) {
-        const y = id.substring(0, 4);
-        const m = parseInt(id.substring(4, 6)) - 1;
-        const d = id.substring(6, 8);
-        const hh = id.substring(9, 11);
-        const mm = id.substring(11, 13);
+        const y = id.substring(0, 4), m = parseInt(id.substring(4, 6)) - 1, d = id.substring(6, 8), hh = id.substring(9, 11), mm = id.substring(11, 13);
         return new Date(y, m, d, hh, mm);
     }
     const PUSH_CHARS = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
@@ -446,388 +287,208 @@ function getUniversalDate(id) {
     return new Date(time);
 }
 
-function getSmartLabel(date, hours, offsetHours = 2) {
+function getSmartLabel(date, hours, useOffset = false) {
     if (!(date instanceof Date) || isNaN(date)) return "--";
-    const workingDate = getOffsetDate(date, offsetHours);
+    let workingDate = new Date(date.getTime());
+    if (useOffset) workingDate.setHours(workingDate.getHours() + 1);
     let h = workingDate.getHours(), m = workingDate.getMinutes().toString().padStart(2, '0');
-    const timeStr = `${h.toString().padStart(2, '0')}:${m}`;
-    if (hours <= 24) return timeStr;
-    return workingDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + '. ' + timeStr;
+    if (hours <= 24) return `${h.toString().padStart(2, '0')}:${m}`;
+    return workingDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + '. ' + `${h.toString().padStart(2, '0')}:${m}`;
 }
 
-function getTempColor(t) {
-    if (t < 0) return '#3b82f6';
-    if (t < 12) return '#00d1b2';
-    if (t < 22) return '#ffeb3b';
-    if (t < 30) return '#ff9800';
-    return '#ff3860';
-}
-
-function getHumColor(h) {
-    if (h < 35) return '#ff9800';
-    if (h <= 60) return '#00ff88';
-    if (h <= 80) return '#3b82f6';
-    return '#9c27b0';
-}
-
-function getColorByDiff(diff) {
-    if (diff < 0.01) return '#00bcd4'; 
-    const rate = diff * 60; 
-    if (rate <= 15.0) return '#ffeb3b'; if (rate <= 30.0) return '#ff9800'; 
-    if (rate <= 45.0) return '#f44336'; return '#9c27b0';                                     
-}
-
-function getSunColor(lux) {
-    if (lux >= SUN_THRESHOLD) return 'rgb(255, 204, 0)'; 
-    if (lux <= 500) return 'rgb(85, 85, 85)';   
-    const ratio = (lux - 500) / (SUN_THRESHOLD - 500);
-    const r = Math.floor(85 + (255 - 85) * ratio);
-    const g = Math.floor(85 + (204 - 85) * ratio);
-    const b = Math.floor(85 + (0 - 85) * ratio);
-    return `rgb(${r}, ${g}, ${b})`;
-}
-
-function calculateDewPoint(temp, hum) {
-    if (temp === undefined || hum === undefined || hum <= 0) return 0;
-    const a = 17.27, b = 237.7;
-    const alpha = ((a * temp) / (b + temp)) + Math.log(hum / 100.0);
-    return (b * alpha) / (a - alpha);
-}
+function getTempColor(t) { return t < 0 ? '#3b82f6' : t < 12 ? '#00d1b2' : t < 22 ? '#ffeb3b' : t < 30 ? '#ff9800' : '#ff3860'; }
+function getHumColor(h) { return h < 35 ? '#ff9800' : h <= 60 ? '#00ff88' : h <= 80 ? '#3b82f6' : '#9c27b0'; }
+function getColorByDiff(diff) { if (diff < 0.01) return '#00bcd4'; const rate = diff * 60; return rate <= 15.0 ? '#ffeb3b' : rate <= 30.0 ? '#ff9800' : rate <= 45.0 ? '#f44336' : '#9c27b0'; }
+function getSunColor(lux) { if (lux >= SUN_THRESHOLD) return 'rgb(255, 204, 0)'; if (lux <= 500) return 'rgb(85, 85, 85)'; const ratio = (lux - 500) / (SUN_THRESHOLD - 500); return `rgb(${Math.floor(85 + 170 * ratio)}, ${Math.floor(85 + 119 * ratio)}, ${Math.floor(85 - 85 * ratio)})`; }
+function calculateDewPoint(temp, hum) { if (temp === undefined || hum === undefined || hum <= 0) return 0; const a = 17.27, b = 237.7, alpha = ((a * temp) / (b + temp)) + Math.log(hum / 100.0); return (b * alpha) / (a - alpha); }
 
 function getForecast(allP, lastHum, lastT) {
     const dewPoint = calculateDewPoint(lastT, lastHum);
     if (lastHum > 95 && (lastT - dewPoint) < 1.5) return " Nebel möglich";
     if (allP.length < 36) return "Ermittlung...";
     const currentP = (Number(allP[allP.length - 1].value) || 0) + PRES_OFFSET, oldP = (Number(allP[allP.length - 36].value) || 0) + PRES_OFFSET, diff = currentP - oldP;
-    if (diff < -3.0) return " Unbeständig"; 
-    if (diff < -1.0) return lastHum > 75 ? " Regenneigung" : " Bewölkt";
+    if (diff < -3.0) return " Unbeständig"; if (diff < -1.0) return lastHum > 75 ? " Regenneigung" : " Bewölkt";
     if (Math.abs(diff) <= 1.0) return lastHum > 80 ? " Trüb" : " Beständig";
-    if (diff > 3.0) return " Sonnig"; 
-    if (diff > 1.0) return " Aufklarend";
+    if (diff > 3.0) return " Sonnig"; if (diff > 1.0) return " Aufklarend";
     return " Unklar";
 }
 
 async function fetchYearlyRain(year, currentMonthIdx) {
-    let sum = 0;
-    const promises = [];
-    for (let i = 0; i <= currentMonthIdx; i++) {
-        promises.push(fetch(`${URL_R_BASE}/${year}/${MONTHS[i]}.json?orderBy="$key"&limitToLast=1`).then(r => r.json()));
-    }
+    let sum = 0; const promises = [];
+    // Korrektur: Nur Monate VOR dem aktuellen Monat laden, um Doppelzählung zu vermeiden
+    for (let i = 0; i < currentMonthIdx; i++) promises.push(fetch(`${URL_R_BASE}/${year}/${MONTHS[i]}.json?orderBy="$key"&limitToLast=1`).then(r => r.json()));
     const results = await Promise.all(promises);
-    results.forEach(data => {
-        if (data) {
-            const keys = Object.keys(data);
-            if (keys.length > 0) sum += parseFloat(data[keys[0]].regen_l_m2) || 0;
-        }
-    });
+    results.forEach(data => { if (data) { const keys = Object.keys(data); if (keys.length > 0) sum += parseFloat(data[keys[0]].regen_l_m2) || 0; } });
     return sum;
 }
 
 async function fetchData() {
-    const hours = parseInt(document.getElementById('period').value);
-    const rainHours = parseInt(document.getElementById('rainPeriod').value);
-    const sunHoursPeriod = parseInt(document.getElementById('sunPeriod').value);
-    const now = new Date();
-    const cutoffGeneral = new Date(now.getTime() - (hours * 60 * 60 * 1000));
-    const cutoffRain = new Date(now.getTime() - (Math.max(rainHours, 24) * 60 * 60 * 1000)); 
-    const cutoffSun = new Date(now.getTime() - (sunHoursPeriod * 60 * 60 * 1000));
-    
+    const hours = parseInt(document.getElementById('period').value), rainHours = parseInt(document.getElementById('rainPeriod').value), sunHoursPeriod = parseInt(document.getElementById('sunPeriod').value), now = new Date();
+    const cutoffGeneral = new Date(now.getTime() - (hours * 3600000)), cutoffRain = new Date(now.getTime() - (Math.max(rainHours, 24) * 3600000)), cutoffSun = new Date(now.getTime() - (sunHoursPeriod * 3600000));
     try {
-        const maxHours = Math.max(hours, rainHours, sunHoursPeriod, 168), limit = maxHours >= 168 ? 30000 : 8000;
-        const currentYear = now.getFullYear();
-        const currentMonthIdx = now.getMonth();
-        const currentMonthStr = MONTHS[currentMonthIdx];
-        
-        const fetchPromises = [
-            fetch(`${URL_T}?orderBy="$key"&limitToLast=${limit}`),
-            fetch(`${URL_H}?orderBy="$key"&limitToLast=${limit}`),
-            fetch(`${URL_P}?orderBy="$key"&limitToLast=${limit}`),
-            fetch(`${URL_B}?orderBy="$key"&limitToLast=${limit}`), 
-            fetch(`${URL_R_BASE}/${currentYear}/${currentMonthStr}.json?orderBy="$key"&limitToLast=${limit}`)
-        ];
-
-        const responses = await Promise.all(fetchPromises);
-        const dataT = await responses[0].json();
-        const dataH = await responses[1].json();
-        const dataP = await responses[2].json();
-        const dataB = await responses[3].json(); 
-        const dataR_curr = await responses[4].json();
-
-        const entriesT = Object.keys(dataT || {}).map(k => ({ id: k, date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= cutoffGeneral);
-        const entriesH = Object.keys(dataH || {}).map(k => ({ id: k, date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= cutoffGeneral);
-        const entriesP = Object.keys(dataP || {}).map(k => ({ id: k, date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffGeneral);
-        
-        const entriesB_all = Object.keys(dataB || {}).map(k => {
-            const val = (typeof dataB[k] === 'object') ? dataB[k].brightness : dataB[k];
-            return { id: k, date: getUniversalDate(k), value: Number(val ?? 0) };
-        });
-        
-        let entriesB_filtered = entriesB_all.filter(e => e.date >= cutoffSun);
-        
-        if (sunHoursPeriod > 144) {
-            const factor = sunHoursPeriod > 200 ? 15 : 5;
-            entriesB_filtered = entriesB_filtered.filter((_, i) => i % factor === 0);
-        }
-        
-        let entriesR = Object.keys(dataR_curr || {}).sort().map(k => {
-            const parts = dataR_curr[k].zeitstempel.split(/[. :]/);
-            return { date: new Date(parts[2], parts[1]-1, parts[0], parts[3], parts[4]), value: parseFloat(dataR_curr[k].regen_l_m2) || 0 };
-        }).filter(e => e.date >= cutoffRain);
-
-        if (rainHours > 144) {
-            const factor = rainHours > 200 ? 15 : 5;
-            entriesR = entriesR.filter((_, i) => i % factor === 0);
-        }
-
-        const yearlyTotal = await fetchYearlyRain(currentYear, currentMonthIdx);
-        updateUI(entriesT, entriesH, entriesP, entriesB_filtered, entriesB_all, entriesR, dataP ? Object.keys(dataP).map(k => ({ date: getUniversalDate(k), value: dataP[k].value })) : [], hours, rainHours, sunHoursPeriod, yearlyTotal);
+        const maxHours = Math.max(hours, rainHours, sunHoursPeriod, 168), limit = maxHours >= 168 ? 20000 : 8000, currentYear = now.getFullYear(), currentMonthStr = MONTHS[now.getMonth()];
+        const responses = await Promise.all([fetch(`${URL_T}?orderBy="$key"&limitToLast=${limit}`), fetch(`${URL_H}?orderBy="$key"&limitToLast=${limit}`), fetch(`${URL_P}?orderBy="$key"&limitToLast=${limit}`), fetch(`${URL_B}?orderBy="$key"&limitToLast=${limit}`), fetch(`${URL_R_BASE}/${currentYear}/${currentMonthStr}.json?orderBy="$key"&limitToLast=${limit}`)]);
+        const dataT = await responses[0].json(), dataH = await responses[1].json(), dataP = await responses[2].json(), dataB = await responses[3].json(), dataR_curr = await responses[4].json();
+        const entriesT = Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= cutoffGeneral);
+        const entriesH = Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= cutoffGeneral);
+        const entriesP = Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffGeneral);
+        const entriesB_all = Object.keys(dataB || {}).map(k => ({ date: getUniversalDate(k), value: Number((typeof dataB[k] === 'object' ? dataB[k].brightness : dataB[k]) ?? 0) }));
+        let entriesR = Object.keys(dataR_curr || {}).sort().map(k => { const p = dataR_curr[k].zeitstempel.split(/[. :]/); return { date: new Date(p[2], p[1]-1, p[0], p[3], p[4]), value: parseFloat(dataR_curr[k].regen_l_m2) || 0 }; }).filter(e => e.date >= cutoffRain);
+        const yearlyTotal = await fetchYearlyRain(currentYear, now.getMonth());
+        updateUI(entriesT, entriesH, entriesP, entriesB_all.filter(e => e.date >= cutoffSun), entriesB_all, entriesR, dataP ? Object.keys(dataP).map(k => ({ date: getUniversalDate(k), value: dataP[k].value })) : [], hours, rainHours, sunHoursPeriod, yearlyTotal);
     } catch (e) { console.error("Datenfehler:", e); }
 }
 
 function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR, allP, hours, rainHours, sunHoursPeriod, yearlyTotal) {
-    let lastT = 0, lastHum = 0;
-    const now = new Date();
-    
+    let lastT = 0, lastHum = 0; const now = new Date();
     const allRecent = [...entriesT, ...entriesH, ...entriesP, ...entriesB];
-    if (allRecent.length > 0) {
-        const lastDateUTC = allRecent[allRecent.length - 1].date;
-        const lastDateMESZ = getOffsetDate(lastDateUTC, 2);
-        document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${lastDateMESZ.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr (MESZ)`;
+    if (allRecent.length > 0) { 
+        const dispDate = new Date(allRecent[allRecent.length - 1].date.getTime()); dispDate.setHours(dispDate.getHours() + 1);
+        document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${dispDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`;
     }
-
     if (entriesT.length > 0) {
-        lastT = Number(entriesT[entriesT.length-1].value) || 0;
-        const color = getTempColor(lastT);
-        document.getElementById('curr-temp').innerText = lastT.toFixed(1);
-        document.getElementById('card-temp').style.setProperty('--accent-color', color);
-        document.getElementById('temp-display').style.color = color;
-        document.getElementById('icon-temp').style.stroke = color;
-        const valsT = entriesT.map(e => Number(e.value) || 0);
-        document.getElementById('min-temp-val').innerText = Math.min(...valsT).toFixed(1);
-        document.getElementById('max-temp-val').innerText = Math.max(...valsT).toFixed(1);
+        lastT = Number(entriesT[entriesT.length-1].value); const color = getTempColor(lastT);
+        document.getElementById('curr-temp').innerText = lastT.toFixed(1); document.getElementById('card-temp').style.setProperty('--accent-color', color);
+        document.getElementById('temp-display').style.color = color; document.getElementById('icon-temp').style.stroke = color;
+        const valsT = entriesT.map(e => e.value); document.getElementById('min-temp-val').innerText = Math.min(...valsT).toFixed(1); document.getElementById('max-temp-val').innerText = Math.max(...valsT).toFixed(1);
     }
-
     if (entriesH.length > 0) {
-        lastHum = Number(entriesH[entriesH.length-1].value) || 0;
-        const humColor = getHumColor(lastHum);
-        document.getElementById('curr-hum').innerText = lastHum.toFixed(1);
-        document.getElementById('card-hum').style.setProperty('--accent-color', humColor);
-        document.getElementById('hum-display').style.color = humColor;
-        document.getElementById('icon-hum').style.stroke = humColor;
+        lastHum = Number(entriesH[entriesH.length-1].value); const humColor = getHumColor(lastHum);
+        document.getElementById('curr-hum').innerText = lastHum.toFixed(1); document.getElementById('card-hum').style.setProperty('--accent-color', humColor);
+        document.getElementById('hum-display').style.color = humColor; document.getElementById('icon-hum').style.stroke = humColor;
         document.getElementById('curr-temp-dew').innerText = calculateDewPoint(lastT, lastHum).toFixed(1);
     }
-
     const frostAlarm = document.getElementById('frost-alarm');
-    if (lastT < 3.0 && lastHum > 70.0) {
-        frostAlarm.style.display = 'block';
-        frostAlarm.style.color = lastT <= 0 ? 'var(--color-ice)' : 'var(--color-frost)';
-    } else {
-        frostAlarm.style.display = 'none';
-    }
-
+    if (lastT < 3.0 && lastHum > 70.0) { frostAlarm.style.display = 'block'; frostAlarm.style.color = lastT <= 0 ? 'var(--color-ice)' : 'var(--color-frost)'; } else { frostAlarm.style.display = 'none'; }
     if (entriesP.length > 0) {
-        const correctedLastP = (Number(entriesP[entriesP.length-1].value) || 0) + PRES_OFFSET;
-        document.getElementById('curr-pres').innerText = correctedLastP.toFixed(0);
+        const lastP = (Number(entriesP[entriesP.length-1].value) || 0) + PRES_OFFSET; document.getElementById('curr-pres').innerText = lastP.toFixed(0);
         if (entriesP.length > 12) {
-            const diff = ((Number(entriesP[entriesP.length-1].value) || 0) + PRES_OFFSET) - ((Number(entriesP[entriesP.length-12].value) || 0) + PRES_OFFSET);
+            const diff = lastP - ((Number(entriesP[entriesP.length-12].value) || 0) + PRES_OFFSET);
             document.getElementById('pres-trend-arrow').innerText = diff > 0.2 ? " ↑" : diff < -0.2 ? " ↓" : " →";
             document.getElementById('pres-rate-val').innerText = (diff > 0 ? "+" : "") + diff.toFixed(1) + " hPa/h";
         }
     }
-
-    const calcSunHours = (dataArray, startDate) => {
-        const minutes = dataArray.filter(e => getOffsetDate(e.date, 2) >= startDate && e.value >= SUN_THRESHOLD).length;
-        return (minutes / 60).toFixed(1);
-    };
-
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const startOfYear = new Date(now.getFullYear(), 0, 1);
-
-    document.getElementById('sun-day').innerText = calcSunHours(entriesB_all, startOfDay);
-    document.getElementById('sun-month').innerText = calcSunHours(entriesB_all, startOfMonth);
-    document.getElementById('sun-year').innerText = calcSunHours(entriesB_all, startOfYear);
-        
-    if (entriesB.length > 0) {
-        const lastB = Number(entriesB[entriesB.length-1].value) || 0;
-        const sunColor = getSunColor(lastB);
-        document.getElementById('icon-sun').style.color = sunColor;
-        document.getElementById('card-bright').style.setProperty('--accent-color', sunColor);
-    }
-
+    const calcSunHours = (arr, start) => (arr.filter(e => e.date >= start && e.value >= SUN_THRESHOLD).length / 60).toFixed(1);
+    document.getElementById('sun-day').innerText = calcSunHours(entriesB_all, new Date(now.getFullYear(), now.getMonth(), now.getDate()));
+    document.getElementById('sun-month').innerText = calcSunHours(entriesB_all, new Date(now.getFullYear(), now.getMonth(), 1));
+    document.getElementById('sun-year').innerText = calcSunHours(entriesB_all, new Date(now.getFullYear(), 0, 1));
+    if (entriesB.length > 0) { const sunColor = getSunColor(Number(entriesB[entriesB.length-1].value)); document.getElementById('icon-sun').style.color = sunColor; document.getElementById('card-bright').style.setProperty('--accent-color', sunColor); }
     document.getElementById('forecast-val').innerText = getForecast(allP, lastHum, lastT);
 
+    // --- REGEN LOGIK ---
     if (entriesR.length > 0) {
-        let correctedR = [];
-        let runningOffset = 0; 
-        for (let i = 0; i < entriesR.length; i++) {
-            if (i >= 3) {
-                const currentRaw = Number(entriesR[i].value) || 0;
-                const avgPrev = ((Number(entriesR[i-1].value) || 0) + (Number(entriesR[i-2].value) || 0) + (Number(entriesR[i-3].value) || 0)) / 3;
-                if (avgPrev - currentRaw >= 50) {
-                    runningOffset += (avgPrev - currentRaw);
+        let entriesRForCalc = entriesR;
+        if (now.getMonth() === 2 && now.getFullYear() === 2026) {
+            const startOfYesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1);
+            entriesRForCalc = entriesR.filter(e => e.date >= startOfYesterday);
+        }
+
+        // 1. HYSTERESE FÜR ZAHLENFELDER (Korrekt kumulativ)
+        let correctedR = [], totalRainSum = 0;
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        let sumAtMidnight = 0;
+
+        if (entriesRForCalc.length > 0) {
+            let lastValue = Number(entriesRForCalc[0].value) || 0;
+            for (let i = 0; i < entriesRForCalc.length; i++) {
+                const currentRaw = Number(entriesRForCalc[i].value) || 0;
+                const diff = currentRaw - lastValue;
+
+                if (diff >= HYST_START) { 
+                    totalRainSum += diff; 
+                    lastValue = currentRaw; 
+                } 
+                else if (diff < -HYST_DROP) { 
+                    lastValue = currentRaw; 
+                } 
+
+                if (entriesRForCalc[i].date < startOfToday) {
+                    sumAtMidnight = totalRainSum;
                 }
+
+                correctedR.push({ date: entriesRForCalc[i].date, value: totalRainSum });
             }
-            correctedR.push({ date: entriesR[i].date, value: (Number(entriesR[i].value) || 0) + runningOffset });
         }
 
-        const lastR = (Number(correctedR[correctedR.length-1].value) || 0);
-        const cutoff24 = new Date(now.getTime() - (24 * 60 * 60 * 1000));
-        const entries24 = correctedR.filter(e => e.date >= cutoff24);
-        let val24 = 0;
-        if (entries24.length > 1) {
-            val24 = (Number(entries24[entries24.length-1].value) || 0) - (Number(entries24[0].value) || 0);
-            document.getElementById('day-rain').innerText = val24.toFixed(1);
+        // 2. ROHDATEN FÜR CHART (Relativ zum jeweiligen Tagesbeginn)
+        const rainCutoff = new Date(now.getTime() - rainHours * 3600000);
+        const chartSlice = entriesR.filter(e => e.date >= rainCutoff);
+        let rawChartData = [];
+        if (chartSlice.length > 0) {
+            let dayBaselines = {};
+            chartSlice.forEach((e, idx) => {
+                const dayKey = e.date.toDateString();
+                if (!(dayKey in dayBaselines)) {
+                    const firstOfThisDay = entriesR.find(r => r.date.toDateString() === dayKey);
+                    dayBaselines[dayKey] = firstOfThisDay ? firstOfThisDay.value : e.value;
+                }
+                
+                if (idx > 0) {
+                    const diff = e.value - chartSlice[idx-1].value;
+                    if (diff < -10.0) {
+                        dayBaselines[dayKey] = e.value; 
+                    }
+                }
+
+                rawChartData.push({
+                    date: e.date,
+                    value: Math.max(0, e.value - dayBaselines[dayKey])
+                });
+            });
         }
 
-        document.getElementById('curr-rain').innerText = lastR.toFixed(2);
-        document.getElementById('year-rain').innerText = ((Number(yearlyTotal) || 0) + runningOffset).toFixed(1);
+        // UI Aktualisierung
+        document.getElementById('curr-rain').innerText = totalRainSum.toFixed(2);
         
-        const rainColor = getColorByDiff(val24 / 24); 
-        document.getElementById('icon-rain').style.stroke = rainColor;
+        let valToday = Math.max(0, totalRainSum - sumAtMidnight);
+        document.getElementById('day-rain').innerText = valToday.toFixed(1);
+        document.getElementById('year-rain').innerText = ((Number(yearlyTotal) || 0) + totalRainSum).toFixed(1);
+        
+        const rainColor = getColorByDiff(valToday / 24); 
+        document.getElementById('icon-rain').style.stroke = rainColor; 
         document.getElementById('rainCard').style.setProperty('--accent-color', rainColor);
-
-        const cutoffGraph = new Date(now.getTime() - (rainHours * 60 * 60 * 1000));
-        renderRainChart(correctedR.filter(e => e.date >= cutoffGraph), rainHours);
+        
+        renderRainChart(rawChartData, rainHours);
     }
-    
-    renderMainChart(entriesT, hours);
-    renderPresChart(entriesP, hours);
-    renderBrightChart(entriesB, sunHoursPeriod);
+    renderMainChart(entriesT, hours); renderPresChart(entriesP, hours); renderBrightChart(entriesB, sunHoursPeriod);
 }
 
 function getXAxisConfig(hours) {
     return {
         grid: { color: 'rgba(255, 255, 255, 0.03)' },
-        ticks: {
-            color: '#ffffff', 
-            autoSkip: true, 
-            maxRotation: 0,
-            callback: function(v, i, t) {
-                const label = this.getLabelForValue(v);
-                if (hours <= 48) {
-                    const prev = i > 0 ? this.getLabelForValue(t[i - 1]?.value) : null;
-                    if (prev && label.substring(0, 2) !== prev.substring(0, 2)) return label.substring(0, 2) + ':00';
-                    return null;
-                } else {
-                    if (i === 0) return label.split(' ')[0];
-                    const prev = this.getLabelForValue(t[i - 1]?.value);
-                    return label.split(' ')[0] !== prev?.split(' ')[0] ? label.split(' ')[0] : '';
-                }
-            }
-        }
+        ticks: { color: '#ffffff', autoSkip: true, maxRotation: 0, callback: function(v, i, t) {
+            const label = this.getLabelForValue(v);
+            if (hours <= 48) { const prev = i > 0 ? this.getLabelForValue(t[i - 1]?.value) : null; return (prev && label.substring(0, 2) !== prev.substring(0, 2)) ? label.substring(0, 2) + ':00' : null; }
+            const prev = i > 0 ? this.getLabelForValue(t[i - 1]?.value) : null; return (label.split(' ')[0] !== prev?.split(' ')[0]) ? label.split(' ')[0] : '';
+        }}
     };
 }
 
-function renderMainChart(entriesT, hours) {
-    const ctx = document.getElementById('mainChart').getContext('2d');
-    const data = {
-        labels: entriesT.map(e => getSmartLabel(e.date, hours, 1)),
-        datasets: [{ 
-            label: 'Temp', data: entriesT.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4,
-            borderColor: '#00d1b2',
-            backgroundColor: (context) => createVerticalGradient(context.chart.ctx, context.chart.chartArea, '#00d1b2'),
-            segment: { borderColor: ctx => ctx.p0.parsed && ctx.p1.parsed ? getTempColor((ctx.p0.parsed.y + ctx.p1.parsed.y) / 2) : '#00d1b2' }
-        }]
-    };
-    if (charts['mainChart']) { charts['mainChart'].data = data; charts['mainChart'].options.scales.x = getXAxisConfig(hours); charts['mainChart'].update('none'); }
-    else {
-        charts['mainChart'] = new Chart(ctx, {
-            type: 'line', data, plugins: [minMaxPlugin, crosshairPlugin],
-            options: {
-                responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig,
-                plugins: { legend: { display: false }, title: { display: true, text: 'Temperaturverlauf (°C)', color: '#ffffff' } }, 
-                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hours) } 
-            }
-        });
-    }
+function renderMainChart(ent, hrs) {
+    const ctx = document.getElementById('mainChart').getContext('2d'), data = { labels: ent.map(e => getSmartLabel(e.date, hrs, true)), datasets: [{ label: 'Temp', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4, borderColor: '#00d1b2', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#00d1b2'), segment: { borderColor: ctx => ctx.p0.parsed && ctx.p1.parsed ? getTempColor((ctx.p0.parsed.y + ctx.p1.parsed.y) / 2) : '#00d1b2' } }] };
+    if (charts['mainChart']) { charts['mainChart'].data = data; charts['mainChart'].options.scales.x = getXAxisConfig(hrs); charts['mainChart'].update('none'); }
+    else { charts['mainChart'] = new Chart(ctx, { type: 'line', data, plugins: [minMaxPlugin, crosshairPlugin], options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig, plugins: { legend: { display: false }, title: { display: true, text: 'Temperaturverlauf (°C)', color: '#ffffff' } }, scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hrs) } } }); }
 }
 
-function renderPresChart(entriesP, hours) {
-    const ctx = document.getElementById('presChart').getContext('2d');
-    const values = entriesP.map(e => (Number(e.value) || 0) + PRES_OFFSET); 
-    if (charts['presChart']) { 
-        charts['presChart'].data.labels = entriesP.map(e => getSmartLabel(e.date, hours, 1)); 
-        charts['presChart'].data.datasets[0].data = values; 
-        charts['presChart'].options.scales.x = getXAxisConfig(hours); 
-        charts['presChart'].update('none'); 
-    }
-    else {
-        charts['presChart'] = new Chart(ctx, {
-            type: 'line', data: { labels: entriesP.map(e => getSmartLabel(e.date, hours, 1)), datasets: [{ label: 'Druck', data: values, borderColor: '#a29bfe', backgroundColor: (context) => createVerticalGradient(context.chart.ctx, context.chart.chartArea, '#a29bfe'), fill: true, pointRadius: 0, tension: 0.4 }] },
-            options: {
-                responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig,
-                plugins: { legend: { display: false }, title: { display: true, text: 'Luftdruck (hPa)', color: '#ffffff' } }, 
-                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hours) }, 
-            },
-            plugins: [crosshairPlugin]
-        });
-    }
+function renderPresChart(ent, hrs) {
+    const ctx = document.getElementById('presChart').getContext('2d'), values = ent.map(e => (Number(e.value) || 0) + PRES_OFFSET);
+    if (charts['presChart']) { charts['presChart'].data.labels = ent.map(e => getSmartLabel(e.date, hrs, true)); charts['presChart'].data.datasets[0].data = values; charts['presChart'].options.scales.x = getXAxisConfig(hrs); charts['presChart'].update('none'); }
+    else { charts['presChart'] = new Chart(ctx, { type: 'line', data: { labels: ent.map(e => getSmartLabel(e.date, hrs, true)), datasets: [{ label: 'Druck', data: values, borderColor: '#a29bfe', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#a29bfe'), fill: true, pointRadius: 0, tension: 0.4 }] }, options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig, plugins: { legend: { display: false }, title: { display: true, text: 'Luftdruck (hPa)', color: '#ffffff' } }, scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hrs) } }, plugins: [crosshairPlugin] }); }
 }
 
-function renderBrightChart(entriesB, hours) {
-    const ctx = document.getElementById('brightChart').getContext('2d');
-    const values = entriesB.map(e => Number(e.value) || 0); 
-    if (charts['brightChart']) { 
-        charts['brightChart'].data.labels = entriesB.map(e => getSmartLabel(e.date, hours, 2)); 
-        charts['brightChart'].data.datasets[0].data = values; 
-        charts['brightChart'].options.scales.x = getXAxisConfig(hours); 
-        charts['brightChart'].update('none'); 
-    }
-    else {
-        charts['brightChart'] = new Chart(ctx, {
-            type: 'line', 
-            data: { 
-                labels: entriesB.map(e => getSmartLabel(e.date, hours, 2)), 
-                datasets: [{ 
-                    label: 'Intensität', 
-                    data: values, 
-                    borderColor: '#ffcc00', 
-                    backgroundColor: (context) => createVerticalGradient(context.chart.ctx, context.chart.chartArea, '#ffcc00'), 
-                    fill: true, 
-                    pointRadius: 0, 
-                    tension: 0.4,
-                    segment: {
-                        borderColor: ctx => ctx.p1.parsed.y >= SUN_THRESHOLD ? '#ffcc00' : '#555555'
-                    }
-                }] 
-            },
-            options: {
-                responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig,
-                plugins: { 
-                    legend: { display: false }, 
-                    title: { display: true, text: 'Helligkeit / Sonnenschein (UTC+2)', color: '#ffffff' },
-                }, 
-                scales: { 
-                    y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' }, beginAtZero: true }, 
-                    x: getXAxisConfig(hours) 
-                }, 
-            },
-            plugins: [crosshairPlugin]
-        });
-    }
+function renderBrightChart(ent, hrs) {
+    const ctx = document.getElementById('brightChart').getContext('2d'), values = ent.map(e => e.value);
+    if (charts['brightChart']) { charts['brightChart'].data.labels = ent.map(e => getSmartLabel(e.date, hrs, true)); charts['brightChart'].data.datasets[0].data = values; charts['brightChart'].options.scales.x = getXAxisConfig(hrs); charts['brightChart'].update('none'); }
+    else { charts['brightChart'] = new Chart(ctx, { type: 'line', data: { labels: ent.map(e => getSmartLabel(e.date, hrs, true)), datasets: [{ label: 'Intensität', data: values, borderColor: '#ffcc00', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#ffcc00'), fill: true, pointRadius: 0, tension: 0.4, segment: { borderColor: ctx => ctx.p1.parsed.y >= SUN_THRESHOLD ? '#ffcc00' : '#555555' } }] }, options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig, plugins: { legend: { display: false }, title: { display: true, text: 'Helligkeit / Sonnenschein', color: '#ffffff' } }, scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' }, beginAtZero: true }, x: getXAxisConfig(hrs) } }, plugins: [crosshairPlugin] }); }
 }
 
-function renderRainChart(entriesR, hours) {
-    const ctx = document.getElementById('rainChart').getContext('2d');
-    const data = {
-        labels: entriesR.map(e => getSmartLabel(e.date, hours, 2)), 
-        datasets: [{ label: 'l/m²', data: entriesR.map(e => e.value), tension: 0, pointRadius: 0, borderWidth: 2, fill: true, backgroundColor: (context) => createVerticalGradient(context.chart.ctx, context.chart.chartArea, '#00bcd4'), segment: { borderColor: ctx => ctx.p0.parsed && ctx.p1.parsed ? getColorByDiff(ctx.p1.parsed.y - ctx.p0.parsed.y) : '#00bcd4' } }]
-    };
-    if (charts['rainChart']) { charts['rainChart'].data = data; charts['rainChart'].options.scales.x = getXAxisConfig(hours); charts['rainChart'].update('none'); }
-    else {
-        charts['rainChart'] = new Chart(ctx, {
-            type: 'line', data, plugins: [crosshairPlugin],
-            options: {
-                responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig,
-                plugins: { legend: { display: false }, title: { display: true, text: 'Kumulierte Regenmenge (UTC+2)', color: '#ffffff' } }, 
-                scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hours) } 
-            }
-        });
-    }
+function renderRainChart(ent, hrs) {
+    const ctx = document.getElementById('rainChart').getContext('2d'), data = { labels: ent.map(e => getSmartLabel(e.date, hrs, false)), datasets: [{ label: 'l/m² (Rohdaten)', data: ent.map(e => e.value), tension: 0, pointRadius: 0, borderWidth: 2, fill: true, backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#00bcd4'), segment: { borderColor: ctx => ctx.p0.parsed && ctx.p1.parsed ? getColorByDiff(ctx.p1.parsed.y - ctx.p0.parsed.y) : '#00bcd4' } }] };
+    if (charts['rainChart']) { charts['rainChart'].data = data; charts['rainChart'].options.scales.x = getXAxisConfig(hrs); charts['rainChart'].update('none'); }
+    else { charts['rainChart'] = new Chart(ctx, { type: 'line', data, plugins: [crosshairPlugin], options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig, plugins: { legend: { display: false }, title: { display: true, text: 'Niederschlag Rohdaten (Relativ)', color: '#ffffff' } }, scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' }, beginAtZero: true }, x: getXAxisConfig(hrs) } } }); }
 }
 
-fetchData();
+fetchData(); 
 setInterval(fetchData, 60000);
 </script>
 </body>
