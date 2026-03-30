@@ -170,7 +170,6 @@
     </div>
 
     <div class="chart-box"><canvas id="mainChart"></canvas></div>
-    <div class="chart-box"><canvas id="presChart"></canvas></div>
 
     <div class="section-header">
         <h2>Sonnenschein & Helligkeit</h2>
@@ -377,9 +376,6 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         document.getElementById('curr-temp-dew').innerText = calculateDewPoint(lastT, lastHum).toFixed(1);
     }
 
-    // ==========================================
-    // REGEN LOGIK (BASISTAL-TRACKING)
-    // ==========================================
     if (entriesR.length > 0) {
         let totalRainSum = 0; let sumAtMidnight = 0;
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -408,12 +404,11 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         
         const valToday = Math.max(0, totalRainSum - sumAtMidnight);
         
-        // Dynamische Wolken-Färbung
-        let rainIconColor = '#555555'; // Standard: Grau
+        let rainIconColor = '#555555'; 
         if (valToday > 0 && valToday <= 10) {
-            rainIconColor = '#00bcd4'; // Türkis
+            rainIconColor = '#00bcd4'; 
         } else if (valToday > 10) {
-            rainIconColor = getColorByDiff(valToday / 24); // Dynamisch nach Intensität
+            rainIconColor = getColorByDiff(valToday / 24); 
         }
 
         document.getElementById('icon-rain').style.stroke = rainIconColor;
@@ -451,10 +446,9 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
     document.getElementById('sun-day').innerText = calcSunHours(entriesB_all, new Date(now.getFullYear(), now.getMonth(), now.getDate()));
     document.getElementById('sun-month').innerText = calcSunHours(entriesB_all, new Date(now.getFullYear(), now.getMonth(), 1));
     document.getElementById('sun-year').innerText = calcSunHours(entriesB_all, new Date(now.getFullYear(), 0, 1));
-    if (entriesB.length > 0) { const sunColor = getSunColor(Number(entriesB[entriesB.length-1].value)); document.getElementById('icon-sun').style.color = sunColor; document.getElementById('card-bright').style.setProperty('--accent-color', sunColor); }
+    if (entriesB_all.length > 0) { const sunColor = getSunColor(Number(entriesB_all[entriesB_all.length-1].value)); document.getElementById('icon-sun').style.color = sunColor; document.getElementById('card-bright').style.setProperty('--accent-color', sunColor); }
 
     renderMainChart(downsampleCheck(entriesT, hours), hours); 
-    renderPresChart(downsampleCheck(entriesP, hours), hours); 
     renderBrightChart(downsampleCheck(entriesB, sunHoursPeriod), sunHoursPeriod);
 }
 
@@ -483,22 +477,6 @@ function renderMainChart(ent, hrs) {
         },
         options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig, plugins: { legend: { display: false }, title: { display: true, text: 'Temperaturverlauf (°C)', color: '#ffffff' } }, scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hrs) } },
         plugins: [minMaxPlugin, crosshairPlugin]
-    });
-}
-
-function renderPresChart(ent, hrs) {
-    const ctx = document.getElementById('presChart').getContext('2d');
-    if (charts['presChart']) charts['presChart'].destroy();
-    charts['presChart'] = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ent.map(e => getSmartLabel(e.date, hrs, true)),
-            datasets: [{
-                label: 'Druck', data: ent.map(e => e.value + PRES_OFFSET), borderColor: '#a29bfe', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#a29bfe'), fill: true, pointRadius: 0, tension: 0.4
-            }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig, plugins: { legend: { display: false }, title: { display: true, text: 'Luftdruck (hPa)', color: '#ffffff' } }, scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hrs) } },
-        plugins: [crosshairPlugin]
     });
 }
 
