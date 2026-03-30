@@ -378,7 +378,7 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
     }
 
     // ==========================================
-    // VERBESSERTE REGEN LOGIK (BASISTAL-TRACKING)
+    // REGEN LOGIK (BASISTAL-TRACKING)
     // ==========================================
     if (entriesR.length > 0) {
         let totalRainSum = 0; let sumAtMidnight = 0;
@@ -393,25 +393,35 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
                 const val = Number(filteredEntries[i].value) || 0;
                 const diff = val - lastRef;
 
-                // 1. Bei deutlichem Anstieg (Schauer) -> Addieren
                 if (diff >= RAIN_HYST_UP) {
                     totalRainSum += diff;
                     lastRef = val;
-                } 
-                // 2. Bei deutlichem Abfall (Verdunstung) -> Referenzpunkt nach unten schieben
-                else if (val < lastRef - RAIN_HYST_DOWN) {
+                } else if (val < lastRef - RAIN_HYST_DOWN) {
                     lastRef = val;
                 }
-                // Kleineres Rauschen (<1.0 rauf, <0.8 runter) wird nun sicher ignoriert.
 
                 if (filteredEntries[i].date < startOfToday) {
                     sumAtMidnight = totalRainSum;
                 }
             }
         }
+        
+        const valToday = Math.max(0, totalRainSum - sumAtMidnight);
+        
+        // Dynamische Wolken-Färbung
+        let rainIconColor = '#555555'; // Standard: Grau
+        if (valToday > 0 && valToday <= 10) {
+            rainIconColor = '#00bcd4'; // Türkis
+        } else if (valToday > 10) {
+            rainIconColor = getColorByDiff(valToday / 24); // Dynamisch nach Intensität
+        }
+
+        document.getElementById('icon-rain').style.stroke = rainIconColor;
+        document.getElementById('rainCard').style.setProperty('--accent-color', rainIconColor);
+        
         document.getElementById('curr-rain').innerText = totalRainSum.toFixed(2);
         document.getElementById('year-rain').innerText = (yearlyTotal + totalRainSum).toFixed(2);
-        document.getElementById('day-rain').innerText = Math.max(0, totalRainSum - sumAtMidnight).toFixed(1);
+        document.getElementById('day-rain').innerText = valToday.toFixed(1);
         
         const rainCutoff = new Date(now.getTime() - rainHours * 3600000);
         const chartSlice = entriesR.filter(e => e.date >= rainCutoff);
