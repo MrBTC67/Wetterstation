@@ -201,12 +201,9 @@
 </div>
 
 <script>
-// ==========================================
-// EINSTELLUNGEN
-// ==========================================
-const RAIN_HYST_UP = 1.0;    // Filter gegen "Zappeln" (nur Anstiege > 1.0 zählen)
-const RAIN_HYST_DOWN = 0.8;  // Referenzkorrektur (nur bei Abfall > 0.8 mitgehen)
-const SUN_THRESHOLD = 4000; 
+const SUN_THRESHOLD = 3900; 
+const RAIN_HYST_UP = 1.0;    
+const RAIN_HYST_DOWN = 0.8;  
 
 const URL_BASE = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app";
 const URL_T = `${URL_BASE}/temperature.json`;
@@ -293,13 +290,11 @@ function getUniversalDate(id) {
     return new Date(time);
 }
 
-function getSmartLabel(date, hours, useOffset = false) {
+function getSmartLabel(date, hours) {
     if (!(date instanceof Date) || isNaN(date)) return "--";
-    let workingDate = new Date(date.getTime());
-    if (useOffset) workingDate.setHours(workingDate.getHours() + 1);
-    let h = workingDate.getHours(), m = workingDate.getMinutes().toString().padStart(2, '0');
+    let h = date.getHours(), m = date.getMinutes().toString().padStart(2, '0');
     if (hours <= 24) return `${h.toString().padStart(2, '0')}:${m}`;
-    return workingDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + '. ' + `${h.toString().padStart(2, '0')}:${m}`;
+    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + '. ' + `${h.toString().padStart(2, '0')}:${m}`;
 }
 
 function getTempColor(t) { return t < 0 ? '#3b82f6' : t < 12 ? '#00d1b2' : t < 22 ? '#ffeb3b' : t < 30 ? '#ff9800' : '#ff3860'; }
@@ -328,40 +323,57 @@ async function fetchYearlyRain(year, currentMonthIdx) {
 }
 
 async function fetchData() {
-    const hours = parseInt(document.getElementById('period').value), rainHours = parseInt(document.getElementById('rainPeriod').value), sunHoursPeriod = parseInt(document.getElementById('sunPeriod').value), now = new Date();
-    const cutoffGeneral = new Date(now.getTime() - (hours * 3600000)), cutoffRain = new Date(now.getTime() - (Math.max(rainHours, 24) * 3600000)), cutoffSun = new Date(now.getTime() - (sunHoursPeriod * 3600000));
+    const hours = parseInt(document.getElementById('period').value);
+    const rainHours = parseInt(document.getElementById('rainPeriod').value);
+    const sunHoursPeriod = parseInt(document.getElementById('sunPeriod').value);
+    const now = new Date();
+    
+    // Cutoffs für die Datenabfrage
+    const cutoffT = new Date(now.getTime() - (hours * 3600000));
+    const cutoffS = new Date(now.getTime() - (sunHoursPeriod * 3600000));
+    const cutoffR = new Date(now.getTime() - (Math.max(rainHours, 24) * 3600000));
+    
     try {
         const maxHours = Math.max(hours, rainHours, sunHoursPeriod, 168), limit = maxHours >= 168 ? 20000 : 8000, currentYear = now.getFullYear(), currentMonthStr = MONTHS[now.getMonth()];
         const responses = await Promise.all([fetch(`${URL_T}?orderBy="$key"&limitToLast=${limit}`), fetch(`${URL_H}?orderBy="$key"&limitToLast=${limit}`), fetch(`${URL_P}?orderBy="$key"&limitToLast=${limit}`), fetch(`${URL_B}?orderBy="$key"&limitToLast=${limit}`), fetch(`${URL_R_BASE}/${currentYear}/${currentMonthStr}.json?orderBy="$key"&limitToLast=${limit}`)]);
         const dataT = await responses[0].json(), dataH = await responses[1].json(), dataP = await responses[2].json(), dataB = await responses[3].json(), dataR_curr = await responses[4].json();
         
-        const entriesT = Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= cutoffGeneral);
-        const entriesH = Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= cutoffGeneral);
-        const entriesP = Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffGeneral);
-        const entriesB_all = Object.keys(dataB || {}).map(k => ({ date: getUniversalDate(k), value: Number((typeof dataB[k] === 'object' ? dataB[k].brightness : dataB[k]) ?? 0) }));
+        // TEMPERATUR (unverändert)
+        const entriesT = Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now);
+        const entriesH = Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now);
+        const entriesP = Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now);
         
+        // HELLIGKEIT (hier + 2h)
+        const entriesB_all = Object.keys(dataB || {}).map(k => {
+            let d = getUniversalDate(k);
+            return { date: new Date(d.getTime() + 7200000), value: Number((typeof dataB[k] === 'object' ? dataB[k].brightness : dataB[k]) ?? 0) };
+        });
+        const entriesB_filtered = entriesB_all.filter(e => e.date >= new Date(cutoffS.getTime() + 7200000));
+        
+        // REGENMESSER (hier + 2h)
         let entriesR = Object.keys(dataR_curr || {}).sort().map(k => { 
             const p = dataR_curr[k].zeitstempel.split(/[. :]/); 
-            return { date: new Date(p[2], p[1]-1, p[0], p[3], p[4]), value: parseFloat(dataR_curr[k].regen_l_m2) || 0 }; 
+            let d = new Date(p[2], p[1]-1, p[0], p[3], p[4]);
+            return { date: new Date(d.getTime() + 7200000), value: parseFloat(dataR_curr[k].regen_l_m2) || 0 }; 
         });
         
         const yearlyTotal = await fetchYearlyRain(currentYear, now.getMonth());
-        updateUI(entriesT, entriesH, entriesP, entriesB_all.filter(e => e.date >= cutoffSun), entriesB_all, entriesR, dataP ? Object.keys(dataP).map(k => ({ date: getUniversalDate(k), value: dataP[k].value })) : [], hours, rainHours, sunHoursPeriod, yearlyTotal);
+        updateUI(entriesT, entriesH, entriesP, entriesB_filtered, entriesB_all, entriesR, dataP ? Object.keys(dataP).map(k => ({ date: getUniversalDate(k), value: dataP[k].value })) : [], hours, rainHours, sunHoursPeriod, yearlyTotal);
     } catch (e) { console.error("Datenfehler:", e); }
 }
 
 function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR, allP, hours, rainHours, sunHoursPeriod, yearlyTotal) {
-    let lastT = 0, lastHum = 0; const now = new Date();
-    const allRecent = [...entriesT, ...entriesH, ...entriesP, ...entriesB];
-    if (allRecent.length > 0) { 
-        const dispDate = new Date(allRecent[allRecent.length - 1].date.getTime()); dispDate.setHours(dispDate.getHours() + 1);
+    // Letzte Aktualisierung anzeigen (basierend auf Temp-Zeit)
+    if (entriesT.length > 0) { 
+        const dispDate = entriesT[entriesT.length - 1].date;
         document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${dispDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`;
     }
 
     const downsampleCheck = (arr, hrs) => { if (hrs >= 720) return downsampleData(arr, 60); if (hrs >= 168) return downsampleData(arr, 15); return arr; };
 
+    // Anzeige Temp/Feuchte
     if (entriesT.length > 0) {
-        lastT = Number(entriesT[entriesT.length-1].value); const color = getTempColor(lastT);
+        let lastT = Number(entriesT[entriesT.length-1].value); const color = getTempColor(lastT);
         document.getElementById('curr-temp').innerText = lastT.toFixed(1);
         document.getElementById('card-temp').style.setProperty('--accent-color', color);
         document.getElementById('temp-display').style.color = color;
@@ -370,56 +382,42 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         document.getElementById('max-temp-val').innerText = Math.max(...entriesT.map(e => e.value)).toFixed(1);
     }
     if (entriesH.length > 0) {
-        lastHum = Number(entriesH[entriesH.length-1].value); const humColor = getHumColor(lastHum);
+        let lastHum = Number(entriesH[entriesH.length-1].value); const humColor = getHumColor(lastHum);
         document.getElementById('curr-hum').innerText = lastHum.toFixed(1);
         document.getElementById('hum-display').style.color = humColor;
         document.getElementById('icon-hum').style.stroke = humColor;
+        let lastT = entriesT.length > 0 ? entriesT[entriesT.length-1].value : 0;
         document.getElementById('curr-temp-dew').innerText = calculateDewPoint(lastT, lastHum).toFixed(1);
     }
 
+    // Anzeige Regen
     if (entriesR.length > 0) {
         let totalRainSum = 0; let sumAtMidnight = 0;
-        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const nowLocal = new Date(new Date().getTime() + 7200000); // Vergleich mit lokaler Zeit
+        const startOfToday = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate()); 
         const startOfStats = new Date(2026, 2, 28); 
         let filteredEntries = entriesR.filter(e => e.date >= startOfStats).sort((a,b) => a.date - b.date);
 
         if (filteredEntries.length > 0) {
             let lastRef = Number(filteredEntries[0].value) || 0;
-            
             for (let i = 1; i < filteredEntries.length; i++) {
                 const val = Number(filteredEntries[i].value) || 0;
                 const diff = val - lastRef;
-
-                if (diff >= RAIN_HYST_UP) {
-                    totalRainSum += diff;
-                    lastRef = val;
-                } else if (val < lastRef - RAIN_HYST_DOWN) {
-                    lastRef = val;
-                }
-
-                if (filteredEntries[i].date < startOfToday) {
-                    sumAtMidnight = totalRainSum;
-                }
+                if (diff >= RAIN_HYST_UP) { totalRainSum += diff; lastRef = val; } 
+                else if (val < lastRef - RAIN_HYST_DOWN) { lastRef = val; }
+                if (filteredEntries[i].date < startOfToday) { sumAtMidnight = totalRainSum; }
             }
         }
-        
         const valToday = Math.max(0, totalRainSum - sumAtMidnight);
-        
-        let rainIconColor = '#555555'; 
-        if (valToday > 0 && valToday <= 10) {
-            rainIconColor = '#00bcd4'; 
-        } else if (valToday > 10) {
-            rainIconColor = getColorByDiff(valToday / 24); 
-        }
+        let rainIconColor = (valToday > 0) ? (valToday <= 10 ? '#00bcd4' : getColorByDiff(valToday / 24)) : '#555555';
 
         document.getElementById('icon-rain').style.stroke = rainIconColor;
         document.getElementById('rainCard').style.setProperty('--accent-color', rainIconColor);
-        
         document.getElementById('curr-rain').innerText = totalRainSum.toFixed(2);
         document.getElementById('year-rain').innerText = (yearlyTotal + totalRainSum).toFixed(2);
         document.getElementById('day-rain').innerText = valToday.toFixed(1);
         
-        const rainCutoff = new Date(now.getTime() - rainHours * 3600000);
+        const rainCutoff = new Date(new Date().getTime() + 7200000 - rainHours * 3600000);
         const chartSlice = entriesR.filter(e => e.date >= rainCutoff);
         let chartData = [];
         if (chartSlice.length > 0) {
@@ -432,6 +430,7 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         renderRainChart(downsampleCheck(chartData, rainHours), rainHours);
     }
     
+    // Anzeige Luftdruck
     if (entriesP.length > 0) {
         const lastP = (Number(entriesP[entriesP.length-1].value) || 0) + PRES_OFFSET;
         document.getElementById('curr-pres').innerText = lastP.toFixed(0);
@@ -440,14 +439,28 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
             document.getElementById('pres-trend-arrow').innerText = diff > 0.2 ? " ↑" : diff < -0.2 ? " ↓" : " →";
             document.getElementById('pres-rate-val').innerText = (diff > 0 ? "+" : "") + diff.toFixed(1) + " hPa/h";
         }
+        let lastT = entriesT.length > 0 ? entriesT[entriesT.length-1].value : 0;
+        let lastHum = entriesH.length > 0 ? entriesH[entriesH.length-1].value : 0;
         document.getElementById('forecast-val').innerText = getForecast(allP, lastHum, lastT);
     }
 
+    // Sonnenstunden (basierend auf korrigierter Helligkeits-Zeit)
+    const nowLocal = new Date(new Date().getTime() + 7200000);
     const calcSunHours = (arr, start) => (arr.filter(e => e.date >= start && e.value >= SUN_THRESHOLD).length / 60).toFixed(1);
-    document.getElementById('sun-day').innerText = calcSunHours(entriesB_all, new Date(now.getFullYear(), now.getMonth(), now.getDate()));
-    document.getElementById('sun-month').innerText = calcSunHours(entriesB_all, new Date(now.getFullYear(), now.getMonth(), 1));
-    document.getElementById('sun-year').innerText = calcSunHours(entriesB_all, new Date(now.getFullYear(), 0, 1));
-    if (entriesB_all.length > 0) { const sunColor = getSunColor(Number(entriesB_all[entriesB_all.length-1].value)); document.getElementById('icon-sun').style.color = sunColor; document.getElementById('card-bright').style.setProperty('--accent-color', sunColor); }
+    
+    const startOfDay = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate());
+    const startOfMonth = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), 1);
+    const startOfYear = new Date(nowLocal.getFullYear(), 0, 1);
+
+    document.getElementById('sun-day').innerText = calcSunHours(entriesB_all, startOfDay);
+    document.getElementById('sun-month').innerText = calcSunHours(entriesB_all, startOfMonth);
+    document.getElementById('sun-year').innerText = calcSunHours(entriesB_all, startOfYear);
+    
+    if (entriesB_all.length > 0) { 
+        const sunColor = getSunColor(Number(entriesB_all[entriesB_all.length-1].value)); 
+        document.getElementById('icon-sun').style.color = sunColor; 
+        document.getElementById('card-bright').style.setProperty('--accent-color', sunColor); 
+    }
 
     renderMainChart(downsampleCheck(entriesT, hours), hours); 
     renderBrightChart(downsampleCheck(entriesB, sunHoursPeriod), sunHoursPeriod);
@@ -456,11 +469,20 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
 function getXAxisConfig(hours) {
     return {
         grid: { color: 'rgba(255, 255, 255, 0.03)' },
-        ticks: { color: '#ffffff', autoSkip: true, maxRotation: 0, callback: function(v, i, t) {
-            const label = this.getLabelForValue(v);
-            if (hours <= 48) { const prev = i > 0 ? this.getLabelForValue(t[i - 1]?.value) : null; return (prev && label.substring(0, 2) !== prev.substring(0, 2)) ? label.substring(0, 2) + ':00' : null; }
-            const prev = i > 0 ? this.getLabelForValue(t[i - 1]?.value) : null; return (label.split(' ')[0] !== prev?.split(' ')[0]) ? label.split(' ')[0] : '';
-        }}
+        ticks: { 
+            color: '#ffffff', 
+            autoSkip: true, 
+            maxRotation: 0, 
+            callback: function(v, i, t) {
+                const label = this.getLabelForValue(v);
+                if (hours <= 48) { 
+                    const prev = i > 0 ? this.getLabelForValue(t[i - 1]?.value) : null; 
+                    return (prev && label.substring(0, 2) !== prev.substring(0, 2)) ? label.substring(0, 2) + ':00' : (i === 0 ? label : null); 
+                }
+                const prev = i > 0 ? this.getLabelForValue(t[i - 1]?.value) : null; 
+                return (label.split(' ')[0] !== prev?.split(' ')[0]) ? label.split(' ')[0] : '';
+            }
+        }
     };
 }
 
@@ -470,7 +492,7 @@ function renderMainChart(ent, hrs) {
     charts['mainChart'] = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ent.map(e => getSmartLabel(e.date, hrs, true)),
+            labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
                 label: 'Temp', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4, borderColor: '#00d1b2', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#00d1b2'),
                 segment: { borderColor: ctx => ctx.p0.parsed && ctx.p1.parsed ? getTempColor((ctx.p0.parsed.y + ctx.p1.parsed.y) / 2) : '#00d1b2' }
@@ -487,7 +509,7 @@ function renderBrightChart(ent, hrs) {
     charts['brightChart'] = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ent.map(e => getSmartLabel(e.date, hrs, true)),
+            labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
                 label: 'Lux', data: ent.map(e => e.value), borderColor: '#ffcc00', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#ffcc00'), fill: true, pointRadius: 0, tension: 0.4,
                 segment: { borderColor: ctx => ctx.p1.parsed.y >= SUN_THRESHOLD ? '#ffcc00' : '#555555' }
@@ -504,7 +526,7 @@ function renderRainChart(ent, hrs) {
     charts['rainChart'] = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ent.map(e => getSmartLabel(e.date, hrs, false)),
+            labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
                 label: 'l/m²', data: ent.map(e => e.value), fill: true, borderColor: '#00bcd4', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#00bcd4'), tension: 0.1, pointRadius: 0,
                 segment: { borderColor: ctx => ctx.p0.parsed && ctx.p1.parsed ? getColorByDiff(ctx.p1.parsed.y - ctx.p0.parsed.y) : '#00bcd4' }
