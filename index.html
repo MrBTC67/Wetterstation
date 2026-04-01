@@ -301,9 +301,10 @@ function getUniversalDate(id) {
 
 function getSmartLabel(date, hours) {
     if (!(date instanceof Date) || isNaN(date)) return "--";
-    let h = date.getHours(), m = date.getMinutes().toString().padStart(2, '0');
-    if (hours <= 24) return `${h.toString().padStart(2, '0')}:${m}`;
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + '. ' + `${h.toString().padStart(2, '0')}:${m}`;
+    let h = date.getHours().toString().padStart(2, '0');
+    let m = date.getMinutes().toString().padStart(2, '0');
+    if (hours <= 24) return `${h}:${m}`;
+    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + ' ' + `${h}:${m}`;
 }
 
 function getTempColor(t) { return t < 0 ? '#3b82f6' : t < 12 ? '#00d1b2' : t < 22 ? '#ffeb3b' : t < 30 ? '#ff9800' : '#ff3860'; }
@@ -335,7 +336,6 @@ async function fetchData() {
     const hours = parseInt(document.getElementById('period').value);
     const sunHoursPeriod = parseInt(document.getElementById('sunPeriod').value);
     
-    // Kombinierte Logik für Regen-Dropdown
     const rainSelection = document.getElementById('rainPeriod').value;
     const now = new Date();
     const currentYear = now.getFullYear();
@@ -345,11 +345,10 @@ async function fetchData() {
     let rainHours;
     let isHistorical = false;
 
-    // Prüfen, ob "m" (Monat) oder nur Stunden gewählt wurden
     if (rainSelection.startsWith("m")) {
         const monthIdx = parseInt(rainSelection.substring(1));
         targetMonth = MONTHS[monthIdx];
-        rainHours = 744; // Ganzer Monat im Chart
+        rainHours = 744; 
         isHistorical = true;
     } else {
         rainHours = parseInt(rainSelection);
@@ -376,26 +375,25 @@ async function fetchData() {
         const dataB = await responses[3].json();
         const dataR_month = await responses[4].json();
 
-        const entriesT = Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now);
-        const entriesH = Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now);
-        const entriesP = Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now);
-        
-        const entriesB_all = Object.keys(dataB || {}).map(k => {
-            let d = getUniversalDate(k);
-            return { date: new Date(d.getTime() + 7200000), value: Number((typeof dataB[k] === 'object' ? dataB[k].brightness : dataB[k]) ?? 0) };
-        });
-        const entriesB_filtered = entriesB_all.filter(e => e.date >= new Date(cutoffS.getTime() + 7200000));
+        const sortEntries = (arr) => arr.sort((a, b) => a.date - b.date);
 
-        let entriesR = Object.keys(dataR_month || {}).sort().map(k => { 
+        const entriesT = sortEntries(Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
+        const entriesH = sortEntries(Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
+        const entriesP = sortEntries(Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
+        
+        const entriesB_all = sortEntries(Object.keys(dataB || {}).map(k => ({ date: getUniversalDate(k), value: Number((typeof dataB[k] === 'object' ? dataB[k].brightness : dataB[k]) ?? 0) })));
+        const entriesB_filtered = entriesB_all.filter(e => e.date >= cutoffS);
+
+        let entriesR = sortEntries(Object.keys(dataR_month || {}).map(k => { 
             const p = dataR_month[k].zeitstempel.split(/[. :]/); 
             let d = new Date(p[2], p[1]-1, p[0], p[3], p[4]);
             return { date: new Date(d.getTime() + 7200000), value: parseFloat(dataR_month[k].regen_l_m2) || 0 }; 
-        });
+        }));
 
         const yearlyTotal = await fetchYearlyRain(currentYear, now.getMonth());
         
         updateUI(entriesT, entriesH, entriesP, entriesB_filtered, entriesB_all, entriesR, 
-                 dataP ? Object.keys(dataP).map(k => ({ date: getUniversalDate(k), value: dataP[k].value })) : [], 
+                 dataP ? sortEntries(Object.keys(dataP).map(k => ({ date: getUniversalDate(k), value: dataP[k].value }))) : [], 
                  hours, rainHours, sunHoursPeriod, yearlyTotal, isHistorical);
 
     } catch (e) { console.error("Datenfehler:", e); }
@@ -432,7 +430,7 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         const nowLocal = new Date(new Date().getTime() + 7200000);
         const startOfToday = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate()); 
         const startOfStats = new Date(2026, 2, 28); 
-        let filteredEntries = entriesR.filter(e => e.date >= startOfStats).sort((a,b) => a.date - b.date);
+        let filteredEntries = entriesR.filter(e => e.date >= startOfStats);
 
         if (filteredEntries.length > 0) {
             let lastRef = Number(filteredEntries[0].value) || 0;
@@ -453,13 +451,10 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         document.getElementById('year-rain').innerText = (yearlyTotal + totalRainSum).toFixed(2);
         document.getElementById('day-rain').innerText = valToday.toFixed(1);
         
-        // Regen-Chart Filter
         let chartSlice;
         if (isHistorical) {
-            // Zeige alles, was geladen wurde (ganzer Monat)
             chartSlice = entriesR;
         } else {
-            // Relativer Filter (4h, 24h etc.)
             const rainCutoff = new Date(new Date().getTime() + 7200000 - rainHours * 3600000);
             chartSlice = entriesR.filter(e => e.date >= rainCutoff);
         }
@@ -488,7 +483,7 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         document.getElementById('forecast-val').innerText = getForecast(allP, lastHum, lastT);
     }
 
-    const nowLocal = new Date(new Date().getTime() + 7200000);
+    const nowLocal = new Date();
     const calcSunHours = (arr, start) => (arr.filter(e => e.date >= start && e.value >= SUN_THRESHOLD).length / 60).toFixed(1);
     
     const startOfDay = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate());
@@ -514,16 +509,34 @@ function getXAxisConfig(hours) {
         grid: { color: 'rgba(255, 255, 255, 0.03)' },
         ticks: { 
             color: '#ffffff', 
-            autoSkip: true, 
-            maxRotation: 0, 
-            callback: function(v, i, t) {
-                const label = this.getLabelForValue(v);
-                if (hours <= 48) { 
-                    const prev = i > 0 ? this.getLabelForValue(t[i - 1]?.value) : null; 
-                    return (prev && label.substring(0, 2) !== prev.substring(0, 2)) ? label.substring(0, 2) + ':00' : (i === 0 ? label : null); 
+            autoSkip: false, // Wichtig: Deaktivieren, damit unser Callback die volle Kontrolle hat
+            maxRotation: 0,
+            maxTicksLimit: 24, // Erlaubt genug Platz
+            padding: 10,
+            callback: function(value, index, values) {
+                const label = this.getLabelForValue(value);
+                if (!label || label === "--") return '';
+
+                // Zeit-Teil extrahieren (z.B. "12:35")
+                const timePart = label.includes(' ') ? label.split(' ')[1] : label;
+                const [h, m] = timePart.split(':');
+                const minute = parseInt(m);
+                const hour = parseInt(h);
+
+                // Bestimme das Anzeige-Intervall basierend auf dem Zeitraum
+                // 4h: jede Stunde, 24h: alle 2-3 Stunden, 7 Tage: alle 12-24 Stunden
+                let interval = 1;
+                if (hours > 12) interval = 2;
+                if (hours > 24) interval = 12;
+                if (hours > 48) interval = 24;
+
+                // Zeige nur Ticks an, die exakt auf :00 Minuten liegen UND ins Intervall passen
+                if (minute === 0 && hour % interval === 0) {
+                    const datePart = hours > 24 ? label.split(' ')[0] + ' ' : '';
+                    return datePart + h + ':00';
                 }
-                const prev = i > 0 ? this.getLabelForValue(t[i - 1]?.value) : null; 
-                return (label.split(' ')[0] !== prev?.split(' ')[0]) ? label.split(' ')[0] : '';
+                
+                return '';
             }
         }
     };
