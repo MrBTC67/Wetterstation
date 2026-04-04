@@ -210,7 +210,8 @@
 </div>
 
 <script>
-const SUN_THRESHOLD = 3900; 
+// Geänderter Schwellenwert auf 4000
+const SUN_THRESHOLD = 4000; 
 const RAIN_HYST_UP = 1.0;    
 const RAIN_HYST_DOWN = 0.8;  
 
@@ -509,33 +510,25 @@ function getXAxisConfig(hours) {
         grid: { color: 'rgba(255, 255, 255, 0.03)' },
         ticks: { 
             color: '#ffffff', 
-            autoSkip: false, // Wichtig: Deaktivieren, damit unser Callback die volle Kontrolle hat
+            autoSkip: false,
             maxRotation: 0,
-            maxTicksLimit: 24, // Erlaubt genug Platz
+            maxTicksLimit: 24,
             padding: 10,
             callback: function(value, index, values) {
                 const label = this.getLabelForValue(value);
                 if (!label || label === "--") return '';
-
-                // Zeit-Teil extrahieren (z.B. "12:35")
                 const timePart = label.includes(' ') ? label.split(' ')[1] : label;
                 const [h, m] = timePart.split(':');
                 const minute = parseInt(m);
                 const hour = parseInt(h);
-
-                // Bestimme das Anzeige-Intervall basierend auf dem Zeitraum
-                // 4h: jede Stunde, 24h: alle 2-3 Stunden, 7 Tage: alle 12-24 Stunden
                 let interval = 1;
                 if (hours > 12) interval = 2;
                 if (hours > 24) interval = 12;
                 if (hours > 48) interval = 24;
-
-                // Zeige nur Ticks an, die exakt auf :00 Minuten liegen UND ins Intervall passen
                 if (minute === 0 && hour % interval === 0) {
                     const datePart = hours > 24 ? label.split(' ')[0] + ' ' : '';
                     return datePart + h + ':00';
                 }
-                
                 return '';
             }
         }
