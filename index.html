@@ -561,7 +561,10 @@ function renderBrightChart(ent, hrs) {
             labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
                 label: 'Lux', data: ent.map(e => e.value), borderColor: '#ffcc00', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#ffcc00'), fill: true, pointRadius: 0, tension: 0.4,
-                segment: { borderColor: ctx => ctx.p1.parsed.y >= SUN_THRESHOLD ? '#ffcc00' : '#555555' }
+                segment: { 
+                    // GEÄNDERT: Nur gelb, wenn beide Punkte über dem Threshold liegen (Anstiegslinie bleibt grau)
+                    borderColor: ctx => (ctx.p0.parsed.y >= SUN_THRESHOLD && ctx.p1.parsed.y >= SUN_THRESHOLD) ? '#ffcc00' : '#555555' 
+                }
             }]
         },
         options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig, plugins: { legend: { display: false }, title: { display: true, text: 'Helligkeit / Sonnenschein', color: '#ffffff' } }, scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' }, beginAtZero: true }, x: getXAxisConfig(hrs) } },
