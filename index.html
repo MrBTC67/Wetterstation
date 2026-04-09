@@ -82,7 +82,7 @@
             <div class="info-icon">i</div>
             <div class="info-tooltip">
                 <b>INFO & LEGENDE</b>
-                <strong>Regen-Logik:</strong> Basistal-Tracking (1.0 l/m²). Erfasst Schauer unabhängig von Peaks. Filtert Sensor-Rauschen aus.
+                <strong>Regen-Logik:</strong> Erfasst kumulative Werte direkt aus Firebase. Diagramm zeigt den Monatsverlauf.
             </div>
         </div>
     </div>
@@ -90,20 +90,16 @@
     
     <div class="stats stats-temp">
         <div id="card-temp" class="card temp">
-            <div id="frost-alarm">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="22"></line><line x1="20" y1="12" x2="4" y2="12"></line><line x1="17.66" y1="6.34" x2="6.34" y2="17.66"></line><line x1="17.66" y1="17.66" x2="6.34" y2="6.34"></line></svg>
-            </div>
+            <div id="frost-alarm"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"></line><line x1="20" y1="12" x2="4" y2="12"></line><line x1="17.66" y1="6.34" x2="6.34" y2="17.66"></line><line x1="17.66" y1="17.66" x2="6.34" y2="6.34"></line></svg></div>
             <svg id="icon-temp" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
             <h3>Temperatur</h3>
             <div id="temp-display" class="val-display"><span id="curr-temp">--</span><span class="unit">°C</span></div>
         </div>
         <div class="card min">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M7 10l5 5 5-5"/></svg>
             <h3>Min-Temp</h3>
             <div class="val-display min-text"><span id="min-temp-val">--</span><span class="unit">°C</span></div>
         </div>
         <div class="card max">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M17 14l-5-5-5 5"/></svg>
             <h3>Max-Temp</h3>
             <div class="val-display max-text"><span id="max-temp-val">--</span><span class="unit">°C</span></div>
         </div>
@@ -111,45 +107,30 @@
 
     <div class="stats">
         <div id="card-hum" class="card hum">
-            <svg id="icon-hum" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M12 2.69l5.66 5.66a8 8 0 1 1-11.31 0z"/></svg>
             <h3>Feuchte</h3>
             <div id="hum-display" class="val-display"><span id="curr-hum">--</span><span class="unit">%</span></div>
         </div>
         <div class="card pres">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="m12 16 4-4-4-4M8 12h8"/></svg>
             <h3>Luftdruck</h3>
             <div class="val-display pres-text" style="flex-direction: column; align-items: flex-start; gap: 0;">
-                <div><span id="curr-pres">--</span><span class="unit"> hPa</span><span id="pres-trend-arrow" class="pres-trend-icon"></span></div>
+                <div><span id="curr-pres">--</span><span class="unit"> hPa</span></div>
                 <span id="pres-rate-val" class="pres-rate">-- hPa/h</span>
             </div>
         </div>
         <div id="rainCard" class="card rain">
-            <svg id="icon-rain" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242M16 14v6M8 14v6M12 16v6"/></svg>
             <h3 style="text-transform: none;">REGENMENGE: l/m²</h3>
             <div class="val-display" style="flex-direction: column; align-items: center; gap: 2px;">
                 <div class="rain-line"><span class="rain-label">Heute:</span> <span id="day-rain">--</span></div>
                 <div class="rain-line"><span class="rain-label">Monat:</span> <span id="curr-rain">--</span></div>
-                <div class="rain-line"><span class="rain-label">Gesamt:</span> <span id="year-rain">--</span></div>
+                <div class="rain-line"><span class="rain-label">Jahr:</span> <span id="year-rain">--</span></div>
             </div>
         </div>
     </div>
 
     <div class="stats">
-        <div class="card dew-card">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z"/></svg>
-            <h3>Taupunkt</h3>
-            <div class="val-display dew-text"><span id="curr-temp-dew">--</span><span class="unit">°C</span></div>
-        </div>
-        <div class="card forecast">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M17.5 19a3.5 3.5 0 1 1-5.83-2.66 3 3 0 1 1 3.83-4.34 4.5 4.5 0 1 1 2 7M12 12V3m0 0l-3 3m3-3l3 3"/></svg>
-            <h3>Prognose</h3>
-            <div class="val-display" style="flex-direction: column; align-items: flex-start; gap: 0;">
-                <span id="forecast-val" style="color: var(--color-forecast); font-size: 0.9em;">Berechne...</span>
-                <span class="fore-info">Trend 3h</span>
-            </div>
-        </div>
+        <div class="card dew-card"><h3>Taupunkt</h3><div class="val-display dew-text"><span id="curr-temp-dew">--</span><span class="unit">°C</span></div></div>
+        <div class="card forecast"><h3>Prognose</h3><div class="val-display"><span id="forecast-val" style="color: var(--color-forecast); font-size: 0.9em;">...</span></div></div>
         <div id="card-bright" class="card bright">
-            <svg id="icon-sun" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
             <h3 style="text-transform: none;">SONNENSTUNDEN: h</h3>
             <div class="val-display" style="flex-direction: column; align-items: center; gap: 2px; color: var(--color-bright)">
                 <div class="rain-line"><span class="rain-label">Tag:</span> <span id="sun-day">--</span></div>
@@ -159,72 +140,26 @@
         </div>
     </div>
 
-    <div class="controls-row">
-        <label>Allgemeiner Zeitraum</label>
-        <select id="period" onchange="fetchData()">
-            <option value="4">4 Std</option>
-            <option value="12">12 Std</option>
-            <option value="24" selected>24 Std</option>
-            <option value="168">7 Tage</option>
-        </select>
-    </div>
-
+    <div class="controls-row"><label>Zeitraum (Temp)</label><select id="period" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option></select></div>
     <div class="chart-box"><canvas id="mainChart"></canvas></div>
 
-    <div class="section-header">
-        <h2>Sonnenschein & Helligkeit</h2>
-        <select id="sunPeriod" onchange="fetchData()">
-            <option value="4">4 Std</option>
-            <option value="12">12 Std</option>
-            <option value="24" selected>24 Std</option>
-            <option value="168">7 Tage</option>
-        </select>
-    </div>
+    <div class="section-header"><h2>Helligkeit</h2><select id="sunPeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option></select></div>
     <div class="chart-box"><canvas id="brightChart"></canvas></div>
 
-    <div class="section-header">
-        <h2>Niederschlags-Historie</h2>
-        <select id="rainPeriod" onchange="fetchData()">
-            <optgroup label="Aktueller Monat">
-                <option value="4">Letzte 4 Std</option>
-                <option value="12">Letzte 12 Std</option>
-                <option value="24" selected>Letzte 24 Std</option>
-                <option value="168">Letzte 7 Tage</option>
-            </optgroup>
-            <optgroup label="Archiv (2026)">
-                <option value="m0">Januar</option>
-                <option value="m1">Februar</option>
-                <option value="m2">März</option>
-            </optgroup>
-        </select>
-    </div>
-
-    <div class="chart-box" style="height: auto; padding-bottom: 20px;">
-        <div style="height: 300px; position: relative;"><canvas id="rainChart"></canvas></div>
-    </div>
-
-    <div class="sensor-info">
-        Präzisions-Sensor: <strong>Sensirion SHT3x</strong><br>
-        *Regen-Berechnung ab 28.03.2026 (Stabiler Filter: 1.0 l/m²)
-    </div>
+    <div class="section-header"><h2>Niederschlags-Verlauf</h2><select id="rainPeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option></select></div>
+    <div class="chart-box"><canvas id="rainChart"></canvas></div>
 </div>
 
 <script>
-// Geänderter Schwellenwert auf 4010
 const SUN_THRESHOLD = 4010; 
-const RAIN_HYST_UP = 1.0;    
-const RAIN_HYST_DOWN = 0.8;  
-
 const URL_BASE = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app";
 const URL_T = `${URL_BASE}/temperature.json`;
 const URL_H = `${URL_BASE}/humidity.json`;
 const URL_P = `${URL_BASE}/pressure.json`;
 const URL_B = `${URL_BASE}/brightness.json`; 
-const URL_R_BASE = `${URL_BASE}/Regenmesser`;
+const URL_R_APRIL = `${URL_BASE}/Regenmesser/2026/April.json`;
 
 const PRES_OFFSET = 14.5;
-const MONTHS = ["Januar", "Februar", "Maerz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
-
 let charts = {};
 
 function createVerticalGradient(ctx, chartArea, color) {
@@ -234,60 +169,6 @@ function createVerticalGradient(ctx, chartArea, color) {
     gradient.addColorStop(1, color + '33');
     return gradient;
 }
-
-function downsampleData(entries, bucketMinutes) {
-    if (!entries || entries.length === 0 || bucketMinutes <= 1) return entries;
-    const result = [];
-    const bucketMs = bucketMinutes * 60000;
-    let currentBucketStart = entries[0].date.getTime();
-    let sum = 0, count = 0;
-    for (const entry of entries) {
-        if (entry.date.getTime() < currentBucketStart + bucketMs) {
-            sum += entry.value; count++;
-        } else {
-            result.push({ date: new Date(currentBucketStart + bucketMs / 2), value: sum / count });
-            currentBucketStart = entry.date.getTime(); sum = entry.value; count = 1;
-        }
-    }
-    if (count > 0) result.push({ date: new Date(currentBucketStart + bucketMs / 2), value: sum / count });
-    return result;
-}
-
-const crosshairPlugin = {
-    id: 'crosshair',
-    afterDatasetsDraw(chart) {
-        const { ctx, chartArea: { top, bottom } } = chart;
-        if (chart.tooltip?._active?.length) {
-            const activePoint = chart.tooltip._active[0];
-            const xPos = activePoint.element.x;
-            ctx.save(); ctx.beginPath(); ctx.moveTo(xPos, top); ctx.lineTo(xPos, bottom); ctx.lineWidth = 1;
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.restore();
-        }
-    }
-};
-
-const minMaxPlugin = {
-    id: 'minMaxPlugin',
-    afterDatasetsDraw(chart) {
-        if (chart.canvas.id !== 'mainChart') return;
-        const { ctx, scales: { x, y }, data } = chart;
-        const dataset = data.datasets[0].data;
-        if (!dataset || dataset.length === 0) return;
-        let minVal = Math.min(...dataset), maxVal = Math.max(...dataset);
-        let minIdx = dataset.indexOf(minVal), maxIdx = dataset.indexOf(maxVal);
-        const drawPointer = (index, value, color) => {
-            const px = x.getPixelForValue(index), py = y.getPixelForValue(value);
-            ctx.save(); ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineWidth = 2; ctx.textAlign = 'center'; ctx.font = 'bold 11px sans-serif';
-            const offset = 25, arrowHead = 6;
-            ctx.beginPath(); ctx.moveTo(px, py - offset); ctx.lineTo(px, py - 6); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(px, py - 6); ctx.lineTo(px - arrowHead, py - 6 - arrowHead); ctx.lineTo(px + arrowHead, py - 6 - arrowHead);
-            ctx.fill(); ctx.fillText((Number(value) || 0).toFixed(1) + '°', px, py - offset - 5); ctx.restore();
-        };
-        drawPointer(maxIdx, maxVal, '#ff3860'); drawPointer(minIdx, minVal, '#3b82f6');
-    }
-};
-
-const globalInteractionConfig = { mode: 'index', intersect: false };
 
 function getUniversalDate(id) {
     if (/^\d{8}_\d{4}$/.test(id)) {
@@ -304,236 +185,154 @@ function getSmartLabel(date, hours) {
     if (!(date instanceof Date) || isNaN(date)) return "--";
     let h = date.getHours().toString().padStart(2, '0');
     let m = date.getMinutes().toString().padStart(2, '0');
-    if (hours <= 24) return `${h}:${m}`;
-    return date.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' }) + ' ' + `${h}:${m}`;
+    return `${h}:${m}`;
 }
 
 function getTempColor(t) { return t < 0 ? '#3b82f6' : t < 12 ? '#00d1b2' : t < 22 ? '#ffeb3b' : t < 30 ? '#ff9800' : '#ff3860'; }
-function getHumColor(h) { return h < 35 ? '#ff9800' : h <= 60 ? '#00ff88' : h <= 80 ? '#3b82f6' : '#9c27b0'; }
-function getColorByDiff(diff) { if (diff < 0.01) return '#00bcd4'; const rate = diff * 60; return rate <= 15.0 ? '#ffeb3b' : rate <= 30.0 ? '#ff9800' : rate <= 45.0 ? '#f44336' : '#9c27b0'; }
-function getSunColor(lux) { if (lux >= SUN_THRESHOLD) return 'rgb(255, 204, 0)'; if (lux <= 500) return 'rgb(85, 85, 85)'; const ratio = (lux - 500) / (SUN_THRESHOLD - 500); return `rgb(${Math.floor(85 + 170 * ratio)}, ${Math.floor(85 + 119 * ratio)}, ${Math.floor(85 - 85 * ratio)})`; }
 function calculateDewPoint(temp, hum) { if (temp === undefined || hum === undefined || hum <= 0) return 0; const a = 17.27, b = 237.7, alpha = ((a * temp) / (b + temp)) + Math.log(hum / 100.0); return (b * alpha) / (a - alpha); }
-
-function getForecast(allP, lastHum, lastT) {
-    const dewPoint = calculateDewPoint(lastT, lastHum);
-    if (lastHum > 95 && (lastT - dewPoint) < 1.5) return " Nebel möglich";
-    if (allP.length < 36) return "Ermittlung...";
-    const currentP = (Number(allP[allP.length - 1].value) || 0) + PRES_OFFSET, oldP = (Number(allP[allP.length - 36].value) || 0) + PRES_OFFSET, diff = currentP - oldP;
-    if (diff < -3.0) return " Unbeständig"; if (diff < -1.0) return lastHum > 75 ? " Regenneigung" : " Bewölkt";
-    if (Math.abs(diff) <= 1.0) return lastHum > 80 ? " Trüb" : " Beständig";
-    if (diff > 3.0) return " Sonnig"; if (diff > 1.0) return " Aufklarend";
-    return " Unklar";
-}
-
-async function fetchYearlyRain(year, currentMonthIdx) {
-    let sum = 0; const promises = [];
-    for (let i = 0; i < currentMonthIdx; i++) promises.push(fetch(`${URL_R_BASE}/${year}/${MONTHS[i]}.json?orderBy="$key"&limitToLast=1`).then(r => r.json()));
-    const results = await Promise.all(promises);
-    results.forEach(data => { if (data) { const keys = Object.keys(data); if (keys.length > 0) sum += parseFloat(data[keys[0]].regen_l_m2) || 0; } });
-    return sum;
-}
 
 async function fetchData() {
     const hours = parseInt(document.getElementById('period').value);
     const sunHoursPeriod = parseInt(document.getElementById('sunPeriod').value);
-    
-    const rainSelection = document.getElementById('rainPeriod').value;
+    const rainHoursPeriod = parseInt(document.getElementById('rainPeriod').value);
     const now = new Date();
-    const currentYear = now.getFullYear();
-    const currentMonthStr = MONTHS[now.getMonth()];
     
-    let targetMonth = currentMonthStr;
-    let rainHours;
-    let isHistorical = false;
-
-    if (rainSelection.startsWith("m")) {
-        const monthIdx = parseInt(rainSelection.substring(1));
-        targetMonth = MONTHS[monthIdx];
-        rainHours = 744; 
-        isHistorical = true;
-    } else {
-        rainHours = parseInt(rainSelection);
-        targetMonth = currentMonthStr;
-        isHistorical = false;
-    }
-
     const cutoffT = new Date(now.getTime() - (hours * 3600000));
     const cutoffS = new Date(now.getTime() - (sunHoursPeriod * 3600000));
+    const cutoffR = new Date(now.getTime() - (rainHoursPeriod * 3600000));
     
     try {
-        const limit = 20000; 
         const responses = await Promise.all([
-            fetch(`${URL_T}?orderBy="$key"&limitToLast=8000`),
-            fetch(`${URL_H}?orderBy="$key"&limitToLast=8000`),
-            fetch(`${URL_P}?orderBy="$key"&limitToLast=8000`),
-            fetch(`${URL_B}?orderBy="$key"&limitToLast=8000`),
-            fetch(`${URL_R_BASE}/${currentYear}/${targetMonth}.json?orderBy="$key"&limitToLast=${limit}`)
+            fetch(`${URL_T}?orderBy="$key"&limitToLast=2000`),
+            fetch(`${URL_H}?orderBy="$key"&limitToLast=2000`),
+            fetch(`${URL_P}?orderBy="$key"&limitToLast=2000`),
+            fetch(`${URL_B}?orderBy="$key"&limitToLast=3000`),
+            fetch(`${URL_R_APRIL}?orderBy="$key"&limitToLast=2000`)
         ]);
 
         const dataT = await responses[0].json();
         const dataH = await responses[1].json();
         const dataP = await responses[2].json();
         const dataB = await responses[3].json();
-        const dataR_month = await responses[4].json();
+        const dataR = await responses[4].json();
 
         const sortEntries = (arr) => arr.sort((a, b) => a.date - b.date);
 
-        const entriesT = sortEntries(Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
-        const entriesH = sortEntries(Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
-        const entriesP = sortEntries(Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
-        
+        const entriesT = sortEntries(Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= cutoffT));
+        const entriesH = sortEntries(Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= cutoffT));
+        const entriesP = sortEntries(Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffT));
         const entriesB_all = sortEntries(Object.keys(dataB || {}).map(k => ({ date: getUniversalDate(k), value: Number((typeof dataB[k] === 'object' ? dataB[k].brightness : dataB[k]) ?? 0) })));
-        const entriesB_filtered = entriesB_all.filter(e => e.date >= cutoffS);
-
-        let entriesR = sortEntries(Object.keys(dataR_month || {}).map(k => { 
-            const p = dataR_month[k].zeitstempel.split(/[. :]/); 
-            let d = new Date(p[2], p[1]-1, p[0], p[3], p[4]);
-            return { date: new Date(d.getTime() + 7200000), value: parseFloat(dataR_month[k].regen_l_m2) || 0 }; 
+        
+        let entriesR_raw = sortEntries(Object.keys(dataR || {}).map(k => {
+            const p = dataR[k].zeitstempel.split(/[. :]/);
+            return { date: new Date(p[2], p[1]-1, p[0], p[3], p[4], p[5]), tag: parseFloat(dataR[k].wippe_tag), monat: parseFloat(dataR[k].wippe_monat), jahr: parseFloat(dataR[k].wippe_jahr) };
         }));
 
-        const yearlyTotal = await fetchYearlyRain(currentYear, now.getMonth());
-        
-        updateUI(entriesT, entriesH, entriesP, entriesB_filtered, entriesB_all, entriesR, 
-                 dataP ? sortEntries(Object.keys(dataP).map(k => ({ date: getUniversalDate(k), value: dataP[k].value }))) : [], 
-                 hours, rainHours, sunHoursPeriod, yearlyTotal, isHistorical);
-
-    } catch (e) { console.error("Datenfehler:", e); }
+        updateUI(entriesT, entriesH, entriesP, entriesB_all.filter(e => e.date >= cutoffS), entriesB_all, entriesR_raw, cutoffR, hours, sunHoursPeriod, rainHoursPeriod);
+    } catch (e) { console.error("Fehler:", e); }
 }
 
-function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR, allP, hours, rainHours, sunHoursPeriod, yearlyTotal, isHistorical) {
-    if (entriesT.length > 0) { 
-        const dispDate = entriesT[entriesT.length - 1].date;
-        document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${dispDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' })} Uhr`;
-    }
-
-    const downsampleCheck = (arr, hrs) => { if (hrs >= 720) return downsampleData(arr, 60); if (hrs >= 168) return downsampleData(arr, 15); return arr; };
-
+function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR, cutoffR, hours, sunHoursPeriod, rainHoursPeriod) {
     if (entriesT.length > 0) {
-        let lastT = Number(entriesT[entriesT.length-1].value); const color = getTempColor(lastT);
+        let lastT = entriesT[entriesT.length-1].value;
         document.getElementById('curr-temp').innerText = lastT.toFixed(1);
-        document.getElementById('card-temp').style.setProperty('--accent-color', color);
-        document.getElementById('temp-display').style.color = color;
-        document.getElementById('icon-temp').style.stroke = color;
         document.getElementById('min-temp-val').innerText = Math.min(...entriesT.map(e => e.value)).toFixed(1);
         document.getElementById('max-temp-val').innerText = Math.max(...entriesT.map(e => e.value)).toFixed(1);
+        document.getElementById('card-temp').style.setProperty('--accent-color', getTempColor(lastT));
+        const lastDate = entriesT[entriesT.length-1].date;
+        document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${lastDate.getHours().toString().padStart(2, '0')}:${lastDate.getMinutes().toString().padStart(2, '0')} Uhr`;
+        renderMainChart(entriesT, hours);
     }
-    if (entriesH.length > 0) {
-        let lastHum = Number(entriesH[entriesH.length-1].value); const humColor = getHumColor(lastHum);
-        document.getElementById('curr-hum').innerText = lastHum.toFixed(1);
-        document.getElementById('hum-display').style.color = humColor;
-        document.getElementById('icon-hum').style.stroke = humColor;
-        let lastT = entriesT.length > 0 ? entriesT[entriesT.length-1].value : 0;
-        document.getElementById('curr-temp-dew').innerText = calculateDewPoint(lastT, lastHum).toFixed(1);
+
+    if (entriesH.length > 0 && entriesT.length > 0) {
+        let lastH = entriesH[entriesH.length-1].value;
+        let lastT = entriesT[entriesT.length-1].value;
+        document.getElementById('curr-hum').innerText = lastH.toFixed(0);
+        let dewPoint = calculateDewPoint(lastT, lastH);
+        document.getElementById('curr-temp-dew').innerText = dewPoint.toFixed(1);
+    }
+
+    if (entriesP.length > 0) {
+        let lastP = entriesP[entriesP.length-1].value + PRES_OFFSET;
+        document.getElementById('curr-pres').innerText = lastP.toFixed(1);
+        if (entriesP.length > 5) {
+            let pNow = entriesP[entriesP.length-1].value;
+            let pOld = entriesP[0].value;
+            let diff = pNow - pOld;
+            document.getElementById('pres-rate-val').innerText = (diff > 0 ? "+" : "") + diff.toFixed(1) + " hPa/h";
+            let prog = "Beständig";
+            if(diff > 0.5) prog = "Heiter";
+            if(diff < -0.5) prog = "Regen/Wind";
+            document.getElementById('forecast-val').innerText = prog;
+        }
     }
 
     if (entriesR.length > 0) {
-        let totalRainSum = 0; let sumAtMidnight = 0;
-        const nowLocal = new Date(new Date().getTime() + 7200000);
-        const startOfToday = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate()); 
-        const startOfStats = new Date(2026, 2, 28); 
-        let filteredEntries = entriesR.filter(e => e.date >= startOfStats);
-
-        if (filteredEntries.length > 0) {
-            let lastRef = Number(filteredEntries[0].value) || 0;
-            for (let i = 1; i < filteredEntries.length; i++) {
-                const val = Number(filteredEntries[i].value) || 0;
-                const diff = val - lastRef;
-                if (diff >= RAIN_HYST_UP) { totalRainSum += diff; lastRef = val; } 
-                else if (val < lastRef - RAIN_HYST_DOWN) { lastRef = val; }
-                if (filteredEntries[i].date < startOfToday) { sumAtMidnight = totalRainSum; }
-            }
-        }
-        const valToday = Math.max(0, totalRainSum - sumAtMidnight);
-        let rainIconColor = (valToday > 0) ? (valToday <= 10 ? '#00bcd4' : getColorByDiff(valToday / 24)) : '#555555';
-
-        document.getElementById('icon-rain').style.stroke = rainIconColor;
-        document.getElementById('rainCard').style.setProperty('--accent-color', rainIconColor);
-        document.getElementById('curr-rain').innerText = totalRainSum.toFixed(2);
-        document.getElementById('year-rain').innerText = (yearlyTotal + totalRainSum).toFixed(2);
-        document.getElementById('day-rain').innerText = valToday.toFixed(1);
-        
-        let chartSlice;
-        if (isHistorical) {
-            chartSlice = entriesR;
-        } else {
-            const rainCutoff = new Date(new Date().getTime() + 7200000 - rainHours * 3600000);
-            chartSlice = entriesR.filter(e => e.date >= rainCutoff);
-        }
-
-        let chartData = [];
-        if (chartSlice.length > 0) {
-            let baseline = chartSlice[0].value;
-            chartSlice.forEach(e => {
-                if (e.value < baseline) baseline = e.value;
-                chartData.push({ date: e.date, value: Math.max(0, e.value - baseline) });
-            });
-        }
-        renderRainChart(downsampleCheck(chartData, rainHours), rainHours);
-    }
-    
-    if (entriesP.length > 0) {
-        const lastP = (Number(entriesP[entriesP.length-1].value) || 0) + PRES_OFFSET;
-        document.getElementById('curr-pres').innerText = lastP.toFixed(0);
-        if (entriesP.length > 12) {
-            const diff = lastP - ((Number(entriesP[entriesP.length-12].value) || 0) + PRES_OFFSET);
-            document.getElementById('pres-trend-arrow').innerText = diff > 0.2 ? " ↑" : diff < -0.2 ? " ↓" : " →";
-            document.getElementById('pres-rate-val').innerText = (diff > 0 ? "+" : "") + diff.toFixed(1) + " hPa/h";
-        }
-        let lastT = entriesT.length > 0 ? entriesT[entriesT.length-1].value : 0;
-        let lastHum = entriesH.length > 0 ? entriesH[entriesH.length-1].value : 0;
-        document.getElementById('forecast-val').innerText = getForecast(allP, lastHum, lastT);
+        const lastR = entriesR[entriesR.length-1];
+        document.getElementById('day-rain').innerText = lastR.tag.toFixed(1);
+        document.getElementById('curr-rain').innerText = lastR.monat.toFixed(1);
+        document.getElementById('year-rain').innerText = lastR.jahr.toFixed(1);
+        let chartData = entriesR.filter(e => e.date >= cutoffR).map(e => ({ date: e.date, value: e.monat }));
+        renderRainChart(chartData, rainHoursPeriod);
     }
 
-    const nowLocal = new Date();
-    const calcSunHours = (arr, start) => (arr.filter(e => e.date >= start && e.value >= SUN_THRESHOLD).length / 60).toFixed(1);
-    
-    const startOfDay = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), nowLocal.getDate());
-    const startOfMonth = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), 1);
-    const startOfYear = new Date(nowLocal.getFullYear(), 0, 1);
+    // Sonnenstunden Logik
+    if (entriesB_all.length > 0) {
+        const now = new Date();
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
 
-    document.getElementById('sun-day').innerText = calcSunHours(entriesB_all, startOfDay);
-    document.getElementById('sun-month').innerText = calcSunHours(entriesB_all, startOfMonth);
-    document.getElementById('sun-year').innerText = calcSunHours(entriesB_all, startOfYear);
-    
-    if (entriesB_all.length > 0) { 
-        const sunColor = getSunColor(Number(entriesB_all[entriesB_all.length-1].value)); 
-        document.getElementById('icon-sun').style.color = sunColor; 
-        document.getElementById('card-bright').style.setProperty('--accent-color', sunColor); 
-    }
-
-    renderMainChart(downsampleCheck(entriesT, hours), hours); 
-    renderBrightChart(downsampleCheck(entriesB, sunHoursPeriod), sunHoursPeriod);
-}
-
-function getXAxisConfig(hours) {
-    return {
-        grid: { color: 'rgba(255, 255, 255, 0.03)' },
-        ticks: { 
-            color: '#ffffff', 
-            autoSkip: false,
-            maxRotation: 0,
-            maxTicksLimit: 24,
-            padding: 10,
-            callback: function(value, index, values) {
-                const label = this.getLabelForValue(value);
-                if (!label || label === "--") return '';
-                const timePart = label.includes(' ') ? label.split(' ')[1] : label;
-                const [h, m] = timePart.split(':');
-                const minute = parseInt(m);
-                const hour = parseInt(h);
-                let interval = 1;
-                if (hours > 12) interval = 2;
-                if (hours > 24) interval = 12;
-                if (hours > 48) interval = 24;
-                if (minute === 0 && hour % interval === 0) {
-                    const datePart = hours > 24 ? label.split(' ')[0] + ' ' : '';
-                    return datePart + h + ':00';
+        const calcSunHours = (list) => {
+            let count = 0;
+            for (let i = 1; i < list.length; i++) {
+                if (list[i].value >= SUN_THRESHOLD) {
+                    const diffMin = (list[i].date - list[i-1].date) / 60000;
+                    if (diffMin > 0 && diffMin < 15) count += diffMin;
                 }
-                return '';
             }
-        }
-    };
+            return (count / 60).toFixed(1);
+        };
+
+        document.getElementById('sun-day').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfDay));
+        document.getElementById('sun-month').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfMonth));
+        document.getElementById('sun-year').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfYear));
+
+        renderBrightChart(entriesB, sunHoursPeriod);
+        const lastB = entriesB_all[entriesB_all.length-1].value;
+        document.getElementById('card-bright').style.setProperty('--accent-color', lastB >= SUN_THRESHOLD ? '#ffcc00' : '#555');
+    }
 }
+
+const crosshairPlugin = {
+    id: 'crosshair',
+    afterDatasetsDraw(chart) {
+        const { ctx, chartArea: { top, bottom } } = chart;
+        if (chart.tooltip?._active?.length) {
+            const xPos = chart.tooltip._active[0].element.x;
+            ctx.save(); ctx.beginPath(); ctx.moveTo(xPos, top); ctx.lineTo(xPos, bottom);
+            ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.restore();
+        }
+    }
+};
+
+const minMaxPlugin = {
+    id: 'minMaxPlugin',
+    afterDatasetsDraw(chart) {
+        if (chart.canvas.id !== 'mainChart') return;
+        const { ctx, scales: { x, y }, data } = chart;
+        const dataset = data.datasets[0].data;
+        if (!dataset.length) return;
+        const minVal = Math.min(...dataset), maxVal = Math.max(...dataset);
+        const minIdx = dataset.indexOf(minVal), maxIdx = dataset.indexOf(maxVal);
+        const draw = (idx, val, color) => {
+            const px = x.getPixelForValue(idx), py = y.getPixelForValue(val);
+            ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.font = 'bold 11px sans-serif';
+            ctx.fillText(val.toFixed(1) + '°', px, py - 10);
+        };
+        draw(maxIdx, maxVal, '#ff3860'); draw(minIdx, minVal, '#3b82f6');
+    }
+};
 
 function renderMainChart(ent, hrs) {
     const ctx = document.getElementById('mainChart').getContext('2d');
@@ -543,11 +342,12 @@ function renderMainChart(ent, hrs) {
         data: {
             labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
-                label: 'Temp', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4, borderColor: '#00d1b2', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#00d1b2'),
+                label: 'Temp', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4,
+                borderColor: '#00d1b2', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#00d1b2'),
                 segment: { borderColor: ctx => ctx.p0.parsed && ctx.p1.parsed ? getTempColor((ctx.p0.parsed.y + ctx.p1.parsed.y) / 2) : '#00d1b2' }
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig, plugins: { legend: { display: false }, title: { display: true, text: 'Temperaturverlauf (°C)', color: '#ffffff' } }, scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' } }, x: getXAxisConfig(hrs) } },
+        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: 'rgba(255,255,255,0.03)' }, ticks: { color: '#fff' } }, x: { grid: { display: false }, ticks: { color: '#fff', maxTicksLimit: 8 } } } },
         plugins: [minMaxPlugin, crosshairPlugin]
     });
 }
@@ -560,14 +360,12 @@ function renderBrightChart(ent, hrs) {
         data: {
             labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
-                label: 'Lux', data: ent.map(e => e.value), borderColor: '#ffcc00', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#ffcc00'), fill: true, pointRadius: 0, tension: 0.4,
-                segment: { 
-                    // GEÄNDERT: Nur gelb, wenn beide Punkte über dem Threshold liegen (Anstiegslinie bleibt grau)
-                    borderColor: ctx => (ctx.p0.parsed.y >= SUN_THRESHOLD && ctx.p1.parsed.y >= SUN_THRESHOLD) ? '#ffcc00' : '#555555' 
-                }
+                label: 'Lux', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4,
+                borderColor: '#ffcc00', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#ffcc00'),
+                segment: { borderColor: ctx => (ctx.p0.parsed.y >= SUN_THRESHOLD && ctx.p1.parsed.y >= SUN_THRESHOLD) ? '#ffcc00' : '#555' }
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig, plugins: { legend: { display: false }, title: { display: true, text: 'Helligkeit / Sonnenschein', color: '#ffffff' } }, scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' }, beginAtZero: true }, x: getXAxisConfig(hrs) } },
+        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#fff' } }, x: { ticks: { color: '#fff', maxTicksLimit: 8 } } } },
         plugins: [crosshairPlugin]
     });
 }
@@ -580,11 +378,10 @@ function renderRainChart(ent, hrs) {
         data: {
             labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
-                label: 'l/m²', data: ent.map(e => e.value), fill: true, borderColor: '#00bcd4', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#00bcd4'), tension: 0.1, pointRadius: 0,
-                segment: { borderColor: ctx => ctx.p0.parsed && ctx.p1.parsed ? getColorByDiff(ctx.p1.parsed.y - ctx.p0.parsed.y) : '#00bcd4' }
+                label: 'l/m²', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.2, borderColor: '#00bcd4', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#00bcd4')
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, animation: false, interaction: globalInteractionConfig, plugins: { legend: { display: false }, title: { display: true, text: 'Niederschlag (l/m² Relativ)', color: '#ffffff' } }, scales: { y: { grid: { color: 'rgba(255, 255, 255, 0.03)' }, ticks: { color: '#ffffff' }, beginAtZero: true }, x: getXAxisConfig(hrs) } },
+        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false, ticks: { color: '#fff' } }, x: { ticks: { color: '#fff', maxTicksLimit: 8 } } } },
         plugins: [crosshairPlugin]
     });
 }
