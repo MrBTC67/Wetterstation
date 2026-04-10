@@ -324,7 +324,6 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         if (lastB < 3500) {
             r = 85; g = 85; b = 85; // Grau #555555
         } else if (lastB >= 3500 && lastB <= 6000) {
-            // Interpolation von Dunkelgelb (#ff9800) zu Hellgelb (#ffeb3b)
             let factor = (lastB - 3500) / (6000 - 3500);
             r = 255;
             g = Math.round(152 + (235 - 152) * factor);
@@ -335,7 +334,6 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         let dynamicColor = `rgb(${r},${g},${b})`;
         document.getElementById('sun-icon-svg').style.color = dynamicColor;
         document.getElementById('sun-val-display').style.color = dynamicColor;
-        // ----------------------------------------
 
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -372,21 +370,47 @@ const crosshairPlugin = {
     }
 };
 
+// --- Modifiziertes Plugin für Linien und seitliche Beschriftung ohne Pfeile ---
 const minMaxPlugin = {
     id: 'minMaxPlugin',
     afterDatasetsDraw(chart) {
         if (chart.canvas.id !== 'mainChart') return;
-        const { ctx, scales: { x, y }, data } = chart;
+        const { ctx, chartArea: { left, right }, scales: { x, y }, data } = chart;
         const dataset = data.datasets[0].data;
-        if (!dataset.length) return;
+        if (!dataset || !dataset.length) return;
+
         const minVal = Math.min(...dataset), maxVal = Math.max(...dataset);
         const minIdx = dataset.indexOf(minVal), maxIdx = dataset.indexOf(maxVal);
-        const draw = (idx, val, color) => {
+
+        const drawElements = (idx, val, color, isMax) => {
             const px = x.getPixelForValue(idx), py = y.getPixelForValue(val);
-            ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.font = 'bold 11px sans-serif';
-            ctx.fillText(val.toFixed(1) + '°', px, py - 10);
+
+            ctx.save();
+            
+            // 1. Dezente gestrichelte Linie
+            ctx.beginPath();
+            ctx.setLineDash([5, 5]);
+            ctx.strokeStyle = color + '55';
+            ctx.lineWidth = 1;
+            ctx.moveTo(left, py);
+            ctx.lineTo(right, py);
+            ctx.stroke();
+
+            // 2. Beschriftung (jetzt NEBEN der Position des Datenpunktes)
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'middle';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.fillStyle = color;
+            ctx.shadowBlur = 4;
+            ctx.shadowColor = 'black';
+            // Text leicht nach rechts versetzt und vertikal leicht versetzt zur Linie positioniert
+            ctx.fillText(val.toFixed(1) + '°', px + 10, isMax ? py - 8 : py + 8);
+            
+            ctx.restore();
         };
-        draw(maxIdx, maxVal, '#ff3860'); draw(minIdx, minVal, '#3b82f6');
+
+        drawElements(maxIdx, maxVal, '#ff3860', true);  // Max
+        drawElements(minIdx, minVal, '#3b82f6', false); // Min
     }
 };
 
