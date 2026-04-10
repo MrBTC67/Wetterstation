@@ -148,7 +148,7 @@
             <div class="val-display"><span id="forecast-val" style="color: #888; font-size: 0.9em;">...</span></div>
         </div>
         <div id="card-bright" class="card bright">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-color)">
+            <svg id="sun-icon-svg" class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--accent-color)">
                 <circle cx="12" cy="12" r="5"></circle>
                 <line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line>
                 <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
@@ -156,7 +156,7 @@
                 <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
             </svg>
             <h3 style="text-transform: none;">SONNENSTUNDEN: h</h3>
-            <div class="val-display" style="flex-direction: column; align-items: center; gap: 2px; color: var(--color-bright)">
+            <div id="sun-val-display" class="val-display" style="flex-direction: column; align-items: center; gap: 2px; color: var(--color-bright)">
                 <div class="rain-line"><span class="rain-label">Tag:</span> <span id="sun-day">--</span></div>
                 <div class="rain-line"><span class="rain-label">Monat:</span> <span id="sun-month">--</span></div>
                 <div class="rain-line"><span class="rain-label">Jahr:</span> <span id="sun-year">--</span></div>
@@ -317,6 +317,26 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
     }
 
     if (entriesB_all.length > 0) {
+        const lastB = entriesB_all[entriesB_all.length-1].value;
+        
+        // --- Interpolation Sonnenfarbe Klaus ---
+        let r, g, b;
+        if (lastB < 3500) {
+            r = 85; g = 85; b = 85; // Grau #555555
+        } else if (lastB >= 3500 && lastB <= 6000) {
+            // Interpolation von Dunkelgelb (#ff9800) zu Hellgelb (#ffeb3b)
+            let factor = (lastB - 3500) / (6000 - 3500);
+            r = 255;
+            g = Math.round(152 + (235 - 152) * factor);
+            b = Math.round(0 + (59 - 0) * factor);
+        } else {
+            r = 255; g = 235; b = 59; // Hellgelb #ffeb3b
+        }
+        let dynamicColor = `rgb(${r},${g},${b})`;
+        document.getElementById('sun-icon-svg').style.color = dynamicColor;
+        document.getElementById('sun-val-display').style.color = dynamicColor;
+        // ----------------------------------------
+
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
