@@ -175,7 +175,7 @@
 </div>
 
 <script>
-const SUN_THRESHOLD = 4090; 
+const SUN_THRESHOLD = 4000; 
 const URL_BASE = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app";
 const URL_T = `${URL_BASE}/temperature.json`;
 const URL_H = `${URL_BASE}/humidity.json`;
@@ -195,6 +195,12 @@ function createVerticalGradient(ctx, chartArea, color) {
 }
 
 function getUniversalDate(id) {
+    if (id.includes('_') && id.includes('-')) {
+        const parts = id.split('_'); 
+        const dateParts = parts[0].split('-'); 
+        const timeParts = parts[1].split(':'); 
+        return new Date(dateParts[0], dateParts[1] - 1, dateParts[2], timeParts[0], timeParts[1], timeParts[2]);
+    }
     if (/^\d{8}_\d{4}$/.test(id)) {
         const y = id.substring(0, 4), m = parseInt(id.substring(4, 6)) - 1, d = id.substring(6, 8), hh = id.substring(9, 11), mm = id.substring(11, 13);
         return new Date(y, m, d, hh, mm);
@@ -213,20 +219,14 @@ function getSmartLabel(date, hours) {
 }
 
 function getTempColor(t) { 
-    if (t < -10) return '#9c27b0'; // violett
-    if (t < 0)   return '#3b82f6'; // blau
-    if (t < 10)  return '#00d1b2'; // cyan
-    if (t < 20)  return '#ffeb3b'; // gelb
-    if (t < 30)  return '#ff9800'; // orange
-    return '#ff3860';              // rot
+    if (t < -10) return '#9c27b0'; 
+    if (t < 0)   return '#3b82f6'; 
+    if (t < 10)  return '#00d1b2'; 
+    if (t < 20)  return '#ffeb3b'; 
+    if (t < 30)  return '#ff9800'; 
+    return '#ff3860';              
 }
 
-function getHumColor(h) { 
-    if (h < 35) return '#ff9800'; // orange
-    if (h < 60) return '#90ee90'; // hellgrün
-    if (h < 80) return '#00bcd4'; // hellblau
-    return '#9c27b0';              // violett
-}
 function calculateDewPoint(temp, hum) { if (temp === undefined || hum === undefined || hum <= 0) return 0; const a = 17.27, b = 237.7, alpha = ((a * temp) / (b + temp)) + Math.log(hum / 100.0); return (b * alpha) / (a - alpha); }
 
 async function fetchData() {
@@ -259,7 +259,10 @@ async function fetchData() {
         const entriesT = sortEntries(Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= cutoffT));
         const entriesH = sortEntries(Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= cutoffT));
         const entriesP = sortEntries(Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffT));
-        const entriesB_all = sortEntries(Object.keys(dataB || {}).map(k => ({ date: getUniversalDate(k), value: Number((typeof dataB[k] === 'object' ? dataB[k].brightness : dataB[k]) ?? 0) })));
+        const entriesB_all = sortEntries(Object.keys(dataB || {}).map(k => ({ 
+            date: getUniversalDate(k), 
+            value: Number(dataB[k].brightness ?? dataB[k] ?? 0) 
+        })));
         
         let entriesR_raw = sortEntries(Object.keys(dataR || {}).map(k => {
             const p = dataR[k].zeitstempel.split(/[. :]/);
@@ -276,9 +279,7 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         document.getElementById('curr-temp').innerText = lastT.toFixed(1);
         document.getElementById('min-temp-val').innerText = Math.min(...entriesT.map(e => e.value)).toFixed(1);
         document.getElementById('max-temp-val').innerText = Math.max(...entriesT.map(e => e.value)).toFixed(1);
-        
         document.getElementById('frost-alarm').style.display = lastT <= 3 ? 'block' : 'none';
-        
         const lastDate = entriesT[entriesT.length-1].date;
         document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${lastDate.getHours().toString().padStart(2, '0')}:${lastDate.getMinutes().toString().padStart(2, '0')} Uhr`;
         renderMainChart(entriesT, hours);
@@ -296,9 +297,7 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         let lastP = entriesP[entriesP.length-1].value + PRES_OFFSET;
         document.getElementById('curr-pres').innerText = lastP.toFixed(1);
         if (entriesP.length > 5) {
-            let pNow = entriesP[entriesP.length-1].value;
-            let pOld = entriesP[0].value;
-            let diff = pNow - pOld;
+            let diff = entriesP[entriesP.length-1].value - entriesP[0].value;
             document.getElementById('pres-rate-val').innerText = (diff > 0 ? "+" : "") + diff.toFixed(1) + " hPa/h";
             let prog = "Beständig";
             if(diff > 0.5) prog = "Heiter";
@@ -312,28 +311,17 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         document.getElementById('day-rain').innerText = lastR.tag.toFixed(1);
         document.getElementById('curr-rain').innerText = lastR.monat.toFixed(1);
         document.getElementById('year-rain').innerText = lastR.jahr.toFixed(1);
-        let chartData = entriesR.filter(e => e.date >= cutoffR).map(e => ({ date: e.date, value: e.monat }));
-        renderRainChart(chartData, rainHoursPeriod);
+        renderRainChart(entriesR.filter(e => e.date >= cutoffR).map(e => ({ date: e.date, value: e.monat })), rainHoursPeriod);
     }
 
     if (entriesB_all.length > 0) {
         const lastB = entriesB_all[entriesB_all.length-1].value;
-        
-        // --- Interpolation Sonnenfarbe Klaus ---
         let r, g, b;
-        if (lastB < 3500) {
-            r = 85; g = 85; b = 85; // Grau #555555
-        } else if (lastB >= 3500 && lastB <= 6000) {
-            let factor = (lastB - 3500) / (6000 - 3500);
-            r = 255;
-            g = Math.round(152 + (235 - 152) * factor);
-            b = Math.round(0 + (59 - 0) * factor);
-        } else {
-            r = 255; g = 235; b = 59; // Hellgelb #ffeb3b
-        }
-        let dynamicColor = `rgb(${r},${g},${b})`;
-        document.getElementById('sun-icon-svg').style.color = dynamicColor;
-        document.getElementById('sun-val-display').style.color = dynamicColor;
+        if (lastB < 3500) { r = 85; g = 85; b = 85; } 
+        else if (lastB <= 6000) { let f = (lastB - 3500) / 2500; r = 255; g = Math.round(152 + 83 * f); b = Math.round(59 * f); } 
+        else { r = 255; g = 235; b = 59; }
+        document.getElementById('sun-icon-svg').style.color = `rgb(${r},${g},${b})`;
+        document.getElementById('sun-val-display').style.color = `rgb(${r},${g},${b})`;
 
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
@@ -354,15 +342,15 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         document.getElementById('sun-day').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfDay));
         document.getElementById('sun-month').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfMonth));
         document.getElementById('sun-year').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfYear));
-        renderBrightChart(entriesB_all.filter(e => e.date >= (new Date(now.getTime() - (parseInt(document.getElementById('sunPeriod').value) * 3600000)))), parseInt(document.getElementById('sunPeriod').value));
+        renderBrightChart(entriesB_all.filter(e => e.date >= (new Date(now.getTime() - (sunHoursPeriod * 3600000)))), sunHoursPeriod);
     }
 }
 
 const crosshairPlugin = {
     id: 'crosshair',
     afterDatasetsDraw(chart) {
-        const { ctx, chartArea: { top, bottom } } = chart;
         if (chart.tooltip?._active?.length) {
+            const { ctx, chartArea: { top, bottom } } = chart;
             const xPos = chart.tooltip._active[0].element.x;
             ctx.save(); ctx.beginPath(); ctx.moveTo(xPos, top); ctx.lineTo(xPos, bottom);
             ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255, 255, 255, 0.2)'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.restore();
@@ -370,7 +358,6 @@ const crosshairPlugin = {
     }
 };
 
-// --- Modifiziertes Plugin für Linien und seitliche Beschriftung ohne Pfeile ---
 const minMaxPlugin = {
     id: 'minMaxPlugin',
     afterDatasetsDraw(chart) {
@@ -378,39 +365,17 @@ const minMaxPlugin = {
         const { ctx, chartArea: { left, right }, scales: { x, y }, data } = chart;
         const dataset = data.datasets[0].data;
         if (!dataset || !dataset.length) return;
-
         const minVal = Math.min(...dataset), maxVal = Math.max(...dataset);
         const minIdx = dataset.indexOf(minVal), maxIdx = dataset.indexOf(maxVal);
 
-        const drawElements = (idx, val, color, isMax) => {
+        const draw = (idx, val, color, isMax) => {
             const px = x.getPixelForValue(idx), py = y.getPixelForValue(val);
-
-            ctx.save();
-            
-            // 1. Dezente gestrichelte Linie
-            ctx.beginPath();
-            ctx.setLineDash([5, 5]);
-            ctx.strokeStyle = color + '55';
-            ctx.lineWidth = 1;
-            ctx.moveTo(left, py);
-            ctx.lineTo(right, py);
-            ctx.stroke();
-
-            // 2. Beschriftung (jetzt NEBEN der Position des Datenpunktes)
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'middle';
-            ctx.font = 'bold 11px sans-serif';
-            ctx.fillStyle = color;
-            ctx.shadowBlur = 4;
-            ctx.shadowColor = 'black';
-            // Text leicht nach rechts versetzt und vertikal leicht versetzt zur Linie positioniert
-            ctx.fillText(val.toFixed(1) + '°', px + 10, isMax ? py - 8 : py + 8);
-            
-            ctx.restore();
+            ctx.save(); ctx.beginPath(); ctx.setLineDash([5, 5]); ctx.strokeStyle = color + '55';
+            ctx.moveTo(left, py); ctx.lineTo(right, py); ctx.stroke();
+            ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = color;
+            ctx.fillText(val.toFixed(1) + '°', px + 10, isMax ? py - 8 : py + 8); ctx.restore();
         };
-
-        drawElements(maxIdx, maxVal, '#ff3860', true);  // Max
-        drawElements(minIdx, minVal, '#3b82f6', false); // Min
+        draw(maxIdx, maxVal, '#ff3860', true); draw(minIdx, minVal, '#3b82f6', false);
     }
 };
 
@@ -445,7 +410,19 @@ function renderBrightChart(ent, hrs) {
                 segment: { borderColor: ctx => (ctx.p0.parsed.y >= SUN_THRESHOLD && ctx.p1.parsed.y >= SUN_THRESHOLD) ? '#ffcc00' : '#555' }
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, ticks: { color: '#fff' } }, x: { ticks: { color: '#fff', maxTicksLimit: 8 } } } },
+        options: { 
+            responsive: true, maintainAspectRatio: false, animation: false, 
+            plugins: { legend: { display: false } }, 
+            scales: { 
+                y: { 
+                    type: 'linear', // Wieder auf linear für Klaus
+                    beginAtZero: false, // Autoscale aktiv
+                    ticks: { color: '#fff', callback: (v) => v.toLocaleString() },
+                    grid: { color: 'rgba(255,255,255,0.05)' }
+                }, 
+                x: { ticks: { color: '#fff', maxTicksLimit: 8 } } 
+            } 
+        },
         plugins: [crosshairPlugin]
     });
 }
@@ -461,7 +438,7 @@ function renderRainChart(ent, hrs) {
                 label: 'l/m²', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.2, borderColor: '#00bcd4', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#00bcd4')
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: false, ticks: { color: '#fff' } }, x: { ticks: { color: '#fff', maxTicksLimit: 8 } } } },
+        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: '#fff' } }, x: { ticks: { color: '#fff', maxTicksLimit: 8 } } } },
         plugins: [crosshairPlugin]
     });
 }
