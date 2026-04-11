@@ -175,7 +175,7 @@
 </div>
 
 <script>
-const SUN_THRESHOLD = 4000; 
+const SUN_THRESHOLD = 5500; // Geändert für Klaus (> 5500 = gelb/Sonnenschein)
 const URL_BASE = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app";
 const URL_T = `${URL_BASE}/temperature.json`;
 const URL_H = `${URL_BASE}/humidity.json`;
@@ -415,8 +415,8 @@ function renderBrightChart(ent, hrs) {
             plugins: { legend: { display: false } }, 
             scales: { 
                 y: { 
-                    type: 'linear', // Wieder auf linear für Klaus
-                    beginAtZero: false, // Autoscale aktiv
+                    type: 'linear',
+                    beginAtZero: false, 
                     ticks: { color: '#fff', callback: (v) => v.toLocaleString() },
                     grid: { color: 'rgba(255,255,255,0.05)' }
                 }, 
