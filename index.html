@@ -20,6 +20,7 @@
             --color-dew: #dce775; 
             --color-pres: #9575cd; 
             --color-bright: #ffd54f; 
+            --color-tsl: #81c784;
             --color-update: #81c784; 
             
             /* Theme Farben (Dunkelgrau/Blau) */
@@ -282,6 +283,9 @@
 
     <div class="section-header"><h2 style="color: var(--color-dry);">Niederschlag</h2><select id="rainPeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option></select></div>
     <div class="chart-box"><canvas id="rainChart"></canvas></div>
+
+    <div class="section-header"><h2 style="color: var(--color-update);">SQ Meter</h2></div>
+    <div class="chart-box"><canvas id="tslChart"></canvas></div>
 </div>
 
 <script>
@@ -291,6 +295,7 @@ const URL_T = `${URL_BASE}/temperature.json`;
 const URL_H = `${URL_BASE}/humidity.json`;
 const URL_P = `${URL_BASE}/pressure.json`;
 const URL_B = `${URL_BASE}/brightness.json`; 
+const URL_TSL = `${URL_BASE}/TSL.json`;
 const URL_R_APRIL = `${URL_BASE}/Regenmesser/2026/April.json`;
 
 const PRES_OFFSET = 14.5;
@@ -335,7 +340,7 @@ function getTempColor(t) {
     if (t < 10)  return '#26a69a'; 
     if (t < 20)  return '#fff176'; 
     if (t < 30)  return '#ffb74d'; 
-    return '#ef5350';                 
+    return '#ef5350';                  
 }
 
 function calculateDewPoint(temp, hum) { 
@@ -360,7 +365,8 @@ async function fetchData() {
             fetch(`${URL_H}?orderBy="$key"&limitToLast=2000`),
             fetch(`${URL_P}?orderBy="$key"&limitToLast=2000`),
             fetch(`${URL_B}?orderBy="$key"&limitToLast=3000`),
-            fetch(`${URL_R_APRIL}?orderBy="$key"&limitToLast=2000`)
+            fetch(`${URL_R_APRIL}?orderBy="$key"&limitToLast=2000`),
+            fetch(`${URL_TSL}?orderBy="$key"&limitToLast=1000`)
         ]);
 
         const dataT = await responses[0].json();
@@ -368,6 +374,7 @@ async function fetchData() {
         const dataP = await responses[2].json();
         const dataB = await responses[3].json();
         const dataR = await responses[4].json();
+        const dataTSL = await responses[5].json();
 
         const sortEntries = (arr) => arr.sort((a, b) => a.date - b.date);
 
@@ -376,16 +383,22 @@ async function fetchData() {
         const entriesP = sortEntries(Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffT));
         const entriesB_all = sortEntries(Object.keys(dataB || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataB[k].brightness ?? dataB[k] ?? 0) })));
         
+        const entriesTSL = sortEntries(Object.keys(dataTSL || {}).map(k => {
+            if (!dataTSL[k].timestamp) return null;
+            const t = dataTSL[k].timestamp.split(/[. :]/);
+            return { date: new Date(t[2], t[1]-1, t[0], t[3], t[4], t[5]), value: Number(dataTSL[k].frequency ?? 0) };
+        }).filter(e => e !== null && e.date >= cutoffT));
+
         let entriesR_raw = sortEntries(Object.keys(dataR || {}).map(k => {
             const p = dataR[k].zeitstempel.split(/[. :]/);
             return { date: new Date(p[2], p[1]-1, p[0], p[3], p[4], p[5]), tag: parseFloat(dataR[k].wippe_tag), monat: parseFloat(dataR[k].wippe_monat), jahr: parseFloat(dataR[k].wippe_jahr) };
         }));
 
-        updateUI(entriesT, entriesH, entriesP, entriesB_all.filter(e => e.date >= cutoffS), entriesB_all, entriesR_raw, cutoffR, hours, sunHoursPeriod, rainHoursPeriod);
+        updateUI(entriesT, entriesH, entriesP, entriesB_all.filter(e => e.date >= cutoffS), entriesB_all, entriesR_raw, cutoffR, hours, sunHoursPeriod, rainHoursPeriod, entriesTSL);
     } catch (e) { console.error("Fehler:", e); }
 }
 
-function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR, cutoffR, hours, sunHoursPeriod, rainHoursPeriod) {
+function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR, cutoffR, hours, sunHoursPeriod, rainHoursPeriod, entriesTSL) {
     if (entriesT.length > 0) {
         let lastT = entriesT[entriesT.length-1].value;
         document.getElementById('curr-temp').innerText = lastT.toFixed(1);
@@ -457,6 +470,10 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         document.getElementById('sun-month').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfMonth));
         document.getElementById('sun-year').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfYear));
         renderBrightChart(entriesB_all.filter(e => e.date >= (new Date(now.getTime() - (sunHoursPeriod * 3600000)))), sunHoursPeriod);
+    }
+
+    if (entriesTSL.length > 0) {
+        renderTSLChart(entriesTSL);
     }
 }
 
@@ -561,6 +578,30 @@ function renderRainChart(ent, hrs) {
             datasets: [{
                 label: 'l/m²', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.2, 
                 borderColor: '#4dd0e1', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#4dd0e1')
+            }]
+        },
+        options: { 
+            responsive: true, maintainAspectRatio: false, animation: false, 
+            plugins: { legend: { display: false } }, 
+            scales: { 
+                y: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: CHART_GRID_COLOR } }, 
+                x: { ticks: { color: CHART_TEXT_COLOR, maxTicksLimit: 8 } } 
+            } 
+        },
+        plugins: [crosshairPlugin]
+    });
+}
+
+function renderTSLChart(ent) {
+    const ctx = document.getElementById('tslChart').getContext('2d');
+    if (charts['tslChart']) charts['tslChart'].destroy();
+    charts['tslChart'] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ent.map(e => getSmartLabel(e.date)),
+            datasets: [{
+                label: '', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4, 
+                borderColor: '#81c784', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#81c784')
             }]
         },
         options: { 
