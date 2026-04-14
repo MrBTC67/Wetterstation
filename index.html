@@ -340,7 +340,7 @@ function getTempColor(t) {
     if (t < 10)  return '#26a69a'; 
     if (t < 20)  return '#fff176'; 
     if (t < 30)  return '#ffb74d'; 
-    return '#ef5350';                  
+    return '#ef5350';                   
 }
 
 function calculateDewPoint(temp, hum) { 
@@ -493,20 +493,33 @@ const minMaxPlugin = {
     id: 'minMaxPlugin',
     afterDatasetsDraw(chart) {
         if (chart.canvas.id !== 'mainChart') return;
-        const { ctx, chartArea: { left, right }, scales: { x, y }, data } = chart;
+        const { ctx, chartArea: { left, right, width }, scales: { y }, data } = chart;
         const dataset = data.datasets[0].data;
         if (!dataset || !dataset.length) return;
         const minVal = Math.min(...dataset), maxVal = Math.max(...dataset);
-        const minIdx = dataset.indexOf(minVal), maxIdx = dataset.indexOf(maxVal);
 
-        const draw = (idx, val, color, isMax) => {
-            const px = x.getPixelForValue(idx), py = y.getPixelForValue(val);
-            ctx.save(); ctx.beginPath(); ctx.setLineDash([5, 5]); ctx.strokeStyle = color + '44';
-            ctx.moveTo(left, py); ctx.lineTo(right, py); ctx.stroke();
-            ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = color;
-            ctx.fillText(val.toFixed(1) + '°', px + 10, isMax ? py - 8 : py + 8); ctx.restore();
+        const draw = (val, color, isMax) => {
+            const py = y.getPixelForValue(val);
+            const centerX = left + width / 2;
+            
+            ctx.save(); 
+            ctx.beginPath(); 
+            ctx.setLineDash([5, 5]); 
+            ctx.strokeStyle = color + '44';
+            ctx.moveTo(left, py); 
+            ctx.lineTo(right, py); 
+            ctx.stroke();
+            
+            ctx.font = 'bold 11px sans-serif'; 
+            ctx.fillStyle = color;
+            ctx.textAlign = 'center';
+            
+            // max: mittig unterhalb (py + 12), min: mittig oberhalb (py - 6)
+            ctx.fillText(val.toFixed(1) + '°', centerX, isMax ? py + 12 : py - 6); 
+            ctx.restore();
         };
-        draw(maxIdx, maxVal, '#ef5350', true); draw(minIdx, minVal, '#64b5f6', false);
+        draw(maxVal, '#ef5350', true); 
+        draw(minVal, '#64b5f6', false);
     }
 };
 
