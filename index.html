@@ -7,7 +7,6 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { 
-            /* Wetter-Farben */
             --color-dry: #4dd0e1; 
             --color-light: #4dd0e1; 
             --color-mod: #fbc02d; 
@@ -22,8 +21,6 @@
             --color-bright: #ffd54f; 
             --color-tsl: #81c784;
             --color-update: #81c784; 
-            
-            /* Theme Farben (Dunkelgrau/Blau) */
             --bg-body: #1e293b; 
             --bg-container: #0f172a;
             --bg-card: rgba(30, 41, 59, 0.7);
@@ -31,7 +28,6 @@
             --text-muted: #94a3b8;
             --border-color: rgba(255,255,255,0.06);
             --card-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            
             --color-frost: #38bdf8; 
             --color-ice: #0ea5e9;
         }
@@ -177,14 +173,18 @@
         .rain-stat-label { font-size: 0.6em; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 3px; }
         .rain-stat-val { font-size: 0.9em; font-weight: 700; color: var(--color-dry); transition: color 0.3s; }
 
-        /* Steuerelement für die permanente Kontrollanzeige */
-        .ctrl-rain-rate-box {
-            color: var(--color-dry); 
-            font-size: 0.8em; 
-            font-weight: 800; 
-            margin: -5px 0 15px 0;
-            letter-spacing: 0.5px;
+        /* Das kleine Fenster für die Regenrate */
+        .rate-badge {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--color-dry);
+            border-radius: 12px;
+            padding: 8px 15px;
+            display: inline-block;
+            margin: -10px 0 20px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
         }
+        .rate-badge-label { font-size: 0.7em; text-transform: uppercase; color: var(--text-muted); font-weight: 800; display: block; margin-bottom: 2px; }
+        .rate-badge-val { font-size: 1em; color: var(--color-dry); font-weight: 800; }
 
         @media (min-width: 600px) { 
             body { padding: 20px; } 
@@ -301,8 +301,9 @@
     <div class="section-header"><h2 style="color: var(--color-dry);">Niederschlag</h2><select id="rainPeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option></select></div>
     <div class="chart-box"><canvas id="rainChart"></canvas></div>
     
-    <div class="ctrl-rain-rate-box">
-        Aktuelle Regenrate: <span id="ctrl-rain-rate">0.0</span> l/m²/h
+    <div class="rate-badge">
+        <span class="rate-badge-label">Aktuelle Regenrate</span>
+        <span id="ctrl-rain-rate" class="rate-badge-val">0.0</span> <span class="unit">l/m²/h</span>
     </div>
 
     <div class="rain-stats-row">
@@ -325,19 +326,17 @@ const URL_H = `${URL_BASE}/humidity.json`;
 const URL_P = `${URL_BASE}/pressure.json`;
 const URL_B = `${URL_BASE}/brightness.json`; 
 const URL_R_APRIL = `${URL_BASE}/Regenmesser/2026/April.json`;
-
 const PRES_OFFSET = 14.5;
 let charts = {};
-
 const CHART_TEXT_COLOR = '#94a3b8';
 const CHART_GRID_COLOR = 'rgba(255,255,255,0.05)';
 
 function getRainIntensityColor(rate) {
     if (rate <= 0) return '#4dd0e1'; 
-    if (rate < 2.5) return '#4dd0e1'; // Leicht
-    if (rate < 10) return '#fbc02d';  // Mäßig
-    if (rate < 50) return '#f57c00';  // Stark
-    return '#d32f2f';                  // Extrem
+    if (rate < 2.5) return '#4dd0e1'; 
+    if (rate < 10) return '#fbc02d';  
+    if (rate < 50) return '#f57c00';  
+    return '#d32f2f';                 
 }
 
 function createVerticalGradient(ctx, chartArea, color) {
@@ -390,7 +389,6 @@ async function fetchData() {
     const sunHoursPeriod = parseInt(document.getElementById('sunPeriod').value);
     const rainHoursPeriod = parseInt(document.getElementById('rainPeriod').value);
     const now = new Date();
-    
     const cutoffT = new Date(now.getTime() - (hours * 3600000));
     const cutoffS = new Date(now.getTime() - (sunHoursPeriod * 3600000));
     const cutoffR = new Date(now.getTime() - (rainHoursPeriod * 3600000));
@@ -403,25 +401,20 @@ async function fetchData() {
             fetch(`${URL_B}?orderBy="$key"&limitToLast=3000`),
             fetch(`${URL_R_APRIL}?orderBy="$key"&limitToLast=2000`)
         ]);
-
         const dataT = await responses[0].json();
         const dataH = await responses[1].json();
         const dataP = await responses[2].json();
         const dataB = await responses[3].json();
         const dataR = await responses[4].json();
-
         const sortEntries = (arr) => arr.sort((a, b) => a.date - b.date);
-
         const entriesT = sortEntries(Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= cutoffT));
         const entriesH = sortEntries(Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= cutoffT));
         const entriesP = sortEntries(Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffT));
         const entriesB_all = sortEntries(Object.keys(dataB || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataB[k].brightness ?? dataB[k] ?? 0) })));
-        
         let entriesR_raw = sortEntries(Object.keys(dataR || {}).map(k => {
             const p = dataR[k].zeitstempel.split(/[. :]/);
             return { date: new Date(p[2], p[1]-1, p[0], p[3], p[4], p[5]), tag: parseFloat(dataR[k].wippe_tag), monat: parseFloat(dataR[k].wippe_monat), jahr: parseFloat(dataR[k].wippe_jahr) };
         }));
-
         updateUI(entriesT, entriesH, entriesP, entriesB_all.filter(e => e.date >= cutoffS), entriesB_all, entriesR_raw, cutoffR, hours, sunHoursPeriod, rainHoursPeriod);
     } catch (e) { console.error("Fehler:", e); }
 }
@@ -437,7 +430,6 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${lastDate.getHours().toString().padStart(2, '0')}:${lastDate.getMinutes().toString().padStart(2, '0')} Uhr`;
         renderMainChart(entriesT, hours);
     }
-
     if (entriesH.length > 0 && entriesT.length > 0) {
         let lastH = entriesH[entriesH.length-1].value;
         let lastT = entriesT[entriesT.length-1].value;
@@ -445,7 +437,6 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         let dewPoint = calculateDewPoint(lastT, lastH);
         document.getElementById('curr-temp-dew').innerText = dewPoint.toFixed(1);
     }
-
     if (entriesP.length > 0) {
         let lastP = entriesP[entriesP.length-1].value + PRES_OFFSET;
         document.getElementById('curr-pres').innerText = lastP.toFixed(1);
@@ -458,18 +449,13 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
             document.getElementById('forecast-val').innerText = prog;
         }
     }
-
     if (entriesR.length > 0) {
         const lastR = entriesR[entriesR.length-1];
         document.getElementById('day-rain').innerText = lastR.tag.toFixed(1);
         document.getElementById('curr-rain').innerText = lastR.monat.toFixed(1);
         document.getElementById('year-rain').innerText = lastR.jahr.toFixed(1);
-        
         const rainFilter = entriesR.filter(e => e.date >= cutoffR);
-        let maxRate = 0;
-        let lastRainTime = null;
-        let currentRainRate = 0;
-        
+        let maxRate = 0; let lastRainTime = null; let currentRainRate = 0;
         for(let i=1; i<rainFilter.length; i++) {
             const diffVal = rainFilter[i].monat - rainFilter[i-1].monat;
             const diffTime = (rainFilter[i].date - rainFilter[i-1].date) / 3600000;
@@ -480,24 +466,18 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
                 if(i === rainFilter.length - 1) currentRainRate = rate;
             }
         }
-        
-        // Aktualisierung der Kontrollanzeige
         document.getElementById('ctrl-rain-rate').innerText = currentRainRate.toFixed(1);
-
         const peakEl = document.getElementById('rain-peak-val');
         peakEl.innerText = maxRate.toFixed(1);
         peakEl.style.color = getRainIntensityColor(maxRate);
-        
         if (lastRainTime) {
             const diffHours = (new Date() - lastRainTime) / 3600000;
             document.getElementById('rain-last-val').innerText = "Zuletzt geregnet vor " + diffHours.toFixed(1) + " Stunden";
         } else {
             document.getElementById('rain-last-val').innerText = "Kein Regen im Zeitraum";
         }
-
         renderRainChart(rainFilter.map(e => ({ date: e.date, value: e.monat })), rainHoursPeriod);
     }
-
     if (entriesB_all.length > 0) {
         const lastB = entriesB_all[entriesB_all.length-1].value;
         let r, g, b;
@@ -505,15 +485,12 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         else if (lastB < 8000) { r = 249; g = 206; b = 29; } 
         else if (lastB < 9300) { r = 255; g = 241; b = 118; }
         else { r = 255; g = 255; b = 255; }
-        
         document.getElementById('sun-icon-svg').style.color = `rgb(${r},${g},${b})`;
         document.getElementById('sun-val-display').style.color = `rgb(${r},${g},${b})`;
-
         const now = new Date();
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const startOfYear = new Date(now.getFullYear(), 0, 1);
-
         const calcSunHours = (list) => {
             let count = 0;
             for (let i = 1; i < list.length; i++) {
@@ -524,7 +501,6 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
             }
             return (count / 60).toFixed(1);
         };
-
         document.getElementById('sun-day').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfDay).map(e => ({date: e.date, value: e.value})));
         document.getElementById('sun-month').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfMonth).map(e => ({date: e.date, value: e.value})));
         document.getElementById('sun-year').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfYear).map(e => ({date: e.date, value: e.value})));
@@ -535,6 +511,8 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
 const crosshairPlugin = {
     id: 'crosshair',
     afterDatasetsDraw(chart) {
+        // Deaktiviert für den rainChart
+        if (chart.canvas.id === 'rainChart') return;
         if (chart.tooltip?._active?.length) {
             const { ctx, chartArea: { top, bottom } } = chart;
             const xPos = chart.tooltip._active[0].element.x;
@@ -552,7 +530,6 @@ const minMaxPlugin = {
         const dataset = data.datasets[0].data;
         if (!dataset || !dataset.length) return;
         const minVal = Math.min(...dataset), maxVal = Math.max(...dataset);
-
         const draw = (val, color, isMax) => {
             const py = y.getPixelForValue(val);
             const centerX = left + width / 2;
