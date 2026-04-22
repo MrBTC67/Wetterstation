@@ -173,7 +173,6 @@
         .rain-stat-label { font-size: 0.6em; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 3px; }
         .rain-stat-val { font-size: 0.9em; font-weight: 700; color: var(--color-dry); transition: color 0.3s; }
 
-        /* Das kleine Fenster für die Regenrate */
         .rate-badge {
             background: rgba(30, 41, 59, 0.8);
             border: 1px solid var(--color-dry);
@@ -272,8 +271,12 @@
         <div id="card-bright" class="card bright">
             <svg id="sun-icon-svg" class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-bright)">
                 <circle cx="12" cy="12" r="5"></circle>
-                <line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line>
-                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="7.5" x2="2.5" y2="6.5"></line>
+                <line x1="21.5" y1="17.5" x2="19.78" y2="16.5"></line>
+                <line x1="4.22" y1="16.5" x2="2.5" y2="17.5"></line>
+                <line x1="21.5" y1="6.5" x2="19.78" y2="7.5"></line>
             </svg>
             <h3 style="text-transform: none;">Sonne (h)</h3>
             <div id="sun-val-display" class="val-display" style="flex-direction: column; align-items: center; gap: 2px; color: var(--color-bright)">
@@ -291,9 +294,9 @@
     <div class="chart-box">
         <canvas id="brightChart"></canvas>
         <div class="legend-box">
-            <div class="legend-item"><div class="legend-dot" style="background: #FFFFFF; border: 1px solid #444;"></div> >9300 Sehr klar</div>
-            <div class="legend-item"><div class="legend-dot" style="background: #f9ce1d;"></div> >8000 sonnig</div>
-            <div class="legend-item"><div class="legend-dot" style="background: #f39c12;"></div> >5500 dunst</div>
+            <div class="legend-item"><div class="legend-dot" style="background: #FFFFFF; border: 1px solid #444;"></div> >8000 Sehr klar</div>
+            <div class="legend-item"><div class="legend-dot" style="background: #f9ce1d;"></div> >7000 klar</div>
+            <div class="legend-item"><div class="legend-dot" style="background: #f39c12;"></div> >5500 sonnig</div>
             <div class="legend-item"><div class="legend-dot" style="background: #4b5563;"></div> <5500 wolkig</div>
         </div>
     </div>
@@ -375,7 +378,7 @@ function getTempColor(t) {
     if (t < 10)  return '#26a69a'; 
     if (t < 20)  return '#fff176'; 
     if (t < 30)  return '#ffb74d'; 
-    return '#ef5350';                               
+    return '#ef5350';                                
 }
 
 function calculateDewPoint(temp, hum) { 
@@ -482,8 +485,8 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         const lastB = entriesB_all[entriesB_all.length-1].value;
         let r, g, b;
         if (lastB < 5500) { r = 148; g = 163; b = 184; } 
-        else if (lastB < 8000) { r = 249; g = 206; b = 29; } 
-        else if (lastB < 9300) { r = 255; g = 241; b = 118; }
+        else if (lastB < 7000) { r = 243; g = 156; b = 18; } 
+        else if (lastB < 8000) { r = 249; g = 206; b = 29; }
         else { r = 255; g = 255; b = 255; }
         document.getElementById('sun-icon-svg').style.color = `rgb(${r},${g},${b})`;
         document.getElementById('sun-val-display').style.color = `rgb(${r},${g},${b})`;
@@ -511,7 +514,6 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
 const crosshairPlugin = {
     id: 'crosshair',
     afterDatasetsDraw(chart) {
-        // Deaktiviert für den rainChart
         if (chart.canvas.id === 'rainChart') return;
         if (chart.tooltip?._active?.length) {
             const { ctx, chartArea: { top, bottom } } = chart;
@@ -568,7 +570,7 @@ function renderBrightChart(ent, hrs) {
             datasets: [{
                 label: 'Lux', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4,
                 borderColor: '#ffd54f', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#ffd54f'),
-                segment: { borderColor: ctx => { const val = (ctx.p0.parsed.y + ctx.p1.parsed.y) / 2; if (val >= 9300) return '#ffffff'; if (val >= 8000) return '#f9ce1d'; if (val >= 5500) return '#f39c12'; return '#4b5563'; } }
+                segment: { borderColor: ctx => { const val = (ctx.p0.parsed.y + ctx.p1.parsed.y) / 2; if (val >= 8000) return '#ffffff'; if (val >= 7000) return '#f9ce1d'; if (val >= 5500) return '#f39c12'; return '#4b5563'; } }
             }]
         },
         options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: CHART_GRID_COLOR } }, x: { ticks: { color: CHART_TEXT_COLOR, maxTicksLimit: 8 } } } },
