@@ -397,7 +397,6 @@ async function fetchData() {
     const cutoffR = new Date(now.getTime() - (rainHoursPeriod * 3600000));
     
     try {
-        // Erhöhte Limits (12.000), um 7 Tage abdecken zu können (ca. 10.080 Minuten)
         const responses = await Promise.all([
             fetch(`${URL_T}?orderBy="$key"&limitToLast=12000`),
             fetch(`${URL_H}?orderBy="$key"&limitToLast=12000`),
@@ -410,20 +409,30 @@ async function fetchData() {
         const dataP = await responses[2].json();
         const dataB = await responses[3].json();
         const dataR = await responses[4].json();
+
         const sortEntries = (arr) => arr.sort((a, b) => a.date - b.date);
-        const entriesT = sortEntries(Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= cutoffT));
-        const entriesH = sortEntries(Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= cutoffT));
-        const entriesP = sortEntries(Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffT));
-        const entriesB_all = sortEntries(Object.keys(dataB || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataB[k].brightness ?? dataB[k] ?? 0) })));
+
+        const entriesT = sortEntries(Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
+        const entriesH = sortEntries(Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
+        const entriesP = sortEntries(Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
+        
+        // Fix für Helligkeit: Filtere ungültige Daten und sortiere exakt
+        const entriesB_all = sortEntries(Object.keys(dataB || {}).map(k => {
+            const d = getUniversalDate(k);
+            return { date: d, value: Number(dataB[k].brightness ?? dataB[k] ?? 0) };
+        })).filter(e => !isNaN(e.date.getTime()));
+
         let entriesR_raw = sortEntries(Object.keys(dataR || {}).map(k => {
             const p = dataR[k].zeitstempel.split(/[. :]/);
             return { date: new Date(p[2], p[1]-1, p[0], p[3], p[4], p[5]), tag: parseFloat(dataR[k].wippe_tag), monat: parseFloat(dataR[k].wippe_monat), jahr: parseFloat(dataR[k].wippe_jahr) };
         }));
-        updateUI(entriesT, entriesH, entriesP, entriesB_all.filter(e => e.date >= cutoffS), entriesB_all, entriesR_raw, cutoffR, hours, sunHoursPeriod, rainHoursPeriod);
+
+        updateUI(entriesT, entriesH, entriesP, entriesB_all.filter(e => e.date >= cutoffS && e.date <= now), entriesB_all, entriesR_raw, cutoffR, hours, sunHoursPeriod, rainHoursPeriod);
     } catch (e) { console.error("Fehler:", e); }
 }
 
 function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR, cutoffR, hours, sunHoursPeriod, rainHoursPeriod) {
+    const now = new Date();
     if (entriesT.length > 0) {
         let lastT = entriesT[entriesT.length-1].value;
         document.getElementById('curr-temp').innerText = lastT.toFixed(1);
@@ -458,7 +467,7 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         document.getElementById('day-rain').innerText = lastR.tag.toFixed(1);
         document.getElementById('curr-rain').innerText = lastR.monat.toFixed(1);
         document.getElementById('year-rain').innerText = lastR.jahr.toFixed(1);
-        const rainFilter = entriesR.filter(e => e.date >= cutoffR);
+        const rainFilter = entriesR.filter(e => e.date >= cutoffR && e.date <= now);
         let maxRate = 0; let lastRainTime = null; let currentRainRate = 0;
         for(let i=1; i<rainFilter.length; i++) {
             const diffVal = rainFilter[i].monat - rainFilter[i-1].monat;
@@ -482,8 +491,8 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         }
         renderRainChart(rainFilter.map(e => ({ date: e.date, value: e.monat })), rainHoursPeriod);
     }
-    if (entriesB_all.length > 0) {
-        const lastB = entriesB_all[entriesB_all.length-1].value;
+    if (entriesB.length > 0) {
+        const lastB = entriesB[entriesB.length-1].value;
         let r, g, b;
         if (lastB < 5500) { r = 148; g = 163; b = 184; } 
         else if (lastB < 7000) { r = 243; g = 156; b = 18; } 
@@ -491,10 +500,11 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         else { r = 255; g = 255; b = 255; }
         document.getElementById('sun-icon-svg').style.color = `rgb(${r},${g},${b})`;
         document.getElementById('sun-val-display').style.color = `rgb(${r},${g},${b})`;
-        const now = new Date();
+        
         const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const startOfYear = new Date(now.getFullYear(), 0, 1);
+        
         const calcSunHours = (list) => {
             let count = 0;
             for (let i = 1; i < list.length; i++) {
@@ -505,10 +515,10 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
             }
             return (count / 60).toFixed(1);
         };
-        document.getElementById('sun-day').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfDay).map(e => ({date: e.date, value: e.value})));
-        document.getElementById('sun-month').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfMonth).map(e => ({date: e.date, value: e.value})));
-        document.getElementById('sun-year').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfYear).map(e => ({date: e.date, value: e.value})));
-        renderBrightChart(entriesB_all.filter(e => e.date >= (new Date(now.getTime() - (sunHoursPeriod * 3600000)))), sunHoursPeriod);
+        document.getElementById('sun-day').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfDay && e.date <= now));
+        document.getElementById('sun-month').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfMonth && e.date <= now));
+        document.getElementById('sun-year').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfYear && e.date <= now));
+        renderBrightChart(entriesB, sunHoursPeriod);
     }
 }
 
