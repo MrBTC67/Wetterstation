@@ -397,12 +397,13 @@ async function fetchData() {
     const cutoffR = new Date(now.getTime() - (rainHoursPeriod * 3600000));
     
     try {
+        // Erhöhte Limits (12.000), um 7 Tage abdecken zu können (ca. 10.080 Minuten)
         const responses = await Promise.all([
-            fetch(`${URL_T}?orderBy="$key"&limitToLast=2000`),
-            fetch(`${URL_H}?orderBy="$key"&limitToLast=2000`),
-            fetch(`${URL_P}?orderBy="$key"&limitToLast=2000`),
-            fetch(`${URL_B}?orderBy="$key"&limitToLast=3000`),
-            fetch(`${URL_R_APRIL}?orderBy="$key"&limitToLast=2000`)
+            fetch(`${URL_T}?orderBy="$key"&limitToLast=12000`),
+            fetch(`${URL_H}?orderBy="$key"&limitToLast=12000`),
+            fetch(`${URL_P}?orderBy="$key"&limitToLast=12000`),
+            fetch(`${URL_B}?orderBy="$key"&limitToLast=12000`),
+            fetch(`${URL_R_APRIL}?orderBy="$key"&limitToLast=12000`)
         ]);
         const dataT = await responses[0].json();
         const dataH = await responses[1].json();
