@@ -328,7 +328,14 @@ const URL_T = `${URL_BASE}/temperature.json`;
 const URL_H = `${URL_BASE}/humidity.json`;
 const URL_P = `${URL_BASE}/pressure.json`;
 const URL_B = `${URL_BASE}/brightness.json`; 
-const URL_R_APRIL = `${URL_BASE}/Regenmesser/2026/April.json`;
+
+// Dynamische Pfadgenerierung für den Regenmesser
+const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+const nowRef = new Date();
+const currentMonthName = monthNames[nowRef.getMonth()];
+const currentYear = nowRef.getFullYear();
+const URL_R_CURRENT = `${URL_BASE}/Regenmesser/${currentYear}/${currentMonthName}.json`;
+
 const PRES_OFFSET = 14.5;
 let charts = {};
 const CHART_TEXT_COLOR = '#94a3b8';
@@ -402,7 +409,7 @@ async function fetchData() {
             fetch(`${URL_H}?orderBy="$key"&limitToLast=12000`),
             fetch(`${URL_P}?orderBy="$key"&limitToLast=12000`),
             fetch(`${URL_B}?orderBy="$key"&limitToLast=12000`),
-            fetch(`${URL_R_APRIL}?orderBy="$key"&limitToLast=12000`)
+            fetch(`${URL_R_CURRENT}?orderBy="$key"&limitToLast=12000`)
         ]);
         const dataT = await responses[0].json();
         const dataH = await responses[1].json();
@@ -416,7 +423,6 @@ async function fetchData() {
         const entriesH = sortEntries(Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
         const entriesP = sortEntries(Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
         
-        // Fix für Helligkeit: Filtere ungültige Daten und sortiere exakt
         const entriesB_all = sortEntries(Object.keys(dataB || {}).map(k => {
             const d = getUniversalDate(k);
             return { date: d, value: Number(dataB[k].brightness ?? dataB[k] ?? 0) };
