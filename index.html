@@ -294,7 +294,7 @@
     <div class="chart-box">
         <canvas id="brightChart"></canvas>
         <div class="legend-box">
-            <div class="legend-item"><div class="legend-dot" style="background: #FFFFFF; border: 1px solid #444;"></div> >8000 Sehr klar</div>
+            <div class="legend-item"><div class="legend-dot" style="background: #FFFFFF; border: 1px solid #444;"></div> >10000 Sehr klar</div>
             <div class="legend-item"><div class="legend-dot" style="background: #f9ce1d;"></div> >7000 klar</div>
             <div class="legend-item"><div class="legend-dot" style="background: #f39c12;"></div> >5500 sonnig</div>
             <div class="legend-item"><div class="legend-dot" style="background: #4b5563;"></div> <5500 wolkig</div>
@@ -505,7 +505,7 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         let r, g, b;
         if (lastB < 5500) { r = 148; g = 163; b = 184; } 
         else if (lastB < 7000) { r = 243; g = 156; b = 18; } 
-        else if (lastB < 8000) { r = 249; g = 206; b = 29; }
+        else if (lastB < 10000) { r = 249; g = 206; b = 29; }
         else { r = 255; g = 255; b = 255; }
         document.getElementById('sun-icon-svg').style.color = `rgb(${r},${g},${b})`;
         document.getElementById('sun-val-display').style.color = `rgb(${r},${g},${b})`;
@@ -610,7 +610,7 @@ function renderBrightChart(ent, hrs) {
             datasets: [{
                 label: 'Lux', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4,
                 borderColor: '#ffd54f', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#ffd54f'),
-                segment: { borderColor: ctx => { const val = (ctx.p0.parsed.y + ctx.p1.parsed.y) / 2; if (val >= 8000) return '#ffffff'; if (val >= 7000) return '#f9ce1d'; if (val >= 5500) return '#f39c12'; return '#4b5563'; } }
+                segment: { borderColor: ctx => { const val = (ctx.p0.parsed.y + ctx.p1.parsed.y) / 2; if (val >= 10000) return '#ffffff'; if (val >= 7000) return '#f9ce1d'; if (val >= 5500) return '#f39c12'; return '#4b5563'; } }
             }]
         },
         options: { 
