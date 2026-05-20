@@ -374,8 +374,11 @@ function getUniversalDate(id) {
     return new Date(time);
 }
 
-function getSmartLabel(date) {
+function getSmartLabel(date, hrs) {
     if (!(date instanceof Date) || isNaN(date)) return "--";
+    if (hrs >= 168) {
+        return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.`;
+    }
     return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
 }
 
@@ -385,7 +388,7 @@ function getTempColor(t) {
     if (t < 10)  return '#26a69a'; 
     if (t < 20)  return '#fff176'; 
     if (t < 30)  return '#ffb74d'; 
-    return '#ef5350';                                
+    return '#ef5350';                                 
 }
 
 function calculateDewPoint(temp, hum) { 
@@ -565,7 +568,7 @@ function renderMainChart(ent, hrs) {
     charts['mainChart'] = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ent.map(e => getSmartLabel(e.date)),
+            labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
                 label: 'Temp', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4,
                 borderColor: '#26a69a', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#26a69a'),
@@ -583,7 +586,7 @@ function renderBrightChart(ent, hrs) {
     charts['brightChart'] = new Chart(ctx, {
         type: 'line',
         data: {
-            labels: ent.map(e => getSmartLabel(e.date)),
+            labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
                 label: 'Lux', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4,
                 borderColor: '#ffd54f', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#ffd54f'),
@@ -605,7 +608,7 @@ function renderRainChart(ent, hrs) {
             const diffTime = (e.date - ent[i-1].date) / 3600000; 
             if (diffTime > 0 && diffVal >= 0) rate = diffVal / diffTime;
         }
-        return { x: getSmartLabel(e.date), y: e.value, rate: rate };
+        return { x: getSmartLabel(e.date, hrs), y: e.value, rate: rate };
     });
     charts['rainChart'] = new Chart(ctx, {
         type: 'line',
