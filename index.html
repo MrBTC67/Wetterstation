@@ -379,7 +379,7 @@ function getSmartLabel(date, hrs) {
     if (hrs >= 168) {
         return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.`;
     }
-    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
+    return `${date.getHours().toString().padStart(2, '0')}:00 Uhr`;
 }
 
 function getTempColor(t) { 
@@ -575,7 +575,27 @@ function renderMainChart(ent, hrs) {
                 segment: { borderColor: ctx => ctx.p0.parsed && ctx.p1.parsed ? getTempColor((ctx.p0.parsed.y + ctx.p1.parsed.y) / 2) : '#26a69a' }
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { y: { grid: { color: CHART_GRID_COLOR }, ticks: { color: CHART_TEXT_COLOR } }, x: { grid: { display: false }, ticks: { color: CHART_TEXT_COLOR, maxTicksLimit: 8 } } } },
+        options: { 
+            responsive: true, maintainAspectRatio: false, animation: false, 
+            plugins: { legend: { display: false } }, 
+            scales: { 
+                y: { grid: { color: CHART_GRID_COLOR }, ticks: { color: CHART_TEXT_COLOR } }, 
+                x: { 
+                    grid: { display: false }, 
+                    ticks: { 
+                        color: CHART_TEXT_COLOR, 
+                        maxTicksLimit: hrs === 4 ? 5 : 8,
+                        callback: function(val, index) {
+                            const label = this.getLabelForValue(val);
+                            if (hrs === 4) {
+                                if (index > 0 && label === this.getLabelForValue(val - 1)) return '';
+                            }
+                            return label;
+                        }
+                    } 
+                } 
+            } 
+        },
         plugins: [minMaxPlugin, crosshairPlugin]
     });
 }
@@ -593,7 +613,26 @@ function renderBrightChart(ent, hrs) {
                 segment: { borderColor: ctx => { const val = (ctx.p0.parsed.y + ctx.p1.parsed.y) / 2; if (val >= 8000) return '#ffffff'; if (val >= 7000) return '#f9ce1d'; if (val >= 5500) return '#f39c12'; return '#4b5563'; } }
             }]
         },
-        options: { responsive: true, maintainAspectRatio: false, animation: false, plugins: { legend: { display: false } }, scales: { y: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: CHART_GRID_COLOR } }, x: { ticks: { color: CHART_TEXT_COLOR, maxTicksLimit: 8 } } } },
+        options: { 
+            responsive: true, maintainAspectRatio: false, animation: false, 
+            plugins: { legend: { display: false } }, 
+            scales: { 
+                y: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: CHART_GRID_COLOR } }, 
+                x: { 
+                    ticks: { 
+                        color: CHART_TEXT_COLOR, 
+                        maxTicksLimit: hrs === 4 ? 5 : 8,
+                        callback: function(val, index) {
+                            const label = this.getLabelForValue(val);
+                            if (hrs === 4) {
+                                if (index > 0 && label === this.getLabelForValue(val - 1)) return '';
+                            }
+                            return label;
+                        }
+                    } 
+                } 
+            } 
+        },
         plugins: [crosshairPlugin]
     });
 }
@@ -642,7 +681,20 @@ function renderRainChart(ent, hrs) {
             }, 
             scales: { 
                 y: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: CHART_GRID_COLOR } }, 
-                x: { ticks: { color: CHART_TEXT_COLOR, maxTicksLimit: 8 }, grid: { display: false } } 
+                x: { 
+                    grid: { display: false },
+                    ticks: { 
+                        color: CHART_TEXT_COLOR, 
+                        maxTicksLimit: hrs === 4 ? 5 : 8,
+                        callback: function(val, index) {
+                            const label = this.getLabelForValue(val);
+                            if (hrs === 4) {
+                                if (index > 0 && label === this.getLabelForValue(val - 1)) return '';
+                            }
+                            return label;
+                        }
+                    } 
+                } 
             } 
         },
         plugins: [crosshairPlugin]
