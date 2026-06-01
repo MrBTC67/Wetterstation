@@ -297,7 +297,7 @@
             <div class="legend-item"><div class="legend-dot" style="background: #FFFFFF; border: 1px solid #444;"></div> >10000 Sehr klar</div>
             <div class="legend-item"><div class="legend-dot" style="background: #f9ce1d;"></div> >7000 klar</div>
             <div class="legend-item"><div class="legend-dot" style="background: #f39c12;"></div> >5500 sonnig</div>
-            <div class="legend-item"><div class="legend-dot" style="background: #4b5563;"></div> <5500 wolkig</div>
+            <div class="legend-item"><div class="legend-dot" style="background: #4b5563;"></div> &lt;5500 wolkig</div>
         </div>
     </div>
 
@@ -329,12 +329,7 @@ const URL_H = `${URL_BASE}/humidity.json`;
 const URL_P = `${URL_BASE}/pressure.json`;
 const URL_B = `${URL_BASE}/brightness.json`; 
 
-// Dynamische Pfadgenerierung für den Regenmesser
-const monthNames = ["Januar", "Februar", "März", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
-const nowRef = new Date();
-const currentMonthName = monthNames[nowRef.getMonth()];
-const currentYear = nowRef.getFullYear();
-const URL_R_CURRENT = `${URL_BASE}/Regenmesser/${currentYear}/${currentMonthName}.json`;
+const monthNames = ["Januar", "Februar", "M\u00e4rz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
 const PRES_OFFSET = 14.5;
 let charts = {};
@@ -346,7 +341,7 @@ function getRainIntensityColor(rate) {
     if (rate < 2.5) return '#4dd0e1'; 
     if (rate < 10) return '#fbc02d';  
     if (rate < 50) return '#f57c00';  
-    return '#d32f2f';                 
+    return '#d32f2f';                  
 }
 
 function createVerticalGradient(ctx, chartArea, color) {
@@ -388,7 +383,7 @@ function getTempColor(t) {
     if (t < 10)  return '#26a69a'; 
     if (t < 20)  return '#fff176'; 
     if (t < 30)  return '#ffb74d'; 
-    return '#ef5350';                                 
+    return '#ef5350';                                  
 }
 
 function calculateDewPoint(temp, hum) { 
@@ -414,13 +409,17 @@ async function fetchData() {
     const cutoffS = getCutoffDate(sunHoursPeriod, now);
     const cutoffR = getCutoffDate(rainHoursPeriod, now);
     
+    const currentMonthName = monthNames[now.getMonth()];
+    const currentYear = now.getFullYear();
+    const urlRainCurrent = `${URL_BASE}/Regenmesser/${currentYear}/${currentMonthName}.json`;
+    
     try {
         const responses = await Promise.all([
             fetch(`${URL_T}?orderBy="$key"&limitToLast=12000`),
             fetch(`${URL_H}?orderBy="$key"&limitToLast=12000`),
             fetch(`${URL_P}?orderBy="$key"&limitToLast=12000`),
             fetch(`${URL_B}?orderBy="$key"&limitToLast=12000`),
-            fetch(`${URL_R_CURRENT}?orderBy="$key"&limitToLast=12000`)
+            fetch(`${urlRainCurrent}?orderBy="$key"&limitToLast=12000`)
         ]);
         const dataT = await responses[0].json();
         const dataH = await responses[1].json();
@@ -439,10 +438,13 @@ async function fetchData() {
             return { date: d, value: Number(dataB[k].brightness ?? dataB[k] ?? 0) };
         })).filter(e => !isNaN(e.date.getTime()));
 
-        let entriesR_raw = sortEntries(Object.keys(dataR || {}).map(k => {
-            const p = dataR[k].zeitstempel.split(/[. :]/);
-            return { date: new Date(p[2], p[1]-1, p[0], p[3], p[4], p[5]), tag: parseFloat(dataR[k].wippe_tag), monat: parseFloat(dataR[k].wippe_monat), jahr: parseFloat(dataR[k].wippe_jahr) };
-        }));
+        let entriesR_raw = [];
+        if (dataR) {
+            entriesR_raw = sortEntries(Object.keys(dataR).map(k => {
+                const p = dataR[k].zeitstempel.split(/[. :]/);
+                return { date: new Date(p[2], p[1]-1, p[0], p[3], p[4], p[5]), tag: parseFloat(dataR[k].wippe_tag), monat: parseFloat(dataR[k].wippe_monat), jahr: parseFloat(dataR[k].wippe_jahr) };
+            }));
+        }
 
         updateUI(entriesT, entriesH, entriesP, entriesB_all.filter(e => e.date >= cutoffS && e.date <= now), entriesB_all, entriesR_raw, cutoffR, hours, sunHoursPeriod, rainHoursPeriod);
     } catch (e) { console.error("Fehler:", e); }
@@ -450,6 +452,8 @@ async function fetchData() {
 
 function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR, cutoffR, hours, sunHoursPeriod, rainHoursPeriod) {
     const now = new Date();
+    const currentMonthName = monthNames[now.getMonth()];
+
     if (entriesT.length > 0) {
         let lastT = entriesT[entriesT.length-1].value;
         document.getElementById('curr-temp').innerText = lastT.toFixed(1);
@@ -479,15 +483,34 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
             document.getElementById('forecast-val').innerText = prog;
         }
     }
+
+    // Regen-Logik mit mathematischer Nullung für den neuen Monat
     if (entriesR.length > 0) {
+        // Erste übertragene Werte des Monats als Nullpunkt-Referenz nehmen
+        const baseMonat = entriesR[0].monat;
+        const baseTag = entriesR[0].tag;
+        
         const lastR = entriesR[entriesR.length-1];
-        document.getElementById('day-rain').innerText = lastR.tag.toFixed(1);
-        document.getElementById('curr-rain').innerText = lastR.monat.toFixed(1);
-        document.getElementById('year-rain').innerText = lastR.jahr.toFixed(1);
-        const rainFilter = entriesR.filter(e => e.date >= cutoffR && e.date <= now);
+        
+        // Wert abzüglich des Monatsanfangs-Überhangs berechnen
+        const korrigiertMonat = Math.max(0, lastR.monat - baseMonat);
+        const korrigiertTag = Math.max(0, lastR.tag - baseTag);
+
+        document.getElementById('day-rain').innerText = korrigiertTag.toFixed(1);
+        document.getElementById('curr-rain').innerText = korrigiertMonat.toFixed(1);
+        document.getElementById('year-rain').innerText = lastR.jahr.toFixed(1); // Das Jahr läuft normal weiter
+        
+        // Werte für den Chart-Zeitraum ebenfalls anpassen
+        const korrigierteEntries = entriesR.map(e => ({
+            date: e.date,
+            value: Math.max(0, e.monat - baseMonat)
+        }));
+
+        const rainFilter = korrigierteEntries.filter(e => e.date >= cutoffR && e.date <= now);
         let maxRate = 0; let lastRainTime = null; let currentRainRate = 0;
+        
         for(let i=1; i<rainFilter.length; i++) {
-            const diffVal = rainFilter[i].monat - rainFilter[i-1].monat;
+            const diffVal = rainFilter[i].value - rainFilter[i-1].value;
             const diffTime = (rainFilter[i].date - rainFilter[i-1].date) / 3600000;
             if(diffTime > 0 && diffVal >= 0) {
                 const rate = diffVal / diffTime;
@@ -506,8 +529,18 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         } else {
             document.getElementById('rain-last-val').innerText = "Kein Regen im Zeitraum";
         }
-        renderRainChart(rainFilter.map(e => ({ date: e.date, value: e.monat })), rainHoursPeriod);
+        renderRainChart(rainFilter, rainHoursPeriod);
+    } else {
+        document.getElementById('day-rain').innerText = "0.0";
+        document.getElementById('curr-rain').innerText = "0.0";
+        document.getElementById('year-rain').innerText = "0.0";
+        document.getElementById('ctrl-rain-rate').innerText = "0.0";
+        document.getElementById('rain-peak-val').innerText = "0.0";
+        document.getElementById('rain-last-val').innerText = `Noch kein Regen im ${currentMonthName}`;
+        renderRainChart([], rainHoursPeriod);
     }
+
+    // Sonnen-Logik
     if (entriesB.length > 0) {
         const lastB = entriesB[entriesB.length-1].value;
         let r, g, b;
@@ -536,6 +569,11 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         document.getElementById('sun-month').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfMonth && e.date <= now));
         document.getElementById('sun-year').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfYear && e.date <= now));
         renderBrightChart(entriesB, sunHoursPeriod);
+    } else {
+        document.getElementById('sun-day').innerText = "0.0";
+        document.getElementById('sun-month').innerText = "0.0";
+        document.getElementById('sun-year').innerText = "0.0";
+        renderBrightChart([], sunHoursPeriod);
     }
 }
 
