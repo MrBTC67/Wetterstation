@@ -1,0 +1,753 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wetterstation Kirchheide - Slate Mode</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { 
+            --color-dry: #4dd0e1; 
+            --color-light: #4dd0e1; 
+            --color-mod: #fbc02d; 
+            --color-heavy: #f57c00; 
+            --color-extreme: #d32f2f; 
+            --color-temp: #26a69a; 
+            --color-min: #64b5f6; 
+            --color-max: #ef5350; 
+            --color-forecast: #ffcc80;
+            --color-dew: #dce775; 
+            --color-pres: #9575cd; 
+            --color-bright: #ffd54f; 
+            --color-tsl: #81c784;
+            --color-update: #81c784; 
+            --bg-body: #1e293b; 
+            --bg-container: #0f172a;
+            --bg-card: rgba(30, 41, 59, 0.7);
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --border-color: rgba(255,255,255,0.06);
+            --card-shadow: 0 10px 25px rgba(0,0,0,0.3);
+            --color-frost: #38bdf8; 
+            --color-ice: #0ea5e9;
+        }
+        
+        body { 
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
+            background: var(--bg-body); 
+            color: var(--text-main); 
+            text-align: center; 
+            padding: 5px; margin: 0; 
+            background-image: radial-gradient(circle at 50% 0%, #334155 0%, #1e293b 100%);
+            background-attachment: fixed;
+        }
+        
+        .container { 
+            max-width: 900px; 
+            margin: auto; 
+            background: var(--bg-container); 
+            padding: 12px; 
+            border-radius: 28px; 
+            box-shadow: 0 25px 70px rgba(0,0,0,0.5); 
+            border: 1px solid rgba(255,255,255,0.05); 
+            position: relative; 
+        }
+        
+        .header-box { 
+            display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; 
+            position: relative; margin: 10px 0 20px 0; 
+        }
+        
+        .main-title { 
+            font-size: 1.3em; 
+            background: linear-gradient(135deg, var(--color-temp), #fff); 
+            -webkit-background-clip: text; 
+            -webkit-text-fill-color: transparent; 
+            font-weight: 800; letter-spacing: 1px; margin: 0; 
+        }
+        
+        .altitude { font-size: 0.75em; color: var(--text-muted); font-weight: 400; }
+        
+        .info-wrapper { position: relative; cursor: help; margin-top: 5px; }
+        .info-icon { 
+            width: 22px; height: 22px; border-radius: 50%; 
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); 
+            display: flex; align-items: center; justify-content: center; 
+            font-size: 0.7em; font-weight: bold; color: var(--color-temp); 
+        }
+        
+        .info-tooltip { 
+            visibility: hidden; width: 280px; 
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(15px); 
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; 
+            padding: 15px; position: absolute; z-index: 100; top: 35px; 
+            left: 50%; transform: translateX(-50%); text-align: left; 
+            font-size: 0.75em; line-height: 1.5; box-shadow: 0 10px 40px rgba(0,0,0,0.6); 
+            color: var(--text-main);
+        }
+        .info-wrapper:hover .info-tooltip { visibility: visible; }
+        .info-tooltip b { color: var(--color-temp); display: block; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 3px; }
+        
+        .last-update { font-size: 0.75em; color: var(--color-update); margin-bottom: 20px; font-weight: 600; opacity: 0.9; }
+        
+        .controls-row { 
+            margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; gap: 10px; 
+            padding: 12px 18px; background: rgba(255,255,255,0.03); border-radius: 16px; 
+            border: 1px solid var(--border-color); 
+        }
+        .controls-row label { font-size: 0.8em; color: var(--text-muted); font-weight: bold; }
+        
+        select { 
+            background: #1e293b; color: var(--text-main); border: 1px solid #334155; 
+            padding: 6px 12px; border-radius: 10px; cursor: pointer; font-size: 13px; outline: none; 
+            transition: border 0.3s; 
+        }
+        select:hover { border-color: var(--color-temp); }
+        
+        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
+        
+        .card { 
+            position: relative; padding: 15px 10px; background: var(--bg-card); 
+            border-radius: 20px; border: 1px solid var(--border-color); 
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
+            display: flex; flex-direction: column; align-items: center; 
+            overflow: hidden; box-shadow: var(--card-shadow);
+        }
+        
+        .card::before { 
+            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; 
+            background: var(--accent-color, var(--color-temp)); opacity: 0.8; 
+        }
+        
+        .card:hover { 
+            transform: translateY(-6px); 
+            background: rgba(30, 41, 59, 0.9);
+            border-color: var(--accent-color, var(--color-temp)); 
+            box-shadow: 0 15px 35px rgba(0,0,0,0.4); 
+        }
+        
+        .card h3 { margin: 0 0 8px 0; font-size: 0.7em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800; }
+        .val-display { font-size: 1.25em; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 4px; }
+        .unit { font-size: 0.7em; font-weight: 400; color: var(--text-muted); }
+        
+        .card.temp { --accent-color: var(--color-temp); }
+        .card.min { --accent-color: var(--color-min); }
+        .card.max { --accent-color: var(--color-max); }
+        .card.pres { --accent-color: var(--color-pres); }
+        .card.hum { --accent-color: var(--color-temp); }
+        .card.rain { --accent-color: var(--color-dry); }
+        .card.forecast { --accent-color: var(--color-forecast); }
+        .card.dew-card { --accent-color: var(--color-dew); }
+        .card.bright { --accent-color: var(--color-bright); }
+        
+        .card-icon { width: 20px; height: 20px; margin-bottom: 8px; stroke: currentColor; opacity: 0.8; }
+        
+        #frost-alarm { position: absolute; left: 10px; top: 10px; display: none; color: var(--color-frost); animation: frost-pulse 1.5s infinite ease-in-out; }
+        @keyframes frost-pulse { 0% { opacity: 0.3; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0.3; transform: scale(0.9); } }
+        
+        .accent-text { color: var(--accent-color) !important; }
+        .pres-rate { font-size: 0.5em; display: block; margin-top: 5px; font-weight: 400; color: var(--text-muted) !important; }
+        .rain-line { font-size: 0.85em; display: flex; align-items: baseline; gap: 5px; color: var(--text-main); font-weight: 600; margin-top: 2px; }
+        .rain-label { font-size: 0.65em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800; }
+        
+        .chart-box { 
+            background: rgba(15, 23, 42, 0.4); border-radius: 24px; padding: 15px 10px 45px 10px; 
+            margin-bottom: 15px; border: 1px solid var(--border-color); height: 320px; 
+            box-sizing: border-box; position: relative; 
+        }
+        
+        .section-header { margin: 30px 0 15px 0; padding: 0 5px; display: flex; justify-content: space-between; align-items: center; }
+        .section-header h2 { font-size: 0.9em; text-transform: uppercase; color: var(--text-muted); margin: 0; letter-spacing: 2px; font-weight: 800; }
+        
+        .legend-box { display: flex; justify-content: center; gap: 15px; margin-top: 10px; font-size: 0.7em; color: var(--text-muted); flex-wrap: wrap; }
+        .legend-item { display: flex; align-items: center; gap: 5px; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+
+        .rain-stats-row { 
+            display: flex; justify-content: space-around; 
+            background: rgba(77, 208, 225, 0.05); 
+            border: 1px solid rgba(77, 208, 225, 0.1);
+            border-radius: 15px; padding: 10px; margin-top: -10px; margin-bottom: 20px;
+        }
+        .rain-stat-item { flex: 1; }
+        .rain-stat-label { font-size: 0.6em; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 3px; }
+        .rain-stat-val { font-size: 0.9em; font-weight: 700; color: var(--color-dry); transition: color 0.3s; }
+
+        .rate-badge {
+            background: rgba(30, 41, 59, 0.8);
+            border: 1px solid var(--color-dry);
+            border-radius: 12px;
+            padding: 8px 15px;
+            display: inline-block;
+            margin: -10px 0 20px 0;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+        }
+        .rate-badge-label { font-size: 0.7em; text-transform: uppercase; color: var(--text-muted); font-weight: 800; display: block; margin-bottom: 2px; }
+        .rate-badge-val { font-size: 1em; color: var(--color-dry); font-weight: 800; }
+
+        @media (min-width: 600px) { 
+            body { padding: 20px; } 
+            .container { padding: 35px; } 
+            .main-title { font-size: 1.8em; } 
+            .stats { gap: 18px; } 
+            .val-display { font-size: 1.9em; } 
+            .card-icon { width: 28px; height: 28px; position: absolute; right: 18px; top: 18px; } 
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header-box">
+        <div class="main-title">Wetterstation Kirchheide</div>
+        <div class="altitude">160m ü. NHN.</div>
+        <div class="info-wrapper">
+            <div class="info-icon">i</div>
+            <div class="info-tooltip">
+                <b>INFO & DATEN-ERKLÄRUNG</b>
+                <strong>Taupunkt:</strong> Temperatur, bei der Luftfeuchtigkeit kondensiert.<br>
+                <strong>Luftdruck:</strong> Normalwert ca. 1013 hPa.<br>
+                <strong>Niederschlag:</strong> In Deutschland ca. 800 l/m² pro Jahr.<br>
+                <strong>Prognose:</strong> Trendberechnung aus Luftdruckänderung (letzte Stunde).
+            </div>
+        </div>
+    </div>
+    <div id="last-update-ts" class="last-update">Zuletzt aktualisiert: --:-- Uhr</div>
+    
+    <div class="stats">
+        <div id="card-temp" class="card temp">
+            <div id="frost-alarm"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"></line><line x1="20" y1="12" x2="4" y2="12"></line><line x1="17.66" y1="6.34" x2="6.34" y2="17.66"></line><line x1="17.66" y1="17.66" x2="6.34" y2="6.34"></line></svg></div>
+            <svg id="icon-temp" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
+            <h3>Temperatur</h3>
+            <div id="temp-display" class="val-display accent-text"><span id="curr-temp">--</span><span class="unit">°C</span></div>
+        </div>
+        <div class="card min">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9V3m0 0L9 6m3-3 3 3m-3 15v-6m0 0-3 3m3-3 3 3"></path><path d="M14 14.54V4a2 2 0 0 0-4 0v10.54a4 4 0 1 0 4 0Z"></path></svg>
+            <h3>Min-Temp</h3>
+            <div class="val-display accent-text" style="color: var(--color-min) !important;"><span id="min-temp-val">--</span><span class="unit">°C</span></div>
+        </div>
+        <div class="card max">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3v6m0 0L9 6m3 3 3-3m-3 9v6m0 0-3-3m3 3 3-3"></path><path d="M14 14.54V4a2 2 0 0 0-4 0v10.54a4 4 0 1 0 4 0Z"></path></svg>
+            <h3>Max-Temp</h3>
+            <div class="val-display accent-text" style="color: var(--color-max) !important;"><span id="max-temp-val">--</span><span class="unit">°C</span></div>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div id="card-hum" class="card hum">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5L12 2 8.1 9.5C6.1 11.1 5 13 5 15a7 7 0 0 0 7 7Z"></path></svg>
+            <h3>Feuchte</h3>
+            <div id="hum-display" class="val-display accent-text"><span id="curr-hum">--</span><span class="unit">%</span></div>
+        </div>
+        <div class="card pres">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M12 7v5l3 3"></path></svg>
+            <h3>Luftdruck</h3>
+            <div class="val-display accent-text" style="color: var(--color-pres) !important; flex-direction: column; align-items: flex-start; gap: 0;">
+                <div><span id="curr-pres">--</span><span class="unit"> hPa</span></div>
+                <span id="pres-rate-val" class="pres-rate">-- hPa/h</span>
+            </div>
+        </div>
+        <div id="rainCard" class="card rain">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 14.89c0-4 5-9 8-9s8 5 8 9a8 8 0 0 1-16 0ZM5 18l1.5-1.5M10 20l1.5-1.5M15 18l1.5-1.5"></path></svg>
+            <h3 style="text-transform: none;">REGEN: l/m²</h3>
+            <div class="val-display" style="flex-direction: column; align-items: center; gap: 2px;">
+                <div class="rain-line"><span class="rain-label">Tag:</span> <span id="day-rain">--</span></div>
+                <div class="rain-line"><span class="rain-label">Monat:</span> <span id="curr-rain">--</span></div>
+                <div class="rain-line"><span class="rain-label">Jahr:</span> <span id="year-rain">--</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="stats">
+        <div class="card dew-card">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 16.3c2.2 0 4-1.8 4-4 0-2.2-4-6-4-6s-4 3.8-4 6c0 2.2 1.8 4 4 4Z"></path><path d="M17 20.3c2.2 0 4-1.8 4-4 0-2.2-4-6-4-6s-4 3.8-4 6c0 2.2 1.8 4 4 4Z"></path></svg>
+            <h3>Taupunkt</h3>
+            <div class="val-display accent-text" style="color: var(--color-dew) !important;"><span id="curr-temp-dew">--</span><span class="unit">°C</span></div>
+        </div>
+        <div class="card forecast">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v2M12 20v2M4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path><path d="M15.91 9a5 5 0 0 1-3.83 8.92A5.92 5.92 0 0 0 18 12c0-1.26-.4-2.42-1.09-3.37Z"></path></svg>
+            <h3>Prognose</h3>
+            <div class="val-display"><span id="forecast-val" style="color: var(--text-muted); font-size: 0.9em;">...</span></div>
+        </div>
+        <div id="card-bright" class="card bright">
+            <svg id="sun-icon-svg" class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-bright)">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="7.5" x2="2.5" y2="6.5"></line>
+                <line x1="21.5" y1="17.5" x2="19.78" y2="16.5"></line>
+                <line x1="4.22" y1="16.5" x2="2.5" y2="17.5"></line>
+                <line x1="21.5" y1="6.5" x2="19.78" y2="7.5"></line>
+            </svg>
+            <h3 style="text-transform: none;">Sonne (h)</h3>
+            <div id="sun-val-display" class="val-display" style="flex-direction: column; align-items: center; gap: 2px; color: var(--color-bright)">
+                <div class="rain-line"><span class="rain-label">Tag:</span> <span id="sun-day">--</span></div>
+                <div class="rain-line"><span class="rain-label">Mon:</span> <span id="sun-month">--</span></div>
+                <div class="rain-line"><span class="rain-label">Jahr:</span> <span id="sun-year">--</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls-row"><label>Zeitraum (Temp)</label><select id="period" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option></select></div>
+    <div class="chart-box"><canvas id="mainChart"></canvas></div>
+
+    <div class="section-header"><h2 style="color: var(--color-bright);">Helligkeit</h2><select id="sunPeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option></select></div>
+    <div class="chart-box">
+        <canvas id="brightChart"></canvas>
+        <div class="legend-box">
+            <div class="legend-item"><div class="legend-dot" style="background: #FFFFFF; border: 1px solid #444;"></div> >10000 Sehr klar</div>
+            <div class="legend-item"><div class="legend-dot" style="background: #f9ce1d;"></div> >7000 klar</div>
+            <div class="legend-item"><div class="legend-dot" style="background: #f39c12;"></div> >5500 sonnig</div>
+            <div class="legend-item"><div class="legend-dot" style="background: #4b5563;"></div> &lt;5500 wolkig</div>
+        </div>
+    </div>
+
+    <div class="section-header"><h2 style="color: var(--color-dry);">Niederschlag</h2><select id="rainPeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option></select></div>
+    <div class="chart-box"><canvas id="rainChart"></canvas></div>
+    
+    <div class="rate-badge">
+        <span class="rate-badge-label">Aktuelle Regenrate</span>
+        <span id="ctrl-rain-rate" class="rate-badge-val">0.0</span> <span class="unit">l/m²/h</span>
+    </div>
+
+    <div class="rain-stats-row">
+        <div class="rain-stat-item">
+            <span class="rain-stat-label">Max. Rate</span>
+            <span id="rain-peak-val" class="rain-stat-val">--</span><span class="unit" style="font-size: 0.6em;"> l/h</span>
+        </div>
+        <div class="rain-stat-item" style="flex: 2;">
+            <span class="rain-stat-label">Info</span>
+            <span id="rain-last-val" class="rain-stat-val">--</span>
+        </div>
+    </div>
+</div>
+
+<script>
+const SUN_THRESHOLD = 5500; 
+const URL_BASE = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app";
+const URL_T = `${URL_BASE}/temperature.json`;
+const URL_H = `${URL_BASE}/humidity.json`;
+const URL_P = `${URL_BASE}/pressure.json`;
+const URL_B = `${URL_BASE}/brightness.json`; 
+
+const monthNames = ["Januar", "Februar", "M\u00e4rz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
+
+const PRES_OFFSET = 14.5;
+let charts = {};
+const CHART_TEXT_COLOR = '#94a3b8';
+const CHART_GRID_COLOR = 'rgba(255,255,255,0.05)';
+
+function getRainIntensityColor(rate) {
+    if (rate <= 0) return '#4dd0e1'; 
+    if (rate < 2.5) return '#4dd0e1'; 
+    if (rate < 10) return '#fbc02d';  
+    if (rate < 50) return '#f57c00';  
+    return '#d32f2f';                  
+}
+
+function createVerticalGradient(ctx, chartArea, color) {
+    if (!chartArea) return null;
+    const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+    gradient.addColorStop(0, color + '00');
+    gradient.addColorStop(1, color + '22');
+    return gradient;
+}
+
+function getUniversalDate(id) {
+    if (id.includes('_') && id.includes('-')) {
+        const parts = id.split('_'); 
+        const dateParts = parts[0].split('-'); 
+        const timeParts = parts[1].split(':'); 
+        return new Date(dateParts[0], dateParts[1] - 1, dateParts[2], timeParts[0], timeParts[1], timeParts[2]);
+    }
+    if (/^\d{8}_\d{4}$/.test(id)) {
+        const y = id.substring(0, 4), m = parseInt(id.substring(4, 6)) - 1, d = id.substring(6, 8), hh = id.substring(9, 11), mm = id.substring(11, 13);
+        return new Date(y, m, d, hh, mm);
+    }
+    const PUSH_CHARS = "-0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ_abcdefghijklmnopqrstuvwxyz";
+    let time = 0; const data = id.substring(0, 8);
+    for (let i = 0; i < data.length; i++) time = time * 64 + PUSH_CHARS.indexOf(data.charAt(i));
+    return new Date(time);
+}
+
+function getSmartLabel(date, hrs) {
+    if (!(date instanceof Date) || isNaN(date)) return "--";
+    if (hrs >= 30) {
+        return `${date.getDate().toString().padStart(2, '0')}.${(date.getMonth() + 1).toString().padStart(2, '0')}.`;
+    }
+    return `${date.getHours().toString().padStart(2, '0')}:00 Uhr`;
+}
+
+function getTempColor(t) { 
+    if (t < -10) return '#ba68c8'; 
+    if (t < 0)   return '#64b5f6'; 
+    if (t < 10)  return '#26a69a'; 
+    if (t < 20)  return '#fff176'; 
+    if (t < 30)  return '#ffb74d'; 
+    return '#ef5350';                                  
+}
+
+function calculateDewPoint(temp, hum) { 
+    if (temp === undefined || hum === undefined || hum <= 0) return 0; 
+    const a = 17.27, b = 237.7, alpha = ((a * temp) / (b + temp)) + Math.log(hum / 100.0); 
+    return (b * alpha) / (a - alpha); 
+}
+
+function getCutoffDate(val, now) {
+    if (val === 30) {
+        return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+    }
+    return new Date(now.getTime() - (val * 3600000));
+}
+
+async function fetchData() {
+    const hours = parseInt(document.getElementById('period').value);
+    const sunHoursPeriod = parseInt(document.getElementById('sunPeriod').value);
+    const rainHoursPeriod = parseInt(document.getElementById('rainPeriod').value);
+    const now = new Date();
+    
+    const cutoffT = getCutoffDate(hours, now);
+    const cutoffS = getCutoffDate(sunHoursPeriod, now);
+    const cutoffR = getCutoffDate(rainHoursPeriod, now);
+    
+    const currentMonthName = monthNames[now.getMonth()];
+    const currentYear = now.getFullYear();
+    const urlRainCurrent = `${URL_BASE}/Regenmesser/${currentYear}/${currentMonthName}.json`;
+    
+    try {
+        const responses = await Promise.all([
+            fetch(`${URL_T}?orderBy="$key"&limitToLast=12000`),
+            fetch(`${URL_H}?orderBy="$key"&limitToLast=12000`),
+            fetch(`${URL_P}?orderBy="$key"&limitToLast=12000`),
+            fetch(`${URL_B}?orderBy="$key"&limitToLast=12000`),
+            fetch(`${urlRainCurrent}?orderBy="$key"&limitToLast=12000`)
+        ]);
+        const dataT = await responses[0].json();
+        const dataH = await responses[1].json();
+        const dataP = await responses[2].json();
+        const dataB = await responses[3].json();
+        const dataR = await responses[4].json();
+
+        const sortEntries = (arr) => arr.sort((a, b) => a.date - b.date);
+
+        const entriesT = sortEntries(Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
+        const entriesH = sortEntries(Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
+        const entriesP = sortEntries(Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
+        
+        const entriesB_all = sortEntries(Object.keys(dataB || {}).map(k => {
+            const d = getUniversalDate(k);
+            return { date: d, value: Number(dataB[k].brightness ?? dataB[k] ?? 0) };
+        })).filter(e => !isNaN(e.date.getTime()));
+
+        let entriesR_raw = [];
+        if (dataR) {
+            entriesR_raw = sortEntries(Object.keys(dataR).map(k => {
+                const p = dataR[k].zeitstempel.split(/[. :]/);
+                return { date: new Date(p[2], p[1]-1, p[0], p[3], p[4], p[5]), tag: parseFloat(dataR[k].wippe_tag), monat: parseFloat(dataR[k].wippe_monat), jahr: parseFloat(dataR[k].wippe_jahr) };
+            }));
+        }
+
+        updateUI(entriesT, entriesH, entriesP, entriesB_all.filter(e => e.date >= cutoffS && e.date <= now), entriesB_all, entriesR_raw, cutoffR, hours, sunHoursPeriod, rainHoursPeriod);
+    } catch (e) { console.error("Fehler:", e); }
+}
+
+function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR, cutoffR, hours, sunHoursPeriod, rainHoursPeriod) {
+    const now = new Date();
+    const currentMonthName = monthNames[now.getMonth()];
+
+    if (entriesT.length > 0) {
+        let lastT = entriesT[entriesT.length-1].value;
+        document.getElementById('curr-temp').innerText = lastT.toFixed(1);
+        document.getElementById('min-temp-val').innerText = Math.min(...entriesT.map(e => e.value)).toFixed(1);
+        document.getElementById('max-temp-val').innerText = Math.max(...entriesT.map(e => e.value)).toFixed(1);
+        document.getElementById('frost-alarm').style.display = lastT <= 3 ? 'block' : 'none';
+        const lastDate = entriesT[entriesT.length-1].date;
+        document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${lastDate.getHours().toString().padStart(2, '0')}:${lastDate.getMinutes().toString().padStart(2, '0')} Uhr`;
+        renderMainChart(entriesT, hours);
+    }
+    if (entriesH.length > 0 && entriesT.length > 0) {
+        let lastH = entriesH[entriesH.length-1].value;
+        let lastT = entriesT[entriesT.length-1].value;
+        document.getElementById('curr-hum').innerText = lastH.toFixed(0);
+        let dewPoint = calculateDewPoint(lastT, lastH);
+        document.getElementById('curr-temp-dew').innerText = dewPoint.toFixed(1);
+    }
+    if (entriesP.length > 0) {
+        let lastP = entriesP[entriesP.length-1].value + PRES_OFFSET;
+        document.getElementById('curr-pres').innerText = lastP.toFixed(1);
+        if (entriesP.length > 5) {
+            let diff = entriesP[entriesP.length-1].value - entriesP[0].value;
+            document.getElementById('pres-rate-val').innerText = (diff > 0 ? "+" : "") + diff.toFixed(1) + " hPa/h";
+            let prog = "Beständig";
+            if(diff > 0.5) prog = "Heiter";
+            if(diff < -0.5) prog = "Wind/Regen";
+            document.getElementById('forecast-val').innerText = prog;
+        }
+    }
+
+    // Regen-Logik mit mathematischer Nullung für den neuen Monat
+    if (entriesR.length > 0) {
+        // Erste übertragene Werte des Monats als Nullpunkt-Referenz nehmen
+        const baseMonat = entriesR[0].monat;
+        const baseTag = entriesR[0].tag;
+        
+        const lastR = entriesR[entriesR.length-1];
+        
+        // Wert abzüglich des Monatsanfangs-Überhangs berechnen
+        const korrigiertMonat = Math.max(0, lastR.monat - baseMonat);
+        const korrigiertTag = Math.max(0, lastR.tag - baseTag);
+
+        document.getElementById('day-rain').innerText = korrigiertTag.toFixed(1);
+        document.getElementById('curr-rain').innerText = korrigiertMonat.toFixed(1);
+        document.getElementById('year-rain').innerText = lastR.jahr.toFixed(1); // Das Jahr läuft normal weiter
+        
+        // Werte für den Chart-Zeitraum ebenfalls anpassen
+        const korrigierteEntries = entriesR.map(e => ({
+            date: e.date,
+            value: Math.max(0, e.monat - baseMonat)
+        }));
+
+        const rainFilter = korrigierteEntries.filter(e => e.date >= cutoffR && e.date <= now);
+        let maxRate = 0; let lastRainTime = null; let currentRainRate = 0;
+        
+        for(let i=1; i<rainFilter.length; i++) {
+            const diffVal = rainFilter[i].value - rainFilter[i-1].value;
+            const diffTime = (rainFilter[i].date - rainFilter[i-1].date) / 3600000;
+            if(diffTime > 0 && diffVal >= 0) {
+                const rate = diffVal / diffTime;
+                if(rate > maxRate) maxRate = rate;
+                if(diffVal > 0) lastRainTime = rainFilter[i].date;
+                if(i === rainFilter.length - 1) currentRainRate = rate;
+            }
+        }
+        document.getElementById('ctrl-rain-rate').innerText = currentRainRate.toFixed(1);
+        const peakEl = document.getElementById('rain-peak-val');
+        peakEl.innerText = maxRate.toFixed(1);
+        peakEl.style.color = getRainIntensityColor(maxRate);
+        if (lastRainTime) {
+            const diffHours = (new Date() - lastRainTime) / 3600000;
+            document.getElementById('rain-last-val').innerText = "Zuletzt geregnet vor " + diffHours.toFixed(1) + " Stunden";
+        } else {
+            document.getElementById('rain-last-val').innerText = "Kein Regen im Zeitraum";
+        }
+        renderRainChart(rainFilter, rainHoursPeriod);
+    } else {
+        document.getElementById('day-rain').innerText = "0.0";
+        document.getElementById('curr-rain').innerText = "0.0";
+        document.getElementById('year-rain').innerText = "0.0";
+        document.getElementById('ctrl-rain-rate').innerText = "0.0";
+        document.getElementById('rain-peak-val').innerText = "0.0";
+        document.getElementById('rain-last-val').innerText = `Noch kein Regen im ${currentMonthName}`;
+        renderRainChart([], rainHoursPeriod);
+    }
+
+    // Sonnen-Logik
+    if (entriesB.length > 0) {
+        const lastB = entriesB[entriesB.length-1].value;
+        let r, g, b;
+        if (lastB < 5500) { r = 148; g = 163; b = 184; } 
+        else if (lastB < 7000) { r = 243; g = 156; b = 18; } 
+        else if (lastB < 10000) { r = 249; g = 206; b = 29; }
+        else { r = 255; g = 255; b = 255; }
+        document.getElementById('sun-icon-svg').style.color = `rgb(${r},${g},${b})`;
+        document.getElementById('sun-val-display').style.color = `rgb(${r},${g},${b})`;
+        
+        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const startOfYear = new Date(now.getFullYear(), 0, 1);
+        
+        const calcSunHours = (list) => {
+            let count = 0;
+            for (let i = 1; i < list.length; i++) {
+                if (list[i].value >= SUN_THRESHOLD) {
+                    const diffMin = (list[i].date - list[i-1].date) / 60000;
+                    if (diffMin > 0 && diffMin < 15) count += diffMin;
+                }
+            }
+            return (count / 60).toFixed(1);
+        };
+        document.getElementById('sun-day').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfDay && e.date <= now));
+        document.getElementById('sun-month').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfMonth && e.date <= now));
+        document.getElementById('sun-year').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfYear && e.date <= now));
+        renderBrightChart(entriesB, sunHoursPeriod);
+    } else {
+        document.getElementById('sun-day').innerText = "0.0";
+        document.getElementById('sun-month').innerText = "0.0";
+        document.getElementById('sun-year').innerText = "0.0";
+        renderBrightChart([], sunHoursPeriod);
+    }
+}
+
+const crosshairPlugin = {
+    id: 'crosshair',
+    afterDatasetsDraw(chart) {
+        if (chart.canvas.id === 'rainChart') return;
+        if (chart.tooltip?._active?.length) {
+            const { ctx, chartArea: { top, bottom } } = chart;
+            const xPos = chart.tooltip._active[0].element.x;
+            ctx.save(); ctx.beginPath(); ctx.moveTo(xPos, top); ctx.lineTo(xPos, bottom);
+            ctx.lineWidth = 1; ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'; ctx.setLineDash([5, 5]); ctx.stroke(); ctx.restore();
+        }
+    }
+};
+
+const minMaxPlugin = {
+    id: 'minMaxPlugin',
+    afterDatasetsDraw(chart) {
+        if (chart.canvas.id !== 'mainChart') return;
+        const { ctx, chartArea: { left, right, width }, scales: { y }, data } = chart;
+        const dataset = data.datasets[0].data;
+        if (!dataset || !dataset.length) return;
+        const minVal = Math.min(...dataset), maxVal = Math.max(...dataset);
+        const draw = (val, color, isMax) => {
+            const py = y.getPixelForValue(val);
+            const centerX = left + width / 2;
+            ctx.save(); ctx.beginPath(); ctx.setLineDash([5, 5]); ctx.strokeStyle = color + '44'; ctx.moveTo(left, py); ctx.lineTo(right, py); ctx.stroke();
+            ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.fillText(val.toFixed(1) + '°', centerX, isMax ? py + 12 : py - 6); ctx.restore();
+        };
+        draw(maxVal, '#ef5350', true); draw(minVal, '#64b5f6', false);
+    }
+};
+
+function renderMainChart(ent, hrs) {
+    const ctx = document.getElementById('mainChart').getContext('2d');
+    if (charts['mainChart']) charts['mainChart'].destroy();
+    charts['mainChart'] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ent.map(e => getSmartLabel(e.date, hrs)),
+            datasets: [{
+                label: 'Temp', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4,
+                borderColor: '#26a69a', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#26a69a'),
+                segment: { borderColor: ctx => ctx.p0.parsed && ctx.p1.parsed ? getTempColor((ctx.p0.parsed.y + ctx.p1.parsed.y) / 2) : '#26a69a' }
+            }]
+        },
+        options: { 
+            responsive: true, maintainAspectRatio: false, animation: false, 
+            plugins: { legend: { display: false } }, 
+            scales: { 
+                y: { grid: { color: CHART_GRID_COLOR }, ticks: { color: CHART_TEXT_COLOR } }, 
+                x: { 
+                    grid: { display: false }, 
+                    ticks: { 
+                        color: CHART_TEXT_COLOR, 
+                        maxTicksLimit: hrs === 4 ? 5 : 8,
+                        callback: function(val, index) {
+                            const label = this.getLabelForValue(val);
+                            if (hrs === 4) {
+                                if (index > 0 && label === this.getLabelForValue(val - 1)) return '';
+                            }
+                            return label;
+                        }
+                    } 
+                } 
+            } 
+        },
+        plugins: [minMaxPlugin, crosshairPlugin]
+    });
+}
+
+function renderBrightChart(ent, hrs) {
+    const ctx = document.getElementById('brightChart').getContext('2d');
+    if (charts['brightChart']) charts['brightChart'].destroy();
+    charts['brightChart'] = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: ent.map(e => getSmartLabel(e.date, hrs)),
+            datasets: [{
+                label: 'Lux', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4,
+                borderColor: '#ffd54f', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#ffd54f'),
+                segment: { borderColor: ctx => { const val = (ctx.p0.parsed.y + ctx.p1.parsed.y) / 2; if (val >= 10000) return '#ffffff'; if (val >= 7000) return '#f9ce1d'; if (val >= 5500) return '#f39c12'; return '#4b5563'; } }
+            }]
+        },
+        options: { 
+            responsive: true, maintainAspectRatio: false, animation: false, 
+            plugins: { legend: { display: false } }, 
+            scales: { 
+                y: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: CHART_GRID_COLOR } }, 
+                x: { 
+                    ticks: { 
+                        color: CHART_TEXT_COLOR, 
+                        maxTicksLimit: hrs === 4 ? 5 : 8,
+                        callback: function(val, index) {
+                            const label = this.getLabelForValue(val);
+                            if (hrs === 4) {
+                                if (index > 0 && label === this.getLabelForValue(val - 1)) return '';
+                            }
+                            return label;
+                        }
+                    } 
+                } 
+            } 
+        },
+        plugins: [crosshairPlugin]
+    });
+}
+
+function renderRainChart(ent, hrs) {
+    const ctx = document.getElementById('rainChart').getContext('2d');
+    if (charts['rainChart']) charts['rainChart'].destroy();
+    const rainData = ent.map((e, i) => {
+        let rate = 0;
+        if (i > 0) {
+            const diffVal = e.value - ent[i-1].value;
+            const diffTime = (e.date - ent[i-1].date) / 3600000; 
+            if (diffTime > 0 && diffVal >= 0) rate = diffVal / diffTime;
+        }
+        return { x: getSmartLabel(e.date, hrs), y: e.value, rate: rate };
+    });
+    charts['rainChart'] = new Chart(ctx, {
+        type: 'line',
+        data: { 
+            labels: rainData.map(d => d.x), 
+            datasets: [{ 
+                label: 'Niederschlag', 
+                data: rainData.map(d => d.y), 
+                fill: true, 
+                pointRadius: 0, 
+                stepped: true,
+                borderColor: '#4dd0e1', 
+                backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#4dd0e1'),
+                segment: {
+                    borderColor: ctx => {
+                        const index = ctx.p1DataIndex;
+                        const rate = rainData[index] ? rainData[index].rate : 0;
+                        return getRainIntensityColor(rate);
+                    }
+                }
+            }] 
+        },
+        options: { 
+            responsive: true, 
+            maintainAspectRatio: false, 
+            animation: false, 
+            interaction: { mode: 'index', intersect: false }, 
+            plugins: { 
+                legend: { display: false }, 
+                tooltip: { callbacks: { label: function(context) { const index = context.dataIndex; return [`Menge: ${context.parsed.y.toFixed(1)} l/m²`, `Rate: ${rainData[index].rate.toFixed(1)} l/m²/h`]; } } } 
+            }, 
+            scales: { 
+                y: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: CHART_GRID_COLOR } }, 
+                x: { 
+                    grid: { display: false },
+                    ticks: { 
+                        color: CHART_TEXT_COLOR, 
+                        maxTicksLimit: hrs === 4 ? 5 : 8,
+                        callback: function(val, index) {
+                            const label = this.getLabelForValue(val);
+                            if (hrs === 4) {
+                                if (index > 0 && label === this.getLabelForValue(val - 1)) return '';
+                            }
+                            return label;
+                        }
+                    } 
+                } 
+            } 
+        },
+        plugins: [crosshairPlugin]
+    });
+}
+
+fetchData(); setInterval(fetchData, 60000);
+</script>
+</body>
+</html>
