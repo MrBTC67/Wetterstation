@@ -89,6 +89,32 @@
         .info-tooltip b { color: var(--color-temp); display: block; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 3px; }
         
         .last-update { font-size: 0.75em; color: var(--color-update); margin-bottom: 20px; font-weight: 600; opacity: 0.9; }
+        .data-status {
+            display: inline-block;
+            font-size: 0.72em;
+            margin-bottom: 18px;
+            padding: 4px 10px;
+            border-radius: 999px;
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            background: rgba(255,255,255,0.03);
+            min-height: 14px;
+        }
+        .data-status.loading {
+            color: var(--color-forecast);
+            border-color: rgba(255, 204, 128, 0.45);
+            background: rgba(255, 204, 128, 0.1);
+        }
+        .data-status.ok {
+            color: var(--color-update);
+            border-color: rgba(129, 199, 132, 0.45);
+            background: rgba(129, 199, 132, 0.1);
+        }
+        .data-status.error {
+            color: var(--color-max);
+            border-color: rgba(239, 83, 80, 0.45);
+            background: rgba(239, 83, 80, 0.1);
+        }
         
         .controls-row { 
             margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; gap: 10px; 
@@ -147,6 +173,11 @@
         
         .accent-text { color: var(--accent-color) !important; }
         .pres-rate { font-size: 0.5em; display: block; margin-top: 5px; font-weight: 400; color: var(--text-muted) !important; }
+        .pres-main-line { display: flex; align-items: center; gap: 6px; }
+        .pres-trend-arrow { font-size: 0.75em; font-weight: 800; color: var(--text-muted); line-height: 1; }
+        .pres-trend-arrow.up { color: var(--color-max); }
+        .pres-trend-arrow.down { color: var(--color-min); }
+        .pres-trend-arrow.flat { color: var(--text-muted); }
         .rain-line { font-size: 0.85em; display: flex; align-items: baseline; gap: 5px; color: var(--text-main); font-weight: 600; margin-top: 2px; }
         .rain-label { font-size: 0.65em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800; }
         
@@ -248,12 +279,12 @@
             <div id="temp-display" class="val-display accent-text"><span id="curr-temp">--</span><span class="unit">°C</span></div>
         </div>
         <div class="card min">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 9V3m0 0L9 6m3-3 3 3m-3 15v-6m0 0-3 3m3-3 3 3"></path><path d="M14 14.54V4a2 2 0 0 0-4 0v10.54a4 4 0 1 0 4 0Z"></path></svg>
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--color-min)"><path d="M12 9V3m0 0L9 6m3-3 3 3m-3 15v-6m0 0-3 3m3-3 3 3"></path><path d="M14 14.54V4a2 2 0 0 0-4 0v10.54a4 4 0 1 0 4 0Z"></path></svg>
             <h3>Min-Temp</h3>
             <div class="val-display accent-text" style="color: var(--color-min) !important;"><span id="min-temp-val">--</span><span class="unit">°C</span></div>
         </div>
         <div class="card max">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 3v6m0 0L9 6m3 3 3-3m-3 9v6m0 0-3-3m3 3 3-3"></path><path d="M14 14.54V4a2 2 0 0 0-4 0v10.54a4 4 0 1 0 4 0Z"></path></svg>
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--color-max)"><path d="M12 3v6m0 0L9 6m3 3 3-3m-3 9v6m0 0-3-3m3 3 3-3"></path><path d="M14 14.54V4a2 2 0 0 0-4 0v10.54a4 4 0 1 0 4 0Z"></path></svg>
             <h3>Max-Temp</h3>
             <div class="val-display accent-text" style="color: var(--color-max) !important;"><span id="max-temp-val">--</span><span class="unit">°C</span></div>
         </div>
@@ -269,7 +300,7 @@
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M12 7v5l3 3"></path></svg>
             <h3>Luftdruck</h3>
             <div class="val-display accent-text" style="color: var(--color-pres) !important; flex-direction: column; align-items: flex-start; gap: 0;">
-                <div><span id="curr-pres">--</span><span class="unit"> hPa</span></div>
+                <div class="pres-main-line"><span id="curr-pres">--</span><span class="unit"> hPa</span><span id="pres-trend-arrow" class="pres-trend-arrow flat">→</span></div>
                 <span id="pres-rate-val" class="pres-rate">-- hPa/h</span>
             </div>
         </div>
@@ -433,6 +464,38 @@ function getCutoffDate(val, now) {
     return new Date(now.getTime() - (val * 3600000));
 }
 
+function getPeriodConfig(periodValue, now) {
+    if (periodValue === 'prevMonth') {
+        return {
+            start: new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0),
+            end: new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999),
+            chartHours: 30,
+            isPrevMonth: true
+        };
+    }
+
+    const hours = parseInt(periodValue, 10);
+    return {
+        start: getCutoffDate(hours, now),
+        end: now,
+        chartHours: hours,
+        isPrevMonth: false
+    };
+}
+
+function setDataStatus(kind, text) {
+    const el = document.getElementById('data-status');
+    if (!el) return;
+    el.className = `data-status ${kind}`;
+    el.textContent = text;
+}
+
+function setControlsDisabled(disabled) {
+    document.querySelectorAll('select').forEach(sel => {
+        sel.disabled = disabled;
+    });
+}
+
 function getRainMonthMeta(now, offset) {
     const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
     return {
@@ -506,44 +569,19 @@ function updatePreviousMonthsUI(prevMonthStats) {
 
 async function fetchData() {
     const tempPeriodValue = document.getElementById('period').value;
-    const hours = parseInt(tempPeriodValue, 10);
     const sunPeriodValue = document.getElementById('sunPeriod').value;
-    const sunHoursPeriod = parseInt(sunPeriodValue, 10);
     const rainPeriodValue = document.getElementById('rainPeriod').value;
-    const rainHoursPeriod = parseInt(rainPeriodValue, 10);
     const pressurePeriodValue = document.getElementById('pressurePeriod').value;
-    const pressureHoursPeriod = parseInt(pressurePeriodValue, 10);
-    const brightnessFetchLimit = sunPeriodValue === 'prevMonth' ? 70000 : 12000;
+
     const now = new Date();
-    
-    const tempRangeStart = tempPeriodValue === 'prevMonth'
-        ? new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0)
-        : getCutoffDate(hours, now);
-    const tempRangeEnd = tempPeriodValue === 'prevMonth'
-        ? new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
-        : now;
-    const tempChartHours = tempPeriodValue === 'prevMonth' ? 30 : hours;
-    const sunRangeStart = sunPeriodValue === 'prevMonth'
-        ? new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0)
-        : getCutoffDate(sunHoursPeriod, now);
-    const sunRangeEnd = sunPeriodValue === 'prevMonth'
-        ? new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
-        : now;
-    const sunChartHours = sunPeriodValue === 'prevMonth' ? 30 : sunHoursPeriod;
-    const rainRangeStart = rainPeriodValue === 'prevMonth'
-        ? new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0)
-        : getCutoffDate(rainHoursPeriod, now);
-    const rainRangeEnd = rainPeriodValue === 'prevMonth'
-        ? new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
-        : now;
-    const rainChartHours = rainPeriodValue === 'prevMonth' ? 30 : rainHoursPeriod;
-    const pressureRangeStart = pressurePeriodValue === 'prevMonth'
-        ? new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0)
-        : getCutoffDate(pressureHoursPeriod, now);
-    const pressureRangeEnd = pressurePeriodValue === 'prevMonth'
-        ? new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
-        : now;
-    const pressureChartHours = pressurePeriodValue === 'prevMonth' ? 30 : pressureHoursPeriod;
+    const tempPeriod = getPeriodConfig(tempPeriodValue, now);
+    const sunPeriod = getPeriodConfig(sunPeriodValue, now);
+    const rainPeriod = getPeriodConfig(rainPeriodValue, now);
+    const pressurePeriod = getPeriodConfig(pressurePeriodValue, now);
+    const brightnessFetchLimit = sunPeriod.isPrevMonth ? 70000 : 12000;
+
+    setDataStatus('loading', 'Lade Messdaten...');
+    setControlsDisabled(true);
     
     const rainMonthInfos = [];
     for (let i = 0; i <= PREVIOUS_MONTHS_TO_SHOW; i++) {
@@ -577,11 +615,11 @@ async function fetchData() {
 
         const sortEntries = (arr) => arr.sort((a, b) => a.date - b.date);
 
-        const entriesT = sortEntries(Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= tempRangeStart && e.date <= tempRangeEnd));
-        const entriesH = sortEntries(Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= tempRangeStart && e.date <= tempRangeEnd));
+        const entriesT = sortEntries(Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= tempPeriod.start && e.date <= tempPeriod.end));
+        const entriesH = sortEntries(Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= tempPeriod.start && e.date <= tempPeriod.end));
         const entriesP_all = sortEntries(Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => !isNaN(e.date.getTime())));
-        const entriesP = entriesP_all.filter(e => e.date >= tempRangeStart && e.date <= tempRangeEnd);
-        const entriesPChart = entriesP_all.filter(e => e.date >= pressureRangeStart && e.date <= pressureRangeEnd).map(e => ({ date: e.date, value: e.value + PRES_OFFSET }));
+        const entriesP = entriesP_all.filter(e => e.date >= tempPeriod.start && e.date <= tempPeriod.end);
+        const entriesPChart = entriesP_all.filter(e => e.date >= pressurePeriod.start && e.date <= pressurePeriod.end).map(e => ({ date: e.date, value: e.value + PRES_OFFSET }));
         
         const entriesB_all = sortEntries(Object.keys(dataB || {}).map(k => {
             const d = getUniversalDate(k);
@@ -590,7 +628,7 @@ async function fetchData() {
 
         const entriesR_current = parseRainEntries(rainMonthData[0]);
         const entriesR_prev = parseRainEntries(rainMonthData[1]);
-        const entriesR_selected = rainPeriodValue === 'prevMonth' ? entriesR_prev : entriesR_current;
+        const entriesR_selected = rainPeriod.isPrevMonth ? entriesR_prev : entriesR_current;
         const prevMonthStats = rainMonthData
             .slice(1)
             .map((monthData, idx) => {
@@ -608,8 +646,15 @@ async function fetchData() {
             return sum + (amount === null ? 0 : amount);
         }, 0);
 
-        updateUI(entriesT, entriesH, entriesP, entriesPChart, entriesB_all.filter(e => e.date >= sunRangeStart && e.date <= sunRangeEnd), entriesB_all, entriesR_current, entriesR_selected, rainRangeStart, rainRangeEnd, tempChartHours, sunChartHours, rainChartHours, pressureChartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths);
-    } catch (e) { console.error("Fehler:", e); }
+        updateUI(entriesT, entriesH, entriesP, entriesPChart, entriesB_all.filter(e => e.date >= sunPeriod.start && e.date <= sunPeriod.end), entriesB_all, entriesR_current, entriesR_selected, rainPeriod.start, rainPeriod.end, tempPeriod.chartHours, sunPeriod.chartHours, rainPeriod.chartHours, pressurePeriod.chartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths);
+        const nowText = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+        setDataStatus('ok', `Daten geladen: ${nowText}`);
+    } catch (e) {
+        console.error("Fehler:", e);
+        setDataStatus('error', 'Daten konnten nicht geladen werden');
+    } finally {
+        setControlsDisabled(false);
+    }
 }
 
     function updateUI(entriesT, entriesH, entriesP, entriesPChart, entriesB, entriesB_all, entriesRCurrent, entriesRSelected, rainRangeStart, rainRangeEnd, hours, sunHoursPeriod, rainChartHours, pressureChartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths) {
@@ -619,6 +664,9 @@ async function fetchData() {
     if (entriesT.length > 0) {
         let lastT = entriesT[entriesT.length-1].value;
         document.getElementById('curr-temp').innerText = lastT.toFixed(1);
+        const tempDisplayEl = document.getElementById('temp-display');
+        const iconTempEl = document.getElementById('icon-temp');
+        iconTempEl.style.color = getComputedStyle(tempDisplayEl).color;
         document.getElementById('min-temp-val').innerText = Math.min(...entriesT.map(e => e.value)).toFixed(1);
         document.getElementById('max-temp-val').innerText = Math.max(...entriesT.map(e => e.value)).toFixed(1);
         document.getElementById('frost-alarm').style.display = lastT <= 3 ? 'block' : 'none';
@@ -636,13 +684,27 @@ async function fetchData() {
     if (entriesP.length > 0) {
         let lastP = entriesP[entriesP.length-1].value + PRES_OFFSET;
         document.getElementById('curr-pres').innerText = lastP.toFixed(1);
+        const trendArrowEl = document.getElementById('pres-trend-arrow');
         if (entriesP.length > 5) {
             let diff = entriesP[entriesP.length-1].value - entriesP[0].value;
             document.getElementById('pres-rate-val').innerText = (diff > 0 ? "+" : "") + diff.toFixed(1) + " hPa/h";
+            if (diff > 0.3) {
+                trendArrowEl.innerText = '↗';
+                trendArrowEl.className = 'pres-trend-arrow up';
+            } else if (diff < -0.3) {
+                trendArrowEl.innerText = '↘';
+                trendArrowEl.className = 'pres-trend-arrow down';
+            } else {
+                trendArrowEl.innerText = '→';
+                trendArrowEl.className = 'pres-trend-arrow flat';
+            }
             let prog = "Beständig";
             if(diff > 0.5) prog = "Heiter";
             if(diff < -0.5) prog = "Wind/Regen";
             document.getElementById('forecast-val').innerText = prog;
+        } else {
+            trendArrowEl.innerText = '→';
+            trendArrowEl.className = 'pres-trend-arrow flat';
         }
     }
     renderPressureChart(entriesPChart, pressureChartHours);
