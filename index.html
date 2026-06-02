@@ -314,7 +314,7 @@
         </div>
     </div>
 
-    <div class="controls-row"><label>Zeitraum (Temp)</label><select id="period" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option></select></div>
+    <div class="controls-row"><label>Zeitraum (Temp)</label><select id="period" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
     <div class="chart-box"><canvas id="mainChart"></canvas></div>
 
     <div class="section-header"><h2 style="color: var(--color-bright);">Helligkeit</h2><select id="sunPeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option></select></div>
@@ -328,7 +328,7 @@
         </div>
     </div>
 
-    <div class="section-header"><h2 style="color: var(--color-dry);">Niederschlag</h2><select id="rainPeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option></select></div>
+    <div class="section-header"><h2 style="color: var(--color-dry);">Niederschlag</h2><select id="rainPeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
     <div class="chart-box"><canvas id="rainChart"></canvas></div>
     
     <div class="rate-row">
@@ -502,14 +502,28 @@ function updatePreviousMonthsUI(prevMonthStats) {
 }
 
 async function fetchData() {
-    const hours = parseInt(document.getElementById('period').value);
+    const tempPeriodValue = document.getElementById('period').value;
+    const hours = parseInt(tempPeriodValue, 10);
     const sunHoursPeriod = parseInt(document.getElementById('sunPeriod').value);
-    const rainHoursPeriod = parseInt(document.getElementById('rainPeriod').value);
+    const rainPeriodValue = document.getElementById('rainPeriod').value;
+    const rainHoursPeriod = parseInt(rainPeriodValue, 10);
     const now = new Date();
     
-    const cutoffT = getCutoffDate(hours, now);
+    const tempRangeStart = tempPeriodValue === 'prevMonth'
+        ? new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0)
+        : getCutoffDate(hours, now);
+    const tempRangeEnd = tempPeriodValue === 'prevMonth'
+        ? new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
+        : now;
+    const tempChartHours = tempPeriodValue === 'prevMonth' ? 30 : hours;
     const cutoffS = getCutoffDate(sunHoursPeriod, now);
-    const cutoffR = getCutoffDate(rainHoursPeriod, now);
+    const rainRangeStart = rainPeriodValue === 'prevMonth'
+        ? new Date(now.getFullYear(), now.getMonth() - 1, 1, 0, 0, 0, 0)
+        : getCutoffDate(rainHoursPeriod, now);
+    const rainRangeEnd = rainPeriodValue === 'prevMonth'
+        ? new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999)
+        : now;
+    const rainChartHours = rainPeriodValue === 'prevMonth' ? 30 : rainHoursPeriod;
     
     const rainMonthInfos = [];
     for (let i = 0; i <= PREVIOUS_MONTHS_TO_SHOW; i++) {
@@ -543,16 +557,18 @@ async function fetchData() {
 
         const sortEntries = (arr) => arr.sort((a, b) => a.date - b.date);
 
-        const entriesT = sortEntries(Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
-        const entriesH = sortEntries(Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
-        const entriesP = sortEntries(Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= cutoffT && e.date <= now));
+        const entriesT = sortEntries(Object.keys(dataT || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataT[k].value ?? 0) })).filter(e => e.date >= tempRangeStart && e.date <= tempRangeEnd));
+        const entriesH = sortEntries(Object.keys(dataH || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataH[k].value ?? 0) })).filter(e => e.date >= tempRangeStart && e.date <= tempRangeEnd));
+        const entriesP = sortEntries(Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => e.date >= tempRangeStart && e.date <= tempRangeEnd));
         
         const entriesB_all = sortEntries(Object.keys(dataB || {}).map(k => {
             const d = getUniversalDate(k);
             return { date: d, value: Number(dataB[k].brightness ?? dataB[k] ?? 0) };
         })).filter(e => !isNaN(e.date.getTime()));
 
-        const entriesR_raw = parseRainEntries(rainMonthData[0]);
+        const entriesR_current = parseRainEntries(rainMonthData[0]);
+        const entriesR_prev = parseRainEntries(rainMonthData[1]);
+        const entriesR_selected = rainPeriodValue === 'prevMonth' ? entriesR_prev : entriesR_current;
         const prevMonthStats = rainMonthData
             .slice(1)
             .map((monthData, idx) => {
@@ -570,11 +586,11 @@ async function fetchData() {
             return sum + (amount === null ? 0 : amount);
         }, 0);
 
-        updateUI(entriesT, entriesH, entriesP, entriesB_all.filter(e => e.date >= cutoffS && e.date <= now), entriesB_all, entriesR_raw, cutoffR, hours, sunHoursPeriod, rainHoursPeriod, prevMonthStats, yearRainFromMonths);
+        updateUI(entriesT, entriesH, entriesP, entriesB_all.filter(e => e.date >= cutoffS && e.date <= now), entriesB_all, entriesR_current, entriesR_selected, rainRangeStart, rainRangeEnd, tempChartHours, sunHoursPeriod, rainChartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths);
     } catch (e) { console.error("Fehler:", e); }
 }
 
-function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR, cutoffR, hours, sunHoursPeriod, rainHoursPeriod, prevMonthStats, yearRainFromMonths) {
+function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesRCurrent, entriesRSelected, rainRangeStart, rainRangeEnd, hours, sunHoursPeriod, rainChartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths) {
     const now = new Date();
     const currentMonthName = monthNames[now.getMonth()];
 
@@ -610,22 +626,27 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
 
     updatePreviousMonthsUI(prevMonthStats);
 
-    // Regen-Logik mit mathematischer Nullung für den neuen Monat
-    if (entriesR.length > 0) {
-        const monthSeries = buildMonthSeries(entriesR);
-        const lastR = entriesR[entriesR.length-1];
-        const korrigiertMonat = monthSeries.length > 0 ? monthSeries[monthSeries.length - 1].value : 0;
+    // Monats-/Jahreswerte bleiben immer aus dem aktuellen Monat.
+    if (entriesRCurrent.length > 0) {
+        const currentMonthSeries = buildMonthSeries(entriesRCurrent);
+        const lastRCurrent = entriesRCurrent[entriesRCurrent.length - 1];
+        const korrigiertMonat = currentMonthSeries.length > 0 ? currentMonthSeries[currentMonthSeries.length - 1].value : 0;
 
-        document.getElementById('day-rain').innerText = Math.max(0, lastR.tag).toFixed(1);
+        document.getElementById('day-rain').innerText = Math.max(0, lastRCurrent.tag).toFixed(1);
         document.getElementById('curr-rain').innerText = korrigiertMonat.toFixed(1);
         document.getElementById('year-rain').innerText = yearRainFromMonths.toFixed(1);
-        
-        // Werte für den Chart-Zeitraum ebenfalls anpassen
-        const korrigierteEntries = monthSeries;
+    } else {
+        document.getElementById('day-rain').innerText = "0.0";
+        document.getElementById('curr-rain').innerText = "0.0";
+        document.getElementById('year-rain').innerText = yearRainFromMonths.toFixed(1);
+    }
 
-        const rainFilter = korrigierteEntries.filter(e => e.date >= cutoffR && e.date <= now);
+    // Chart/Rate folgen dem gewählten Dropdown-Zeitraum (inkl. Vormonat).
+    if (entriesRSelected.length > 0) {
+        const korrigierteEntries = buildMonthSeries(entriesRSelected);
+        const rainFilter = korrigierteEntries.filter(e => e.date >= rainRangeStart && e.date <= rainRangeEnd);
         let maxRate = 0; let lastRainTime = null; let currentRainRate = 0;
-        
+
         for(let i=1; i<rainFilter.length; i++) {
             const diffVal = rainFilter[i].value - rainFilter[i-1].value;
             const diffTime = (rainFilter[i].date - rainFilter[i-1].date) / 3600000;
@@ -641,20 +662,18 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
         peakEl.innerText = maxRate.toFixed(1);
         peakEl.style.color = getRainIntensityColor(maxRate);
         if (lastRainTime) {
-            const diffHours = (new Date() - lastRainTime) / 3600000;
+            const diffHours = (rainRangeEnd - lastRainTime) / 3600000;
             document.getElementById('rain-last-val').innerText = "Zuletzt geregnet vor " + diffHours.toFixed(1) + " Stunden";
         } else {
             document.getElementById('rain-last-val').innerText = "Kein Regen im Zeitraum";
         }
-        renderRainChart(rainFilter, rainHoursPeriod);
+        renderRainChart(rainFilter, rainChartHours);
     } else {
-        document.getElementById('day-rain').innerText = "0.0";
-        document.getElementById('curr-rain').innerText = "0.0";
-        document.getElementById('year-rain').innerText = yearRainFromMonths.toFixed(1);
         document.getElementById('ctrl-rain-rate').innerText = "0.0";
         document.getElementById('rain-peak-val').innerText = "0.0";
-        document.getElementById('rain-last-val').innerText = `Noch kein Regen im ${currentMonthName}`;
-        renderRainChart([], rainHoursPeriod);
+        const fallbackMonthName = rainPeriodValue === 'prevMonth' ? getRainMonthMeta(now, 1).monthName : currentMonthName;
+        document.getElementById('rain-last-val').innerText = `Noch kein Regen im ${fallbackMonthName}`;
+        renderRainChart([], rainChartHours);
     }
 
     // Sonnen-Logik
