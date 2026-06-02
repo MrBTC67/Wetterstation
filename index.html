@@ -452,11 +452,37 @@ function parseRainEntries(dataR) {
     }));
 }
 
-function getCorrectedMonthAmount(entriesR) {
-    if (!entriesR || entriesR.length === 0) return null;
+function buildMonthSeries(entriesR) {
+    if (!entriesR || entriesR.length === 0) return [];
+
     const first = entriesR[0];
-    const last = entriesR[entriesR.length - 1];
-    return Math.max(0, last.monat - first.monat);
+    let prevMonat = Number(first.monat) || 0;
+    let cumulative = Math.max(0, Number(first.tag) || 0);
+
+    const series = [{ date: first.date, value: cumulative }];
+
+    for (let i = 1; i < entriesR.length; i++) {
+        const currMonat = Number(entriesR[i].monat) || 0;
+        const delta = currMonat - prevMonat;
+
+        if (delta >= 0) {
+            cumulative += delta;
+        } else {
+            // Zähler wurde zurückgesetzt (z. B. Neustart): neuer Stand zählt wieder ab 0.
+            cumulative += Math.max(0, currMonat);
+        }
+
+        series.push({ date: entriesR[i].date, value: cumulative });
+        prevMonat = currMonat;
+    }
+
+    return series;
+}
+
+function getCorrectedMonthAmount(entriesR) {
+    const series = buildMonthSeries(entriesR);
+    if (series.length === 0) return null;
+    return series[series.length - 1].value;
 }
 
 function updatePreviousMonthsUI(prevMonthStats) {
@@ -490,6 +516,12 @@ async function fetchData() {
         rainMonthInfos.push(getRainMonthMeta(now, i));
     }
     const rainMonthUrls = rainMonthInfos.map(m => `${URL_BASE}/Regenmesser/${m.year}/${m.monthName}.json`);
+
+    const yearMonthInfos = [];
+    for (let m = 0; m <= now.getMonth(); m++) {
+        yearMonthInfos.push({ year: now.getFullYear(), monthName: monthNames[m] });
+    }
+    const yearMonthUrls = yearMonthInfos.map(m => `${URL_BASE}/Regenmesser/${m.year}/${m.monthName}.json`);
     
     try {
         const responses = await Promise.all([
@@ -497,13 +529,17 @@ async function fetchData() {
             fetch(`${URL_H}?orderBy="$key"&limitToLast=12000`),
             fetch(`${URL_P}?orderBy="$key"&limitToLast=12000`),
             fetch(`${URL_B}?orderBy="$key"&limitToLast=12000`),
-            ...rainMonthUrls.map(url => fetch(`${url}?orderBy="$key"&limitToLast=12000`))
+            ...rainMonthUrls.map(url => fetch(`${url}?orderBy="$key"&limitToLast=12000`)),
+            ...yearMonthUrls.map(url => fetch(`${url}?orderBy="$key"&limitToLast=12000`))
         ]);
         const dataT = await responses[0].json();
         const dataH = await responses[1].json();
         const dataP = await responses[2].json();
         const dataB = await responses[3].json();
-        const rainMonthData = await Promise.all(responses.slice(4).map(r => r.json()));
+        const rainResponsesOffset = 4;
+        const rainResponsesEnd = rainResponsesOffset + rainMonthUrls.length;
+        const rainMonthData = await Promise.all(responses.slice(rainResponsesOffset, rainResponsesEnd).map(r => r.json()));
+        const yearMonthData = await Promise.all(responses.slice(rainResponsesEnd).map(r => r.json()));
 
         const sortEntries = (arr) => arr.sort((a, b) => a.date - b.date);
 
@@ -528,11 +564,17 @@ async function fetchData() {
             .filter(Boolean)
             .reverse();
 
-        updateUI(entriesT, entriesH, entriesP, entriesB_all.filter(e => e.date >= cutoffS && e.date <= now), entriesB_all, entriesR_raw, cutoffR, hours, sunHoursPeriod, rainHoursPeriod, prevMonthStats);
+        const yearRainFromMonths = yearMonthData.reduce((sum, monthData) => {
+            const entries = parseRainEntries(monthData);
+            const amount = getCorrectedMonthAmount(entries);
+            return sum + (amount === null ? 0 : amount);
+        }, 0);
+
+        updateUI(entriesT, entriesH, entriesP, entriesB_all.filter(e => e.date >= cutoffS && e.date <= now), entriesB_all, entriesR_raw, cutoffR, hours, sunHoursPeriod, rainHoursPeriod, prevMonthStats, yearRainFromMonths);
     } catch (e) { console.error("Fehler:", e); }
 }
 
-function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR, cutoffR, hours, sunHoursPeriod, rainHoursPeriod, prevMonthStats) {
+function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR, cutoffR, hours, sunHoursPeriod, rainHoursPeriod, prevMonthStats, yearRainFromMonths) {
     const now = new Date();
     const currentMonthName = monthNames[now.getMonth()];
 
@@ -570,25 +612,16 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
 
     // Regen-Logik mit mathematischer Nullung für den neuen Monat
     if (entriesR.length > 0) {
-        // Erste übertragene Werte des Monats als Nullpunkt-Referenz nehmen
-        const baseMonat = entriesR[0].monat;
-        const baseTag = entriesR[0].tag;
-        
+        const monthSeries = buildMonthSeries(entriesR);
         const lastR = entriesR[entriesR.length-1];
-        
-        // Wert abzüglich des Monatsanfangs-Überhangs berechnen
-        const korrigiertMonat = Math.max(0, lastR.monat - baseMonat);
-        const korrigiertTag = Math.max(0, lastR.tag - baseTag);
+        const korrigiertMonat = monthSeries.length > 0 ? monthSeries[monthSeries.length - 1].value : 0;
 
-        document.getElementById('day-rain').innerText = korrigiertTag.toFixed(1);
+        document.getElementById('day-rain').innerText = Math.max(0, lastR.tag).toFixed(1);
         document.getElementById('curr-rain').innerText = korrigiertMonat.toFixed(1);
-        document.getElementById('year-rain').innerText = lastR.jahr.toFixed(1); // Das Jahr läuft normal weiter
+        document.getElementById('year-rain').innerText = yearRainFromMonths.toFixed(1);
         
         // Werte für den Chart-Zeitraum ebenfalls anpassen
-        const korrigierteEntries = entriesR.map(e => ({
-            date: e.date,
-            value: Math.max(0, e.monat - baseMonat)
-        }));
+        const korrigierteEntries = monthSeries;
 
         const rainFilter = korrigierteEntries.filter(e => e.date >= cutoffR && e.date <= now);
         let maxRate = 0; let lastRainTime = null; let currentRainRate = 0;
@@ -617,7 +650,7 @@ function updateUI(entriesT, entriesH, entriesP, entriesB, entriesB_all, entriesR
     } else {
         document.getElementById('day-rain').innerText = "0.0";
         document.getElementById('curr-rain').innerText = "0.0";
-        document.getElementById('year-rain').innerText = "0.0";
+        document.getElementById('year-rain').innerText = yearRainFromMonths.toFixed(1);
         document.getElementById('ctrl-rain-rate').innerText = "0.0";
         document.getElementById('rain-peak-val').innerText = "0.0";
         document.getElementById('rain-last-val').innerText = `Noch kein Regen im ${currentMonthName}`;
