@@ -1072,12 +1072,12 @@ const minMaxPlugin = {
     id: 'minMaxPlugin',
     afterDatasetsDraw(chart) {
         const chartId = chart.canvas.id;
-        if (chartId !== 'mainChart' && chartId !== 'pressureChart') return;
+        if (chartId !== 'mainChart' && chartId !== 'pressureChart' && chartId !== 'humidityChart') return;
         const { ctx, chartArea: { left, right, width }, scales: { y }, data } = chart;
         const dataset = data.datasets[0].data;
         if (!dataset || !dataset.length) return;
         const minVal = Math.min(...dataset), maxVal = Math.max(...dataset);
-        const unit = chartId === 'pressureChart' ? ' hPa' : '°';
+        const unit = chartId === 'pressureChart' ? ' hPa' : (chartId === 'humidityChart' ? '%' : '°');
         const maxColor = '#ef5350';
         const minColor = '#64b5f6';
 
@@ -1188,7 +1188,7 @@ function renderHumidityChart(ent, hrs) {
                 }
             }
         },
-        plugins: [crosshairPlugin]
+        plugins: [minMaxPlugin, crosshairPlugin]
     });
 }
 
