@@ -857,7 +857,12 @@ async function fetchData() {
     if (entriesH.length > 0) {
         let lastH = entriesH[entriesH.length-1].value;
         const humDisplayEl = document.getElementById('hum-display');
-        humDisplayEl.style.color = getHumidityColor(lastH);
+        const humColor = getHumidityColor(lastH);
+        humDisplayEl.style.color = humColor;
+        humDisplayEl.style.backgroundImage = `linear-gradient(120deg, ${humColor} 0%, #a7f3d0 56%, #ecfeff 100%)`;
+        humDisplayEl.style.webkitBackgroundClip = 'text';
+        humDisplayEl.style.backgroundClip = 'text';
+        humDisplayEl.style.webkitTextFillColor = 'transparent';
         applyDynamicCardTheme('card-hum', 'hum-display');
         document.getElementById('curr-hum').innerText = lastH.toFixed(0);
     }
@@ -1038,7 +1043,16 @@ function renderMainChart(ent, hrs) {
             labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
                 label: 'Temp', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4,
-                borderColor: '#26a69a', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#26a69a'),
+                borderColor: '#26a69a', backgroundColor: (c) => {
+                    const { ctx, chartArea } = c.chart;
+                    if (!chartArea) return null;
+                    const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                    gradient.addColorStop(0, 'rgba(38, 166, 154, 0.00)');
+                    gradient.addColorStop(0.35, 'rgba(38, 166, 154, 0.20)');
+                    gradient.addColorStop(0.72, 'rgba(45, 212, 191, 0.26)');
+                    gradient.addColorStop(1, 'rgba(125, 211, 252, 0.34)');
+                    return gradient;
+                },
                 segment: { borderColor: ctx => ctx.p0.parsed && ctx.p1.parsed ? getTempColor((ctx.p0.parsed.y + ctx.p1.parsed.y) / 2) : '#26a69a' }
             }]
         },
@@ -1076,7 +1090,16 @@ function renderBrightChart(ent, hrs) {
             labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
                 label: 'Lux', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4,
-                borderColor: '#ffd54f', backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#ffd54f'),
+                borderColor: '#ffd54f', backgroundColor: (c) => {
+                    const { ctx, chartArea } = c.chart;
+                    if (!chartArea) return null;
+                    const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                    gradient.addColorStop(0, 'rgba(250, 204, 21, 0.00)');
+                    gradient.addColorStop(0.32, 'rgba(250, 204, 21, 0.18)');
+                    gradient.addColorStop(0.66, 'rgba(253, 224, 71, 0.26)');
+                    gradient.addColorStop(1, 'rgba(255, 255, 255, 0.34)');
+                    return gradient;
+                },
                 segment: { borderColor: ctx => { const val = (ctx.p0.parsed.y + ctx.p1.parsed.y) / 2; if (val >= 10000) return '#ffffff'; if (val >= 7000) return '#f9ce1d'; if (val >= 5500) return '#f39c12'; return '#4b5563'; } }
             }]
         },
@@ -1127,7 +1150,16 @@ function renderRainChart(ent, hrs) {
                 pointRadius: 0, 
                 stepped: true,
                 borderColor: '#4dd0e1', 
-                backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#4dd0e1'),
+                backgroundColor: (c) => {
+                    const { ctx, chartArea } = c.chart;
+                    if (!chartArea) return null;
+                    const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
+                    gradient.addColorStop(0, 'rgba(77, 208, 225, 0.00)');
+                    gradient.addColorStop(0.35, 'rgba(77, 208, 225, 0.18)');
+                    gradient.addColorStop(0.72, 'rgba(34, 211, 238, 0.26)');
+                    gradient.addColorStop(1, 'rgba(186, 230, 253, 0.34)');
+                    return gradient;
+                },
                 segment: {
                     borderColor: ctx => {
                         const index = ctx.p1DataIndex;
