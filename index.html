@@ -352,33 +352,33 @@
         @media (max-width: 599px) {
             .rate-badge { min-width: 175px; }
             .stats {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 10px;
-                margin-bottom: 10px;
-            }
-            .stats .card:nth-child(3) {
-                grid-column: 1 / -1;
-                max-width: 260px;
-                width: 100%;
-                justify-self: center;
-            }
-            .card {
-                min-height: 132px;
-                padding: 12px 8px;
-                border-radius: 16px;
-            }
-            .card h3 {
-                min-height: 1.7em;
-                font-size: 0.64em;
-                letter-spacing: 1.1px;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 6px;
                 margin-bottom: 8px;
             }
-            .val-display {
-                min-height: 1.8em;
-                font-size: 1.02em;
+            .card {
+                min-height: 74px;
+                padding: 7px 5px;
+                border-radius: 12px;
             }
+            .card h3 {
+                min-height: 1.2em;
+                font-size: 0.5em;
+                letter-spacing: 0.6px;
+                margin-bottom: 4px;
+            }
+            .val-display {
+                min-height: 1.3em;
+                font-size: 0.72em;
+                gap: 2px;
+            }
+            .unit { font-size: 0.52em; }
+            .rain-line { font-size: 0.62em; gap: 3px; }
+            .rain-label { font-size: 0.5em; letter-spacing: 0.2px; }
+            .pres-rate { font-size: 0.42em; margin-top: 2px; }
+            .pres-main-line { gap: 3px; }
             .forecast-icon {
-                font-size: 1.0em;
+                font-size: 0.8em;
             }
         }
 
