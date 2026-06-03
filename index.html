@@ -421,6 +421,10 @@
                 font-size: 2em;
                 line-height: 1;
             }
+            .pres-main-line .unit {
+                font-size: 1.8em;
+                line-height: 1;
+            }
             #temp-display .unit,
             #hum-display .unit,
             .card.min .unit,
@@ -1009,7 +1013,7 @@ async function fetchData() {
     }
     if (entriesP.length > 0) {
         let lastP = entriesP[entriesP.length-1].value + PRES_OFFSET;
-        setValueWithFlash('curr-pres', lastP.toFixed(1));
+        setValueWithFlash('curr-pres', lastP.toFixed(0));
         const trendArrowEl = document.getElementById('pres-trend-arrow');
         if (entriesP.length > 5) {
             const firstP = entriesP[0];
