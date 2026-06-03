@@ -133,40 +133,150 @@
         .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
         
         .card { 
-            position: relative; padding: 15px 10px; background: var(--bg-card); 
-            border-radius: 20px; border: 1px solid var(--border-color); 
+            --card-tint: rgba(148, 163, 184, 0.18);
+            --card-border: rgba(148, 163, 184, 0.42);
+            --card-top-start: #94a3b8;
+            --card-top-mid: #64748b;
+            --card-top-end: #cbd5e1;
+            position: relative; padding: 15px 10px;
+            background: linear-gradient(170deg, var(--card-tint) 0%, rgba(30, 41, 59, 0.78) 46%, rgba(15, 23, 42, 0.92) 100%);
+            border-radius: 20px; border: 1px solid var(--card-border); 
             transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
             display: flex; flex-direction: column; align-items: center; 
-            overflow: hidden; box-shadow: var(--card-shadow);
+            justify-content: flex-start;
+            min-height: 160px;
+            overflow: hidden;
+            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.42), 0 0 0 1px color-mix(in srgb, var(--card-border) 48%, transparent) inset;
         }
         
         .card::before { 
             content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; 
-            background: var(--accent-color, var(--color-temp)); opacity: 0.8; 
+            background: linear-gradient(90deg, var(--card-top-start) 0%, var(--card-top-mid) 45%, var(--card-top-end) 100%);
+            opacity: 1;
+            height: 4px;
         }
         
         .card:hover { 
             transform: translateY(-6px); 
-            background: rgba(30, 41, 59, 0.9);
-            border-color: var(--accent-color, var(--color-temp)); 
-            box-shadow: 0 15px 35px rgba(0,0,0,0.4); 
+            border-color: var(--card-top-mid);
+            box-shadow: 0 18px 40px rgba(0,0,0,0.5), 0 0 0 1px color-mix(in srgb, var(--card-top-mid) 35%, transparent) inset;
         }
         
-        .card h3 { margin: 0 0 8px 0; font-size: 0.7em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 1.5px; font-weight: 800; }
-        .val-display { font-size: 1.25em; font-weight: 800; color: var(--text-main); display: flex; align-items: center; gap: 4px; }
+        .card h3 {
+            margin: 0 0 10px 0;
+            min-height: 2.1em;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            font-size: 0.7em;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            font-weight: 800;
+            text-align: center;
+        }
+        .val-display {
+            font-size: 1.25em;
+            font-weight: 800;
+            color: var(--text-main);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            min-height: 2.2em;
+        }
         .unit { font-size: 0.7em; font-weight: 400; color: var(--text-muted); }
         
-        .card.temp { --accent-color: var(--color-temp); }
-        .card.min { --accent-color: var(--color-min); }
-        .card.max { --accent-color: var(--color-max); }
-        .card.pres { --accent-color: var(--color-pres); }
-        .card.hum { --accent-color: var(--color-temp); }
-        .card.rain { --accent-color: var(--color-dry); }
+        .card.temp {
+            --accent-color: var(--color-temp);
+            --card-tint: rgba(38, 166, 154, 0.24);
+            --card-border: rgba(38, 166, 154, 0.50);
+            --card-top-start: #4fd1c5;
+            --card-top-mid: #14b8a6;
+            --card-top-end: #7dd3fc;
+        }
+        .card.min {
+            --accent-color: var(--color-min);
+            --card-tint: rgba(100, 181, 246, 0.24);
+            --card-border: rgba(100, 181, 246, 0.50);
+            --card-top-start: #93c5fd;
+            --card-top-mid: #60a5fa;
+            --card-top-end: #bfdbfe;
+        }
+        .card.max {
+            --accent-color: var(--color-max);
+            --card-tint: rgba(239, 83, 80, 0.24);
+            --card-border: rgba(239, 83, 80, 0.50);
+            --card-top-start: #fda4af;
+            --card-top-mid: #ef4444;
+            --card-top-end: #fecaca;
+        }
+        .card.pres {
+            --accent-color: var(--color-pres);
+            --card-tint: rgba(149, 117, 205, 0.24);
+            --card-border: rgba(149, 117, 205, 0.50);
+            --card-top-start: #c4b5fd;
+            --card-top-mid: #a78bfa;
+            --card-top-end: #ddd6fe;
+        }
+        .card.hum {
+            --accent-color: var(--color-temp);
+            --card-tint: rgba(45, 212, 191, 0.22);
+            --card-border: rgba(45, 212, 191, 0.50);
+            --card-top-start: #5eead4;
+            --card-top-mid: #2dd4bf;
+            --card-top-end: #99f6e4;
+        }
+        .card.rain {
+            --accent-color: var(--color-dry);
+            --card-tint: rgba(77, 208, 225, 0.24);
+            --card-border: rgba(77, 208, 225, 0.50);
+            --card-top-start: #67e8f9;
+            --card-top-mid: #22d3ee;
+            --card-top-end: #a5f3fc;
+        }
         .card.forecast { --accent-color: var(--color-forecast); }
-        .card.dew-card { --accent-color: var(--color-dew); }
-        .card.bright { --accent-color: var(--color-bright); }
+        .card.forecast {
+            --card-tint: rgba(255, 204, 128, 0.20);
+            --card-border: rgba(255, 204, 128, 0.52);
+            --card-top-start: #ffd07a;
+            --card-top-mid: #f59e0b;
+            --card-top-end: #fcd34d;
+        }
+        .card.forecast h3 {
+            color: #ffe5b5;
+        }
+        .card.dew-card {
+            --accent-color: var(--color-dew);
+            --card-tint: rgba(220, 231, 117, 0.24);
+            --card-border: rgba(220, 231, 117, 0.48);
+            --card-top-start: #d9f99d;
+            --card-top-mid: #bef264;
+            --card-top-end: #ecfccb;
+        }
+        .card.bright {
+            --accent-color: var(--color-bright);
+            --card-tint: rgba(255, 213, 79, 0.24);
+            --card-border: rgba(255, 213, 79, 0.50);
+            --card-top-start: #fde68a;
+            --card-top-mid: #facc15;
+            --card-top-end: #fef3c7;
+        }
+        .forecast-line {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+        .forecast-icon {
+            font-size: 1.15em;
+            line-height: 1;
+            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.18));
+        }
         
         .card-icon { width: 20px; height: 20px; margin-bottom: 8px; stroke: currentColor; opacity: 0.8; }
+        .card-icon { display: none; }
+        #sun-icon-svg { display: block; }
         
         #frost-alarm { position: absolute; left: 10px; top: 10px; display: none; color: var(--color-frost); animation: frost-pulse 1.5s infinite ease-in-out; }
         @keyframes frost-pulse { 0% { opacity: 0.3; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0.3; transform: scale(0.9); } }
@@ -248,6 +358,7 @@
             .container { padding: 35px; } 
             .main-title { font-size: 1.8em; } 
             .stats { gap: 18px; } 
+            .card { min-height: 176px; }
             .val-display { font-size: 1.9em; } 
             .card-icon { width: 28px; height: 28px; position: absolute; right: 18px; top: 18px; } 
         }
@@ -316,15 +427,17 @@
     </div>
 
     <div class="stats">
-        <div class="card dew-card">
+        <div id="card-dew" class="card dew-card">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 16.3c2.2 0 4-1.8 4-4 0-2.2-4-6-4-6s-4 3.8-4 6c0 2.2 1.8 4 4 4Z"></path><path d="M17 20.3c2.2 0 4-1.8 4-4 0-2.2-4-6-4-6s-4 3.8-4 6c0 2.2 1.8 4 4 4Z"></path></svg>
             <h3>Taupunkt</h3>
-            <div class="val-display accent-text" style="color: var(--color-dew) !important;"><span id="curr-temp-dew">--</span><span class="unit">°C</span></div>
+            <div id="dew-display" class="val-display accent-text"><span id="curr-temp-dew">--</span><span class="unit">°C</span></div>
         </div>
         <div class="card forecast">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v2M12 20v2M4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path><path d="M15.91 9a5 5 0 0 1-3.83 8.92A5.92 5.92 0 0 0 18 12c0-1.26-.4-2.42-1.09-3.37Z"></path></svg>
             <h3>Prognose</h3>
-            <div class="val-display"><span id="forecast-val" style="color: var(--text-muted); font-size: 0.9em;">...</span></div>
+            <div class="val-display forecast-line">
+                <span id="forecast-icon" class="forecast-icon">⛅</span>
+                <span id="forecast-val" style="color: var(--text-muted); font-size: 0.9em;">...</span>
+            </div>
         </div>
         <div id="card-bright" class="card bright">
             <svg id="sun-icon-svg" class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-bright)">
@@ -449,6 +562,71 @@ function getTempColor(t) {
     if (t < 20)  return '#fff176'; 
     if (t < 30)  return '#ffb74d'; 
     return '#ef5350';                                  
+}
+
+function getHumidityColor(h) {
+    if (h < 35) return '#7dd3fc';
+    if (h < 60) return '#34d399';
+    if (h < 75) return '#facc15';
+    if (h < 90) return '#fb923c';
+    return '#f87171';
+}
+
+function clampByte(v) {
+    return Math.max(0, Math.min(255, Math.round(v)));
+}
+
+function parseCssRgb(value) {
+    if (!value) return null;
+    const m = value.match(/rgba?\(([^)]+)\)/i);
+    if (!m) return null;
+    const parts = m[1].split(',').map(p => Number.parseFloat(p.trim()));
+    if (parts.length < 3 || parts.slice(0, 3).some(n => Number.isNaN(n))) return null;
+    return [clampByte(parts[0]), clampByte(parts[1]), clampByte(parts[2])];
+}
+
+function mixRgb(base, target, ratio) {
+    return [
+        clampByte(base[0] + (target[0] - base[0]) * ratio),
+        clampByte(base[1] + (target[1] - base[1]) * ratio),
+        clampByte(base[2] + (target[2] - base[2]) * ratio)
+    ];
+}
+
+function toRgbCss(rgb) {
+    return `rgb(${rgb[0]}, ${rgb[1]}, ${rgb[2]})`;
+}
+
+function toRgbaCss(rgb, alpha) {
+    return `rgba(${rgb[0]}, ${rgb[1]}, ${rgb[2]}, ${alpha})`;
+}
+
+function applyDynamicCardTheme(cardId, valueDisplayId) {
+    const card = document.getElementById(cardId);
+    const valueDisplay = document.getElementById(valueDisplayId);
+    if (!card || !valueDisplay) return;
+
+    const rgb = parseCssRgb(getComputedStyle(valueDisplay).color);
+    if (!rgb) return;
+
+    const topStart = mixRgb(rgb, [255, 255, 255], 0.35);
+    const topEnd = mixRgb(rgb, [255, 255, 255], 0.62);
+
+    card.style.setProperty('--card-tint', toRgbaCss(rgb, 0.24));
+    card.style.setProperty('--card-border', toRgbaCss(rgb, 0.52));
+    card.style.setProperty('--card-top-start', toRgbCss(topStart));
+    card.style.setProperty('--card-top-mid', toRgbCss(rgb));
+    card.style.setProperty('--card-top-end', toRgbCss(topEnd));
+}
+
+function getForecastPresentation(diff) {
+    if (diff > 0.5) {
+        return { text: 'Heiter', icon: '☀️' };
+    }
+    if (diff < -0.5) {
+        return { text: 'Wind/Regen', icon: '🌧️' };
+    }
+    return { text: 'Beständig', icon: '⛅' };
 }
 
 function calculateDewPoint(temp, hum) { 
@@ -665,6 +843,8 @@ async function fetchData() {
         let lastT = entriesT[entriesT.length-1].value;
         document.getElementById('curr-temp').innerText = lastT.toFixed(1);
         const tempDisplayEl = document.getElementById('temp-display');
+        tempDisplayEl.style.color = getTempColor(lastT);
+        applyDynamicCardTheme('card-temp', 'temp-display');
         const iconTempEl = document.getElementById('icon-temp');
         iconTempEl.style.color = getComputedStyle(tempDisplayEl).color;
         document.getElementById('min-temp-val').innerText = Math.min(...entriesT.map(e => e.value)).toFixed(1);
@@ -674,37 +854,52 @@ async function fetchData() {
         document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${lastDate.getHours().toString().padStart(2, '0')}:${lastDate.getMinutes().toString().padStart(2, '0')} Uhr`;
         renderMainChart(entriesT, hours);
     }
+    if (entriesH.length > 0) {
+        let lastH = entriesH[entriesH.length-1].value;
+        const humDisplayEl = document.getElementById('hum-display');
+        humDisplayEl.style.color = getHumidityColor(lastH);
+        applyDynamicCardTheme('card-hum', 'hum-display');
+        document.getElementById('curr-hum').innerText = lastH.toFixed(0);
+    }
     if (entriesH.length > 0 && entriesT.length > 0) {
         let lastH = entriesH[entriesH.length-1].value;
         let lastT = entriesT[entriesT.length-1].value;
-        document.getElementById('curr-hum').innerText = lastH.toFixed(0);
         let dewPoint = calculateDewPoint(lastT, lastH);
         document.getElementById('curr-temp-dew').innerText = dewPoint.toFixed(1);
+        const dewDisplayEl = document.getElementById('dew-display');
+        dewDisplayEl.style.color = getTempColor(dewPoint);
+        applyDynamicCardTheme('card-dew', 'dew-display');
     }
     if (entriesP.length > 0) {
         let lastP = entriesP[entriesP.length-1].value + PRES_OFFSET;
         document.getElementById('curr-pres').innerText = lastP.toFixed(1);
         const trendArrowEl = document.getElementById('pres-trend-arrow');
         if (entriesP.length > 5) {
-            let diff = entriesP[entriesP.length-1].value - entriesP[0].value;
-            document.getElementById('pres-rate-val').innerText = (diff > 0 ? "+" : "") + diff.toFixed(1) + " hPa/h";
-            if (diff > 0.3) {
+            const firstP = entriesP[0];
+            const lastPEntry = entriesP[entriesP.length-1];
+            const diff = lastPEntry.value - firstP.value;
+            const elapsedHours = (lastPEntry.date - firstP.date) / 3600000;
+            const ratePerHour = elapsedHours > 0 ? (diff / elapsedHours) : 0;
+            document.getElementById('pres-rate-val').innerText = (ratePerHour > 0 ? "+" : "") + ratePerHour.toFixed(2) + " hPa/h";
+            if (ratePerHour > 0.3) {
                 trendArrowEl.innerText = '↗';
                 trendArrowEl.className = 'pres-trend-arrow up';
-            } else if (diff < -0.3) {
+            } else if (ratePerHour < -0.3) {
                 trendArrowEl.innerText = '↘';
                 trendArrowEl.className = 'pres-trend-arrow down';
             } else {
                 trendArrowEl.innerText = '→';
                 trendArrowEl.className = 'pres-trend-arrow flat';
             }
-            let prog = "Beständig";
-            if(diff > 0.5) prog = "Heiter";
-            if(diff < -0.5) prog = "Wind/Regen";
-            document.getElementById('forecast-val').innerText = prog;
+            const forecast = getForecastPresentation(ratePerHour);
+            document.getElementById('forecast-val').innerText = forecast.text;
+            document.getElementById('forecast-icon').innerText = forecast.icon;
         } else {
             trendArrowEl.innerText = '→';
             trendArrowEl.className = 'pres-trend-arrow flat';
+            const forecast = getForecastPresentation(0);
+            document.getElementById('forecast-val').innerText = forecast.text;
+            document.getElementById('forecast-icon').innerText = forecast.icon;
         }
     }
     renderPressureChart(entriesPChart, pressureChartHours);
