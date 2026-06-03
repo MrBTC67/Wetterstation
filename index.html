@@ -1011,7 +1011,6 @@ async function fetchData() {
         setValueWithFlash('curr-temp', lastT.toFixed(1));
         const tempDisplayEl = document.getElementById('temp-display');
         tempDisplayEl.style.color = getTempColor(lastT);
-        applyStatusClass(tempDisplayEl, getTempStatus(lastT));
         applyDynamicCardTheme('card-temp', 'temp-display');
         const iconTempEl = document.getElementById('icon-temp');
         iconTempEl.style.color = getComputedStyle(tempDisplayEl).color;
@@ -1047,7 +1046,6 @@ async function fetchData() {
         setValueWithFlash('curr-temp-dew', dewPoint.toFixed(1));
         const dewDisplayEl = document.getElementById('dew-display');
         dewDisplayEl.style.color = getTempColor(dewPoint);
-        applyStatusClass(dewDisplayEl, getTempStatus(dewPoint));
         applyDynamicCardTheme('card-dew', 'dew-display');
     }
     if (entriesP.length > 0) {
