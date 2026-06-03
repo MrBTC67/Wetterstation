@@ -296,6 +296,35 @@
             margin-bottom: 15px; border: 1px solid var(--border-color); height: 320px; 
             box-sizing: border-box; position: relative; 
         }
+
+        .chart-meta {
+            margin: -6px 0 18px 0;
+            padding: 8px 12px;
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            background: rgba(255,255,255,0.03);
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            flex-wrap: wrap;
+            font-size: 0.72em;
+            color: var(--text-muted);
+        }
+        .chart-meta-item {
+            white-space: nowrap;
+            font-weight: 700;
+        }
+        .status-good { color: #34d399 !important; }
+        .status-warn { color: #facc15 !important; }
+        .status-crit { color: #f87171 !important; }
+
+        .value-flash {
+            animation: valueFlash 0.65s ease-out;
+        }
+        @keyframes valueFlash {
+            0% { filter: brightness(1.45); text-shadow: 0 0 10px rgba(255,255,255,0.25); }
+            100% { filter: brightness(1); text-shadow: none; }
+        }
         
         .section-header { margin: 30px 0 15px 0; padding: 0 5px; display: flex; justify-content: space-between; align-items: center; }
         .section-header h2 { font-size: 0.9em; text-transform: uppercase; color: var(--text-muted); margin: 0; letter-spacing: 2px; font-weight: 800; }
@@ -399,6 +428,12 @@
                 -webkit-background-clip: border-box !important;
                 background-clip: border-box !important;
                 -webkit-text-fill-color: currentColor !important;
+            }
+            .chart-meta {
+                font-size: 0.62em;
+                gap: 8px;
+                padding: 7px 8px;
+                margin: -8px 0 14px 0;
             }
         }
 
@@ -509,9 +544,11 @@
 
     <div class="controls-row"><label style="color: #86efac; font-size: 0.9em;">Temperatur</label><select id="period" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
     <div class="chart-box"><canvas id="mainChart"></canvas></div>
+    <div id="meta-temp" class="chart-meta"></div>
 
     <div class="section-header"><h2 style="color: #5eead4;">Feuchte</h2><select id="humidityPeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
     <div class="chart-box"><canvas id="humidityChart"></canvas></div>
+    <div id="meta-humidity" class="chart-meta"></div>
 
     <div class="section-header"><h2 style="color: var(--color-bright);">Helligkeit</h2><select id="sunPeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
     <div class="chart-box">
@@ -523,9 +560,11 @@
             <div class="legend-item"><div class="legend-dot" style="background: #4b5563;"></div> &lt;5500 wolkig</div>
         </div>
     </div>
+    <div id="meta-bright" class="chart-meta"></div>
 
     <div class="section-header"><h2 style="color: var(--color-dry);">Niederschlag</h2><select id="rainPeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
     <div class="chart-box"><canvas id="rainChart"></canvas></div>
+    <div id="meta-rain" class="chart-meta"></div>
     
     <div class="rate-row">
         <div class="rate-badge">
@@ -548,6 +587,7 @@
 
     <div class="section-header"><h2 style="color: var(--color-pres);">Luftdruck</h2><select id="pressurePeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
     <div class="chart-box"><canvas id="pressureChart"></canvas></div>
+    <div id="meta-pressure" class="chart-meta"></div>
 </div>
 
 <script>
@@ -567,11 +607,9 @@ const CHART_GRID_COLOR = 'rgba(255,255,255,0.05)';
 const PREVIOUS_MONTHS_TO_SHOW = 3;
 
 function getRainIntensityColor(rate) {
-    if (rate <= 0) return '#4dd0e1'; 
-    if (rate < 2.5) return '#4dd0e1'; 
-    if (rate < 10) return '#fbc02d';  
-    if (rate < 50) return '#f57c00';  
-    return '#d32f2f';                  
+    if (rate < 2.5) return STATUS_COLORS.good;
+    if (rate < 10) return STATUS_COLORS.warn;
+    return STATUS_COLORS.crit;
 }
 
 function createVerticalGradient(ctx, chartArea, color) {
@@ -617,11 +655,8 @@ function getTempColor(t) {
 }
 
 function getHumidityColor(h) {
-    if (h < 35) return '#7dd3fc';
-    if (h < 60) return '#34d399';
-    if (h < 75) return '#facc15';
-    if (h < 90) return '#fb923c';
-    return '#f87171';
+    const status = getHumidityStatus(h);
+    return STATUS_COLORS[status];
 }
 
 function clampByte(v) {
@@ -724,6 +759,82 @@ function setControlsDisabled(disabled) {
     document.querySelectorAll('select').forEach(sel => {
         sel.disabled = disabled;
     });
+}
+
+const STATUS_COLORS = {
+    good: '#34d399',
+    warn: '#facc15',
+    crit: '#f87171'
+};
+
+const _valueMemory = Object.create(null);
+
+function classifyTrafficLight(value, warnLow, warnHigh, critLow, critHigh) {
+    if (value <= critLow || value >= critHigh) return 'crit';
+    if (value <= warnLow || value >= warnHigh) return 'warn';
+    return 'good';
+}
+
+function applyStatusClass(el, status) {
+    if (!el) return;
+    el.classList.remove('status-good', 'status-warn', 'status-crit');
+    el.classList.add(`status-${status}`);
+}
+
+function setValueWithFlash(elOrId, valueText) {
+    const el = typeof elOrId === 'string' ? document.getElementById(elOrId) : elOrId;
+    if (!el) return;
+    const key = el.id || `${el.tagName}:${el.className}`;
+    const prev = _valueMemory[key];
+    if (prev !== valueText) {
+        el.textContent = valueText;
+        el.classList.remove('value-flash');
+        void el.offsetWidth;
+        el.classList.add('value-flash');
+        _valueMemory[key] = valueText;
+    } else {
+        el.textContent = valueText;
+    }
+}
+
+function trendText(delta) {
+    if (Math.abs(delta) < 0.001) return 'stabil';
+    return delta > 0 ? `steigend (+${delta.toFixed(2)})` : `fallend (${delta.toFixed(2)})`;
+}
+
+function updateChartMeta(metaId, entries, unit, decimals = 1) {
+    const metaEl = document.getElementById(metaId);
+    if (!metaEl) return;
+    if (!entries || entries.length === 0) {
+        metaEl.innerHTML = '<span class="chart-meta-item">Keine Daten im Zeitraum</span>';
+        return;
+    }
+    const values = entries.map(e => e.value);
+    const min = Math.min(...values);
+    const max = Math.max(...values);
+    const avg = values.reduce((a, b) => a + b, 0) / values.length;
+    const delta = values[values.length - 1] - values[0];
+    metaEl.innerHTML = `
+        <span class="chart-meta-item">Min: ${min.toFixed(decimals)}${unit}</span>
+        <span class="chart-meta-item">Max: ${max.toFixed(decimals)}${unit}</span>
+        <span class="chart-meta-item">Mittel: ${avg.toFixed(decimals)}${unit}</span>
+        <span class="chart-meta-item">Trend: ${trendText(delta)}${unit}</span>
+    `;
+}
+
+function getTempStatus(t) {
+    return classifyTrafficLight(t, 4, 27, -1, 32);
+}
+
+function getHumidityStatus(h) {
+    return classifyTrafficLight(h, 35, 75, 25, 88);
+}
+
+function getPressureRateStatus(ratePerHour) {
+    const absRate = Math.abs(ratePerHour);
+    if (absRate >= 0.7) return 'crit';
+    if (absRate >= 0.35) return 'warn';
+    return 'good';
 }
 
 function getRainMonthMeta(now, offset) {
@@ -897,18 +1008,22 @@ async function fetchData() {
 
     if (entriesT.length > 0) {
         let lastT = entriesT[entriesT.length-1].value;
-        document.getElementById('curr-temp').innerText = lastT.toFixed(1);
+        setValueWithFlash('curr-temp', lastT.toFixed(1));
         const tempDisplayEl = document.getElementById('temp-display');
         tempDisplayEl.style.color = getTempColor(lastT);
+        applyStatusClass(tempDisplayEl, getTempStatus(lastT));
         applyDynamicCardTheme('card-temp', 'temp-display');
         const iconTempEl = document.getElementById('icon-temp');
         iconTempEl.style.color = getComputedStyle(tempDisplayEl).color;
-        document.getElementById('min-temp-val').innerText = Math.min(...entriesT.map(e => e.value)).toFixed(1);
-        document.getElementById('max-temp-val').innerText = Math.max(...entriesT.map(e => e.value)).toFixed(1);
+        setValueWithFlash('min-temp-val', Math.min(...entriesT.map(e => e.value)).toFixed(1));
+        setValueWithFlash('max-temp-val', Math.max(...entriesT.map(e => e.value)).toFixed(1));
         document.getElementById('frost-alarm').style.display = lastT <= 3 ? 'block' : 'none';
         const lastDate = entriesT[entriesT.length-1].date;
         document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${lastDate.getHours().toString().padStart(2, '0')}:${lastDate.getMinutes().toString().padStart(2, '0')} Uhr`;
         renderMainChart(entriesT, hours);
+        updateChartMeta('meta-temp', entriesT, '°C', 1);
+    } else {
+        updateChartMeta('meta-temp', [], '°C', 1);
     }
     if (entriesH.length > 0) {
         let lastH = entriesH[entriesH.length-1].value;
@@ -919,22 +1034,25 @@ async function fetchData() {
         humDisplayEl.style.webkitBackgroundClip = 'border-box';
         humDisplayEl.style.backgroundClip = 'border-box';
         humDisplayEl.style.webkitTextFillColor = '';
+        applyStatusClass(humDisplayEl, getHumidityStatus(lastH));
         applyDynamicCardTheme('card-hum', 'hum-display');
-        document.getElementById('curr-hum').innerText = lastH.toFixed(0);
+        setValueWithFlash('curr-hum', lastH.toFixed(0));
     }
     renderHumidityChart(entriesHChart, humidityHoursPeriod);
+    updateChartMeta('meta-humidity', entriesHChart, '%', 0);
     if (entriesH.length > 0 && entriesT.length > 0) {
         let lastH = entriesH[entriesH.length-1].value;
         let lastT = entriesT[entriesT.length-1].value;
         let dewPoint = calculateDewPoint(lastT, lastH);
-        document.getElementById('curr-temp-dew').innerText = dewPoint.toFixed(1);
+        setValueWithFlash('curr-temp-dew', dewPoint.toFixed(1));
         const dewDisplayEl = document.getElementById('dew-display');
         dewDisplayEl.style.color = getTempColor(dewPoint);
+        applyStatusClass(dewDisplayEl, getTempStatus(dewPoint));
         applyDynamicCardTheme('card-dew', 'dew-display');
     }
     if (entriesP.length > 0) {
         let lastP = entriesP[entriesP.length-1].value + PRES_OFFSET;
-        document.getElementById('curr-pres').innerText = lastP.toFixed(1);
+        setValueWithFlash('curr-pres', lastP.toFixed(1));
         const trendArrowEl = document.getElementById('pres-trend-arrow');
         if (entriesP.length > 5) {
             const firstP = entriesP[0];
@@ -942,7 +1060,8 @@ async function fetchData() {
             const diff = lastPEntry.value - firstP.value;
             const elapsedHours = (lastPEntry.date - firstP.date) / 3600000;
             const ratePerHour = elapsedHours > 0 ? (diff / elapsedHours) : 0;
-            document.getElementById('pres-rate-val').innerText = (ratePerHour > 0 ? "+" : "") + ratePerHour.toFixed(2) + " hPa/h";
+            setValueWithFlash('pres-rate-val', (ratePerHour > 0 ? "+" : "") + ratePerHour.toFixed(2) + " hPa/h");
+            applyStatusClass(document.getElementById('pres-rate-val'), getPressureRateStatus(ratePerHour));
             if (ratePerHour > 0.3) {
                 trendArrowEl.innerText = '↗';
                 trendArrowEl.className = 'pres-trend-arrow up';
@@ -962,9 +1081,11 @@ async function fetchData() {
             const forecast = getForecastPresentation(0);
             document.getElementById('forecast-val').innerText = forecast.text;
             document.getElementById('forecast-icon').innerText = forecast.icon;
+            applyStatusClass(document.getElementById('pres-rate-val'), 'good');
         }
     }
     renderPressureChart(entriesPChart, pressureChartHours);
+    updateChartMeta('meta-pressure', entriesPChart, ' hPa', 1);
 
     updatePreviousMonthsUI(prevMonthStats);
 
@@ -974,13 +1095,13 @@ async function fetchData() {
         const lastRCurrent = entriesRCurrent[entriesRCurrent.length - 1];
         const korrigiertMonat = currentMonthSeries.length > 0 ? currentMonthSeries[currentMonthSeries.length - 1].value : 0;
 
-        document.getElementById('day-rain').innerText = Math.max(0, lastRCurrent.tag).toFixed(1);
-        document.getElementById('curr-rain').innerText = korrigiertMonat.toFixed(1);
-        document.getElementById('year-rain').innerText = yearRainFromMonths.toFixed(1);
+        setValueWithFlash('day-rain', Math.max(0, lastRCurrent.tag).toFixed(1));
+        setValueWithFlash('curr-rain', korrigiertMonat.toFixed(1));
+        setValueWithFlash('year-rain', yearRainFromMonths.toFixed(1));
     } else {
-        document.getElementById('day-rain').innerText = "0.0";
-        document.getElementById('curr-rain').innerText = "0.0";
-        document.getElementById('year-rain').innerText = yearRainFromMonths.toFixed(1);
+        setValueWithFlash('day-rain', '0.0');
+        setValueWithFlash('curr-rain', '0.0');
+        setValueWithFlash('year-rain', yearRainFromMonths.toFixed(1));
     }
 
     // Chart/Rate folgen dem gewählten Dropdown-Zeitraum (inkl. Vormonat).
@@ -999,9 +1120,9 @@ async function fetchData() {
                 if(i === rainFilter.length - 1) currentRainRate = rate;
             }
         }
-        document.getElementById('ctrl-rain-rate').innerText = currentRainRate.toFixed(1);
+        setValueWithFlash('ctrl-rain-rate', currentRainRate.toFixed(1));
         const peakEl = document.getElementById('rain-peak-val');
-        peakEl.innerText = maxRate.toFixed(1);
+        setValueWithFlash(peakEl, maxRate.toFixed(1));
         peakEl.style.color = getRainIntensityColor(maxRate);
         if (lastRainTime) {
             const diffHours = (rainRangeEnd - lastRainTime) / 3600000;
@@ -1010,12 +1131,14 @@ async function fetchData() {
             document.getElementById('rain-last-val').innerText = "Kein Regen im Zeitraum";
         }
         renderRainChart(rainFilter, rainChartHours);
+        updateChartMeta('meta-rain', rainFilter, ' l/m²', 1);
     } else {
-        document.getElementById('ctrl-rain-rate').innerText = "0.0";
-        document.getElementById('rain-peak-val').innerText = "0.0";
+        setValueWithFlash('ctrl-rain-rate', '0.0');
+        setValueWithFlash('rain-peak-val', '0.0');
         const fallbackMonthName = rainPeriodValue === 'prevMonth' ? getRainMonthMeta(now, 1).monthName : currentMonthName;
         document.getElementById('rain-last-val').innerText = `Noch kein Regen im ${fallbackMonthName}`;
         renderRainChart([], rainChartHours);
+        updateChartMeta('meta-rain', [], ' l/m²', 1);
     }
 
     // Sonnen-Logik
@@ -1043,15 +1166,17 @@ async function fetchData() {
             }
             return (count / 60).toFixed(1);
         };
-        document.getElementById('sun-day').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfDay && e.date <= now));
-        document.getElementById('sun-month').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfMonth && e.date <= now));
-        document.getElementById('sun-year').innerText = calcSunHours(entriesB_all.filter(e => e.date >= startOfYear && e.date <= now));
+        setValueWithFlash('sun-day', calcSunHours(entriesB_all.filter(e => e.date >= startOfDay && e.date <= now)));
+        setValueWithFlash('sun-month', calcSunHours(entriesB_all.filter(e => e.date >= startOfMonth && e.date <= now)));
+        setValueWithFlash('sun-year', calcSunHours(entriesB_all.filter(e => e.date >= startOfYear && e.date <= now)));
         renderBrightChart(entriesB, sunHoursPeriod);
+        updateChartMeta('meta-bright', entriesB, ' lux', 0);
     } else {
-        document.getElementById('sun-day').innerText = "0.0";
-        document.getElementById('sun-month').innerText = "0.0";
-        document.getElementById('sun-year').innerText = "0.0";
+        setValueWithFlash('sun-day', '0.0');
+        setValueWithFlash('sun-month', '0.0');
+        setValueWithFlash('sun-year', '0.0');
         renderBrightChart([], sunHoursPeriod);
+        updateChartMeta('meta-bright', [], ' lux', 0);
     }
 }
 
@@ -1099,7 +1224,13 @@ function renderMainChart(ent, hrs) {
         data: {
             labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
-                label: 'Temp', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4,
+                label: 'Temp', data: ent.map(e => e.value), fill: true,
+                pointRadius: (ctx) => ctx.dataIndex === ent.length - 1 ? 3.5 : 0,
+                pointHoverRadius: (ctx) => ctx.dataIndex === ent.length - 1 ? 5 : 3,
+                pointBackgroundColor: (ctx) => ctx.dataIndex === ent.length - 1 ? '#f8fafc' : 'transparent',
+                pointBorderColor: (ctx) => ctx.dataIndex === ent.length - 1 ? '#22c55e' : 'transparent',
+                pointBorderWidth: (ctx) => ctx.dataIndex === ent.length - 1 ? 2 : 0,
+                tension: 0.4,
                 borderColor: '#26a69a', backgroundColor: (c) => {
                     const { ctx, chartArea } = c.chart;
                     if (!chartArea) return null;
@@ -1146,7 +1277,13 @@ function renderHumidityChart(ent, hrs) {
         data: {
             labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
-                label: 'Feuchte', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.35,
+                label: 'Feuchte', data: ent.map(e => e.value), fill: true,
+                pointRadius: (ctx) => ctx.dataIndex === ent.length - 1 ? 3.5 : 0,
+                pointHoverRadius: (ctx) => ctx.dataIndex === ent.length - 1 ? 5 : 3,
+                pointBackgroundColor: (ctx) => ctx.dataIndex === ent.length - 1 ? '#f8fafc' : 'transparent',
+                pointBorderColor: (ctx) => ctx.dataIndex === ent.length - 1 ? '#2dd4bf' : 'transparent',
+                pointBorderWidth: (ctx) => ctx.dataIndex === ent.length - 1 ? 2 : 0,
+                tension: 0.35,
                 borderColor: '#2dd4bf', backgroundColor: (c) => {
                     const { ctx, chartArea } = c.chart;
                     if (!chartArea) return null;
@@ -1200,7 +1337,13 @@ function renderBrightChart(ent, hrs) {
         data: {
             labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
-                label: 'Lux', data: ent.map(e => e.value), fill: true, pointRadius: 0, tension: 0.4,
+                label: 'Lux', data: ent.map(e => e.value), fill: true,
+                pointRadius: (ctx) => ctx.dataIndex === ent.length - 1 ? 3.5 : 0,
+                pointHoverRadius: (ctx) => ctx.dataIndex === ent.length - 1 ? 5 : 3,
+                pointBackgroundColor: (ctx) => ctx.dataIndex === ent.length - 1 ? '#ffffff' : 'transparent',
+                pointBorderColor: (ctx) => ctx.dataIndex === ent.length - 1 ? '#facc15' : 'transparent',
+                pointBorderWidth: (ctx) => ctx.dataIndex === ent.length - 1 ? 2 : 0,
+                tension: 0.4,
                 borderColor: '#ffd54f', backgroundColor: (c) => {
                     const { ctx, chartArea } = c.chart;
                     if (!chartArea) return null;
@@ -1258,7 +1401,11 @@ function renderRainChart(ent, hrs) {
                 label: 'Niederschlag', 
                 data: rainData.map(d => d.y), 
                 fill: true, 
-                pointRadius: 0, 
+                pointRadius: (ctx) => ctx.dataIndex === rainData.length - 1 ? 3.5 : 0,
+                pointHoverRadius: (ctx) => ctx.dataIndex === rainData.length - 1 ? 5 : 3,
+                pointBackgroundColor: (ctx) => ctx.dataIndex === rainData.length - 1 ? '#f8fafc' : 'transparent',
+                pointBorderColor: (ctx) => ctx.dataIndex === rainData.length - 1 ? '#22d3ee' : 'transparent',
+                pointBorderWidth: (ctx) => ctx.dataIndex === rainData.length - 1 ? 2 : 0,
                 stepped: true,
                 borderColor: '#4dd0e1', 
                 backgroundColor: (c) => {
@@ -1322,7 +1469,11 @@ function renderPressureChart(ent, hrs) {
                 label: 'Luftdruck',
                 data: ent.map(e => e.value),
                 fill: true,
-                pointRadius: 0,
+                pointRadius: (ctx) => ctx.dataIndex === ent.length - 1 ? 3.5 : 0,
+                pointHoverRadius: (ctx) => ctx.dataIndex === ent.length - 1 ? 5 : 3,
+                pointBackgroundColor: (ctx) => ctx.dataIndex === ent.length - 1 ? '#f8fafc' : 'transparent',
+                pointBorderColor: (ctx) => ctx.dataIndex === ent.length - 1 ? '#a78bfa' : 'transparent',
+                pointBorderWidth: (ctx) => ctx.dataIndex === ent.length - 1 ? 2 : 0,
                 tension: 0.35,
                 borderColor: '#9575cd',
                 backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#9575cd')
