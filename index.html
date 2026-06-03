@@ -902,10 +902,10 @@ async function fetchData() {
         const humDisplayEl = document.getElementById('hum-display');
         const humColor = getHumidityColor(lastH);
         humDisplayEl.style.color = humColor;
-        humDisplayEl.style.backgroundImage = `linear-gradient(120deg, ${humColor} 0%, #a7f3d0 56%, #ecfeff 100%)`;
-        humDisplayEl.style.webkitBackgroundClip = 'text';
-        humDisplayEl.style.backgroundClip = 'text';
-        humDisplayEl.style.webkitTextFillColor = 'transparent';
+        humDisplayEl.style.backgroundImage = 'none';
+        humDisplayEl.style.webkitBackgroundClip = 'border-box';
+        humDisplayEl.style.backgroundClip = 'border-box';
+        humDisplayEl.style.webkitTextFillColor = '';
         applyDynamicCardTheme('card-hum', 'hum-display');
         document.getElementById('curr-hum').innerText = lastH.toFixed(0);
     }
