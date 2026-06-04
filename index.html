@@ -325,7 +325,7 @@
             gap: 8px;
         }
         .rain-stat-item { flex: 1; min-width: 180px; }
-        .rain-stat-label { font-size: 0.6em; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 3px; }
+        .rain-stat-label { font-size: 0.72em; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 3px; font-weight: 800; letter-spacing: 0.4px; }
         .rain-stat-val { font-size: 0.9em; font-weight: 700; color: var(--color-dry); transition: color 0.3s; }
 
         .rate-badge {
@@ -362,6 +362,20 @@
 
         .month-stat-badge { border-color: rgba(77, 208, 225, 0.45); }
         .month-stat-val { font-size: 1em; color: var(--text-main); font-weight: 800; }
+
+        @media (min-width: 600px) {
+            .rain-stats-row {
+                justify-content: flex-start;
+            }
+            .rain-stats-row .rain-stat-item {
+                flex: 0 0 calc((100% - 16px) / 3);
+                max-width: calc((100% - 16px) / 3);
+                min-width: 0;
+            }
+            .rain-stats-row .rain-stat-item:nth-child(n + 4) {
+                margin-top: 0.9em;
+            }
+        }
 
         @media (max-width: 599px) {
             .rate-badge { min-width: 175px; }
@@ -1249,6 +1263,9 @@ async function fetchData() {
         peakTimeEl.innerText = rainMeta.maxRateTime
             ? `${formatDateTimeShort(rainMeta.maxRateTime)} (${getRainIntensityLabel(rainMeta.maxRate)})`
             : '--';
+        peakTimeEl.style.color = rainMeta.maxRateTime
+            ? getRainIntensityColor(rainMeta.maxRate)
+            : 'var(--text-main)';
 
         document.getElementById('rain-range-sum-val').innerText = `${rainMeta.rangeSum.toFixed(1)} mm`;
 
@@ -1270,7 +1287,9 @@ async function fetchData() {
     } else {
         setValueWithFlash('ctrl-rain-rate', '0.0');
         setValueWithFlash('rain-peak-val', '0.0');
-        document.getElementById('rain-peak-time-val').innerText = '--';
+        const peakTimeEl = document.getElementById('rain-peak-time-val');
+        peakTimeEl.innerText = '--';
+        peakTimeEl.style.color = 'var(--text-main)';
         document.getElementById('rain-range-sum-val').innerText = '0.0 mm';
         document.getElementById('rain-event-val').innerText = 'Kein Regenereignis';
         document.getElementById('rain-duration-val').innerText = 'Regen 0m | Trocken 0m';
