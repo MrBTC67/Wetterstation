@@ -321,8 +321,10 @@
             background: rgba(77, 208, 225, 0.05); 
             border: 1px solid rgba(77, 208, 225, 0.1);
             border-radius: 15px; padding: 10px; margin-top: -10px; margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 8px;
         }
-        .rain-stat-item { flex: 1; }
+        .rain-stat-item { flex: 1; min-width: 180px; }
         .rain-stat-label { font-size: 0.6em; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 3px; }
         .rain-stat-val { font-size: 0.9em; font-weight: 700; color: var(--color-dry); transition: color 0.3s; }
 
@@ -462,7 +464,7 @@
                 <b>INFO & DATEN-ERKLÄRUNG</b>
                 <strong>Taupunkt:</strong> Temperatur, bei der Luftfeuchtigkeit kondensiert.<br>
                 <strong>Luftdruck:</strong> Normalwert ca. 1013 hPa.<br>
-                <strong>Niederschlag:</strong> In Deutschland ca. 800 l/m² pro Jahr.<br>
+                <strong>Niederschlag:</strong> In Deutschland ca. 800 mm pro Jahr.<br>
                 <strong>Prognose:</strong> Trendberechnung aus Luftdruckänderung (letzte Stunde).
             </div>
         </div>
@@ -504,7 +506,7 @@
         </div>
         <div id="rainCard" class="card rain">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 14.89c0-4 5-9 8-9s8 5 8 9a8 8 0 0 1-16 0ZM5 18l1.5-1.5M10 20l1.5-1.5M15 18l1.5-1.5"></path></svg>
-            <h3 style="text-transform: none;">REGEN: l/m²</h3>
+            <h3 style="text-transform: none;">REGEN: mm</h3>
             <div class="val-display" style="flex-direction: column; align-items: center; gap: 2px;">
                 <div class="rain-line"><span class="rain-label">Tag:</span> <span id="day-rain">--</span></div>
                 <div class="rain-line"><span class="rain-label">Monat:</span> <span id="curr-rain">--</span></div>
@@ -557,11 +559,11 @@
     <div class="rate-row">
         <div class="rate-badge">
             <span class="rate-badge-label">Aktuelle Regenrate</span>
-            <span id="ctrl-rain-rate" class="rate-badge-val">0.0</span> <span class="unit">l/m²/h</span>
+            <span id="ctrl-rain-rate" class="rate-badge-val">0.0</span> <span class="unit">mm/h</span>
         </div>
         <div class="rate-badge">
             <span class="rate-badge-label">Max. Regenrate</span>
-            <span id="rain-peak-val" class="rate-badge-val">--</span> <span class="unit">l/m²/h</span>
+            <span id="rain-peak-val" class="rate-badge-val">--</span> <span class="unit">mm/h</span>
         </div>
         <div id="prev-month-rain-grid" class="month-badge-grid"></div>
     </div>
@@ -570,6 +572,26 @@
         <div class="rain-stat-item" style="flex: 1;">
             <span class="rain-stat-label">Info</span>
             <span id="rain-last-val" class="rain-stat-val">--</span>
+        </div>
+        <div class="rain-stat-item">
+            <span class="rain-stat-label">Zeitraum-Summe</span>
+            <span id="rain-range-sum-val" class="rain-stat-val">--</span>
+        </div>
+        <div class="rain-stat-item">
+            <span class="rain-stat-label">Peak-Zeit</span>
+            <span id="rain-peak-time-val" class="rain-stat-val">--</span>
+        </div>
+        <div class="rain-stat-item">
+            <span class="rain-stat-label">Normvergleich</span>
+            <span id="rain-norm-val" class="rain-stat-val">--</span>
+        </div>
+        <div class="rain-stat-item">
+            <span class="rain-stat-label">Regenereignis</span>
+            <span id="rain-event-val" class="rain-stat-val">--</span>
+        </div>
+        <div class="rain-stat-item">
+            <span class="rain-stat-label">Dauern</span>
+            <span id="rain-duration-val" class="rain-stat-val">--</span>
         </div>
     </div>
 
@@ -603,11 +625,137 @@ let charts = {};
 const CHART_TEXT_COLOR = '#94a3b8';
 const CHART_GRID_COLOR = 'rgba(255,255,255,0.05)';
 const PREVIOUS_MONTHS_TO_SHOW = 3;
+const RAIN_CLASS_LIGHT_MAX = 2.5;
+const RAIN_CLASS_MODERATE_MAX = 10;
+const MONTHLY_RAIN_NORMAL_MM = [67, 53, 57, 51, 70, 78, 76, 74, 59, 58, 66, 73];
 
 function getRainIntensityColor(rate) {
-    if (rate < 2.5) return STATUS_COLORS.good;
-    if (rate < 10) return STATUS_COLORS.warn;
+    if (rate < RAIN_CLASS_LIGHT_MAX) return STATUS_COLORS.good;
+    if (rate < RAIN_CLASS_MODERATE_MAX) return STATUS_COLORS.warn;
     return STATUS_COLORS.crit;
+}
+
+function getRainIntensityLabel(rate) {
+    if (rate < RAIN_CLASS_LIGHT_MAX) return 'leicht';
+    if (rate < RAIN_CLASS_MODERATE_MAX) return 'maessig';
+    return 'stark';
+}
+
+function formatDateTimeShort(dt) {
+    if (!(dt instanceof Date) || isNaN(dt)) return '--';
+    const day = dt.getDate().toString().padStart(2, '0');
+    const month = (dt.getMonth() + 1).toString().padStart(2, '0');
+    const hh = dt.getHours().toString().padStart(2, '0');
+    const mm = dt.getMinutes().toString().padStart(2, '0');
+    return `${day}.${month}. ${hh}:${mm}`;
+}
+
+function formatDurationHours(hours) {
+    if (!Number.isFinite(hours) || hours <= 0) return '0m';
+    const totalMin = Math.round(hours * 60);
+    const h = Math.floor(totalMin / 60);
+    const m = totalMin % 60;
+    if (h > 0 && m > 0) return `${h}h ${m}m`;
+    if (h > 0) return `${h}h`;
+    return `${m}m`;
+}
+
+function analyzeRainTimeline(series) {
+    if (!series || series.length < 2) {
+        return {
+            currentRainRate: 0,
+            maxRate: 0,
+            maxRateTime: null,
+            lastRainTime: null,
+            rangeSum: 0,
+            latestEventStart: null,
+            latestEventEnd: null,
+            longestRainHours: 0,
+            longestDryHours: 0,
+            eventCount: 0
+        };
+    }
+
+    let currentRainRate = 0;
+    let maxRate = 0;
+    let maxRateTime = null;
+    let lastRainTime = null;
+    let latestEventStart = null;
+    let latestEventEnd = null;
+    let longestRainHours = 0;
+    let longestDryHours = 0;
+    let eventCount = 0;
+
+    let inRain = false;
+    let currentRainStart = null;
+    let currentDryStart = series[0].date;
+
+    for (let i = 1; i < series.length; i++) {
+        const prev = series[i - 1];
+        const curr = series[i];
+        const diffVal = curr.value - prev.value;
+        const diffHours = (curr.date - prev.date) / 3600000;
+        if (!(diffHours > 0)) continue;
+
+        const rate = diffVal >= 0 ? diffVal / diffHours : 0;
+        if (i === series.length - 1) currentRainRate = rate;
+
+        if (rate > maxRate) {
+            maxRate = rate;
+            maxRateTime = curr.date;
+        }
+
+        const isRaining = diffVal > 0;
+        if (isRaining) {
+            lastRainTime = curr.date;
+            if (!inRain) {
+                inRain = true;
+                currentRainStart = prev.date;
+                latestEventStart = currentRainStart;
+                eventCount += 1;
+                if (currentDryStart) {
+                    const dryHours = (prev.date - currentDryStart) / 3600000;
+                    if (dryHours > longestDryHours) longestDryHours = dryHours;
+                    currentDryStart = null;
+                }
+            }
+        } else {
+            if (inRain && currentRainStart) {
+                const rainHours = (prev.date - currentRainStart) / 3600000;
+                if (rainHours > longestRainHours) longestRainHours = rainHours;
+                latestEventEnd = prev.date;
+                inRain = false;
+                currentRainStart = null;
+            }
+            if (!currentDryStart) currentDryStart = prev.date;
+        }
+    }
+
+    const lastPoint = series[series.length - 1].date;
+    if (inRain && currentRainStart) {
+        const rainHours = (lastPoint - currentRainStart) / 3600000;
+        if (rainHours > longestRainHours) longestRainHours = rainHours;
+        latestEventEnd = lastPoint;
+    }
+    if (currentDryStart) {
+        const dryHours = (lastPoint - currentDryStart) / 3600000;
+        if (dryHours > longestDryHours) longestDryHours = dryHours;
+    }
+
+    const rangeSum = Math.max(0, series[series.length - 1].value - series[0].value);
+
+    return {
+        currentRainRate,
+        maxRate,
+        maxRateTime,
+        lastRainTime,
+        rangeSum,
+        latestEventStart,
+        latestEventEnd,
+        longestRainHours,
+        longestDryHours,
+        eventCount
+    };
 }
 
 function createVerticalGradient(ctx, chartArea, color) {
@@ -875,7 +1023,7 @@ function updatePreviousMonthsUI(prevMonthStats) {
         badge.className = 'rate-badge month-stat-badge';
         badge.innerHTML = `
             <span class="rate-badge-label">${month.label}</span>
-            <span class="month-stat-val">${month.amount.toFixed(1)}</span> <span class="unit">l/m²</span>
+            <span class="month-stat-val">${month.amount.toFixed(1)}</span> <span class="unit">mm</span>
         `;
         grid.appendChild(badge);
     }
@@ -1070,28 +1218,43 @@ async function fetchData() {
         setValueWithFlash('year-rain', yearRainFromMonths.toFixed(1));
     }
 
+    const selectedMonthSeries = entriesRSelected.length > 0 ? buildMonthSeries(entriesRSelected) : [];
+    const selectedMonthTotal = selectedMonthSeries.length > 0 ? selectedMonthSeries[selectedMonthSeries.length - 1].value : 0;
+    const normMonthIndex = rainPeriodValue === 'prevMonth' ? (now.getMonth() + 11) % 12 : now.getMonth();
+    const normMonthVal = MONTHLY_RAIN_NORMAL_MM[normMonthIndex] || 0;
+    const normPercent = normMonthVal > 0 ? (selectedMonthTotal / normMonthVal) * 100 : 0;
+    document.getElementById('rain-norm-val').innerText = normMonthVal > 0
+        ? `${selectedMonthTotal.toFixed(1)} / ${normMonthVal.toFixed(1)} mm (${normPercent.toFixed(0)}%)`
+        : `${selectedMonthTotal.toFixed(1)} mm`;
+
     // Chart/Rate folgen dem gewählten Dropdown-Zeitraum (inkl. Vormonat).
     if (entriesRSelected.length > 0) {
         const korrigierteEntries = buildMonthSeries(entriesRSelected);
         const rainFilter = korrigierteEntries.filter(e => e.date >= rainRangeStart && e.date <= rainRangeEnd);
-        let maxRate = 0; let lastRainTime = null; let currentRainRate = 0;
+        const rainMeta = analyzeRainTimeline(rainFilter);
 
-        for(let i=1; i<rainFilter.length; i++) {
-            const diffVal = rainFilter[i].value - rainFilter[i-1].value;
-            const diffTime = (rainFilter[i].date - rainFilter[i-1].date) / 3600000;
-            if(diffTime > 0 && diffVal >= 0) {
-                const rate = diffVal / diffTime;
-                if(rate > maxRate) maxRate = rate;
-                if(diffVal > 0) lastRainTime = rainFilter[i].date;
-                if(i === rainFilter.length - 1) currentRainRate = rate;
-            }
-        }
-        setValueWithFlash('ctrl-rain-rate', currentRainRate.toFixed(1));
+        setValueWithFlash('ctrl-rain-rate', rainMeta.currentRainRate.toFixed(1));
         const peakEl = document.getElementById('rain-peak-val');
-        setValueWithFlash(peakEl, maxRate.toFixed(1));
-        peakEl.style.color = getRainIntensityColor(maxRate);
-        if (lastRainTime) {
-            const diffHours = (rainRangeEnd - lastRainTime) / 3600000;
+        setValueWithFlash(peakEl, rainMeta.maxRate.toFixed(1));
+        peakEl.style.color = getRainIntensityColor(rainMeta.maxRate);
+
+        const peakTimeEl = document.getElementById('rain-peak-time-val');
+        peakTimeEl.innerText = rainMeta.maxRateTime
+            ? `${formatDateTimeShort(rainMeta.maxRateTime)} (${getRainIntensityLabel(rainMeta.maxRate)})`
+            : '--';
+
+        document.getElementById('rain-range-sum-val').innerText = `${rainMeta.rangeSum.toFixed(1)} mm`;
+
+        const eventEl = document.getElementById('rain-event-val');
+        eventEl.innerText = rainMeta.latestEventStart
+            ? `${formatDateTimeShort(rainMeta.latestEventStart)} - ${formatDateTimeShort(rainMeta.latestEventEnd)}`
+            : 'Kein Regenereignis';
+
+        const durationEl = document.getElementById('rain-duration-val');
+        durationEl.innerText = `Regen ${formatDurationHours(rainMeta.longestRainHours)} | Trocken ${formatDurationHours(rainMeta.longestDryHours)}`;
+
+        if (rainMeta.lastRainTime) {
+            const diffHours = (rainRangeEnd - rainMeta.lastRainTime) / 3600000;
             document.getElementById('rain-last-val').innerText = "Zuletzt geregnet vor " + diffHours.toFixed(1) + " Stunden";
         } else {
             document.getElementById('rain-last-val').innerText = "Kein Regen im Zeitraum";
@@ -1100,6 +1263,10 @@ async function fetchData() {
     } else {
         setValueWithFlash('ctrl-rain-rate', '0.0');
         setValueWithFlash('rain-peak-val', '0.0');
+        document.getElementById('rain-peak-time-val').innerText = '--';
+        document.getElementById('rain-range-sum-val').innerText = '0.0 mm';
+        document.getElementById('rain-event-val').innerText = 'Kein Regenereignis';
+        document.getElementById('rain-duration-val').innerText = 'Regen 0m | Trocken 0m';
         const fallbackMonthName = rainPeriodValue === 'prevMonth' ? getRainMonthMeta(now, 1).monthName : currentMonthName;
         document.getElementById('rain-last-val').innerText = `Noch kein Regen im ${fallbackMonthName}`;
         renderRainChart([], rainChartHours);
@@ -1175,6 +1342,45 @@ const minMaxPlugin = {
             ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.fillText(val.toFixed(1) + unit, centerX, isMax ? py + 12 : py - 6); ctx.restore();
         };
         draw(maxVal, maxColor, true); draw(minVal, minColor, false);
+    }
+};
+
+const rainIntensityBandsPlugin = {
+    id: 'rainIntensityBands',
+    beforeDatasetsDraw(chart) {
+        if (chart.canvas.id !== 'rainChart') return;
+        const { ctx, chartArea, scales } = chart;
+        if (!chartArea || !scales?.y) return;
+
+        const yScale = scales.y;
+        const yMax = yScale.max;
+        const bands = [
+            { from: 0, to: Math.min(RAIN_CLASS_LIGHT_MAX, yMax), color: 'rgba(52, 211, 153, 0.09)' },
+            { from: RAIN_CLASS_LIGHT_MAX, to: Math.min(RAIN_CLASS_MODERATE_MAX, yMax), color: 'rgba(250, 204, 21, 0.08)' },
+            { from: RAIN_CLASS_MODERATE_MAX, to: yMax, color: 'rgba(248, 113, 113, 0.08)' }
+        ];
+
+        ctx.save();
+        for (const band of bands) {
+            if (band.to <= band.from) continue;
+            const yTop = yScale.getPixelForValue(band.to);
+            const yBottom = yScale.getPixelForValue(band.from);
+            ctx.fillStyle = band.color;
+            ctx.fillRect(chartArea.left, yTop, chartArea.right - chartArea.left, yBottom - yTop);
+        }
+
+        const lines = [RAIN_CLASS_LIGHT_MAX, RAIN_CLASS_MODERATE_MAX];
+        for (const lineVal of lines) {
+            if (lineVal >= yMax) continue;
+            const py = yScale.getPixelForValue(lineVal);
+            ctx.beginPath();
+            ctx.setLineDash([4, 4]);
+            ctx.strokeStyle = 'rgba(255,255,255,0.15)';
+            ctx.moveTo(chartArea.left, py);
+            ctx.lineTo(chartArea.right, py);
+            ctx.stroke();
+        }
+        ctx.restore();
     }
 };
 
@@ -1339,7 +1545,7 @@ function renderBrightChart(ent, hrs) {
                 } 
             } 
         },
-        plugins: [crosshairPlugin]
+        plugins: [rainIntensityBandsPlugin, crosshairPlugin]
     });
 }
 
@@ -1396,7 +1602,7 @@ function renderRainChart(ent, hrs) {
             interaction: { mode: 'index', intersect: false }, 
             plugins: { 
                 legend: { display: false }, 
-                tooltip: { callbacks: { label: function(context) { const index = context.dataIndex; return [`Menge: ${context.parsed.y.toFixed(1)} l/m²`, `Rate: ${rainData[index].rate.toFixed(1)} l/m²/h`]; } } } 
+                tooltip: { callbacks: { label: function(context) { const index = context.dataIndex; return [`Menge: ${context.parsed.y.toFixed(1)} mm`, `Rate: ${rainData[index].rate.toFixed(1)} mm/h`]; } } } 
             }, 
             scales: { 
                 y: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: CHART_GRID_COLOR } }, 
