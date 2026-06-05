@@ -1580,6 +1580,7 @@ function renderBrightChart(ent, hrs) {
 function renderRainChart(ent, hrs) {
     const ctx = document.getElementById('rainChart').getContext('2d');
     if (charts['rainChart']) charts['rainChart'].destroy();
+    
     const rainData = ent.map((e, i) => {
         let rate = 0;
         if (i > 0) {
@@ -1587,22 +1588,33 @@ function renderRainChart(ent, hrs) {
             const diffTime = (e.date - ent[i-1].date) / 3600000; 
             if (diffTime > 0 && diffVal >= 0) rate = diffVal / diffTime;
         }
-        return { x: getSmartLabel(e.date, hrs), y: e.value, rate: rate };
+        return { x: getSmartLabel(e.date, hrs), origY: e.value, rate: rate };
     });
+
+    const windowSize = 5;
+    const smoothedData = rainData.map((d, index, arr) => {
+        let start = Math.max(0, index - windowSize + 1);
+        let sum = 0;
+        for (let i = start; i <= index; i++) {
+            sum += arr[i].origY;
+        }
+        return sum / (index - start + 1);
+    });
+
     charts['rainChart'] = new Chart(ctx, {
         type: 'line',
         data: { 
             labels: rainData.map(d => d.x), 
             datasets: [{ 
                 label: 'Niederschlag', 
-                data: rainData.map(d => d.y), 
+                data: smoothedData, 
                 fill: true, 
                 pointRadius: (ctx) => ctx.dataIndex === rainData.length - 1 ? 3.5 : 0,
                 pointHoverRadius: (ctx) => ctx.dataIndex === rainData.length - 1 ? 5 : 3,
                 pointBackgroundColor: (ctx) => ctx.dataIndex === rainData.length - 1 ? '#f8fafc' : 'transparent',
                 pointBorderColor: (ctx) => ctx.dataIndex === rainData.length - 1 ? '#22d3ee' : 'transparent',
                 pointBorderWidth: (ctx) => ctx.dataIndex === rainData.length - 1 ? 2 : 0,
-                stepped: true,
+                tension: 0.4,
                 borderColor: '#4dd0e1', 
                 backgroundColor: (c) => {
                     const { ctx, chartArea } = c.chart;
@@ -1630,7 +1642,17 @@ function renderRainChart(ent, hrs) {
             interaction: { mode: 'index', intersect: false }, 
             plugins: { 
                 legend: { display: false }, 
-                tooltip: { callbacks: { label: function(context) { const index = context.dataIndex; return [`Menge: ${context.parsed.y.toFixed(1)} mm`, `Rate: ${rainData[index].rate.toFixed(1)} mm/h`]; } } } 
+                tooltip: { 
+                    callbacks: { 
+                        label: function(context) { 
+                            const index = context.dataIndex; 
+                            return [
+                                `Menge: ${rainData[index].origY.toFixed(1)} mm`, 
+                                `Rate: ${rainData[index].rate.toFixed(1)} mm/h`
+                            ]; 
+                        } 
+                    } 
+                } 
             }, 
             scales: { 
                 y: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: CHART_GRID_COLOR } }, 
