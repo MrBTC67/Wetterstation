@@ -559,23 +559,6 @@
                 <span id="forecast-val" style="color: var(--text-muted); font-size: 0.9em;">...</span>
             </div>
         </div>
-        <div id="card-bright" class="card bright">
-            <svg id="sun-icon-svg" class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color: var(--color-bright)">
-                <circle cx="12" cy="12" r="5"></circle>
-                <line x1="12" y1="1" x2="12" y2="3"></line>
-                <line x1="12" y1="21" x2="12" y2="23"></line>
-                <line x1="4.22" y1="7.5" x2="2.5" y2="6.5"></line>
-                <line x1="21.5" y1="17.5" x2="19.78" y2="16.5"></line>
-                <line x1="4.22" y1="16.5" x2="2.5" y2="17.5"></line>
-                <line x1="21.5" y1="6.5" x2="19.78" y2="7.5"></line>
-            </svg>
-            <h3 style="text-transform: none;">Sonne (h)</h3>
-            <div id="sun-val-display" class="val-display" style="flex-direction: column; align-items: center; gap: 2px; color: var(--color-bright)">
-                <div class="rain-line"><span class="rain-label">Tag:</span> <span id="sun-day">--</span></div>
-                <div class="rain-line"><span class="rain-label">Mon:</span> <span id="sun-month">--</span></div>
-                <div class="rain-line"><span class="rain-label">Jahr:</span> <span id="sun-year">--</span></div>
-            </div>
-        </div>
     </div>
 
     <div class="controls-row"><label style="color: #86efac; font-size: 0.9em;">Temperatur</label><select id="period" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
@@ -622,28 +605,15 @@
         </div>
     </div>
 
-    <div class="section-header"><h2 style="color: var(--color-bright);">Helligkeit</h2><select id="sunPeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
-    <div class="chart-box">
-        <canvas id="brightChart"></canvas>
-        <div class="legend-box">
-            <div class="legend-item"><div class="legend-dot" style="background: #FFFFFF; border: 1px solid #444;"></div> >10000 Sehr klar</div>
-            <div class="legend-item"><div class="legend-dot" style="background: #f9ce1d;"></div> >7000 klar</div>
-            <div class="legend-item"><div class="legend-dot" style="background: #f39c12;"></div> >5500 sonnig</div>
-            <div class="legend-item"><div class="legend-dot" style="background: #4b5563;"></div> &lt;5500 wolkig</div>
-        </div>
-    </div>
-
     <div class="section-header"><h2 style="color: var(--color-pres);">Luftdruck</h2><select id="pressurePeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
     <div class="chart-box"><canvas id="pressureChart"></canvas></div>
 </div>
 
 <script>
-const SUN_THRESHOLD = 5500; 
 const URL_BASE = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app";
 const URL_T = `${URL_BASE}/temperature.json`;
 const URL_H = `${URL_BASE}/humidity.json`;
 const URL_P = `${URL_BASE}/pressure.json`;
-const URL_B = `${URL_BASE}/brightness.json`; 
 
 const monthNames = ["Januar", "Februar", "M\u00e4rz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
@@ -1059,17 +1029,14 @@ function updatePreviousMonthsUI(prevMonthStats) {
 async function fetchData() {
     const tempPeriodValue = document.getElementById('period').value;
     const humidityPeriodValue = document.getElementById('humidityPeriod').value;
-    const sunPeriodValue = document.getElementById('sunPeriod').value;
     const rainPeriodValue = document.getElementById('rainPeriod').value;
     const pressurePeriodValue = document.getElementById('pressurePeriod').value;
 
     const now = new Date();
     const tempPeriod = getPeriodConfig(tempPeriodValue, now);
     const humidityPeriod = getPeriodConfig(humidityPeriodValue, now);
-    const sunPeriod = getPeriodConfig(sunPeriodValue, now);
     const rainPeriod = getPeriodConfig(rainPeriodValue, now);
     const pressurePeriod = getPeriodConfig(pressurePeriodValue, now);
-    const brightnessFetchLimit = sunPeriod.isPrevMonth ? 70000 : 12000;
 
     setDataStatus('loading', 'Lade Messdaten...');
     setControlsDisabled(true);
@@ -1091,15 +1058,13 @@ async function fetchData() {
             fetch(`${URL_T}?orderBy="$key"&limitToLast=12000`),
             fetch(`${URL_H}?orderBy="$key"&limitToLast=12000`),
             fetch(`${URL_P}?orderBy="$key"&limitToLast=12000`),
-            fetch(`${URL_B}?orderBy="$key"&limitToLast=${brightnessFetchLimit}`),
             ...rainMonthUrls.map(url => fetch(`${url}?orderBy="$key"&limitToLast=12000`)),
             ...yearMonthUrls.map(url => fetch(`${url}?orderBy="$key"&limitToLast=12000`))
         ]);
         const dataT = await responses[0].json();
         const dataH = await responses[1].json();
         const dataP = await responses[2].json();
-        const dataB = await responses[3].json();
-        const rainResponsesOffset = 4;
+        const rainResponsesOffset = 3;
         const rainResponsesEnd = rainResponsesOffset + rainMonthUrls.length;
         const rainMonthData = await Promise.all(responses.slice(rainResponsesOffset, rainResponsesEnd).map(r => r.json()));
         const yearMonthData = await Promise.all(responses.slice(rainResponsesEnd).map(r => r.json()));
@@ -1113,11 +1078,6 @@ async function fetchData() {
         const entriesP_all = sortEntries(Object.keys(dataP || {}).map(k => ({ date: getUniversalDate(k), value: Number(dataP[k].value ?? 0) })).filter(e => !isNaN(e.date.getTime())));
         const entriesP = entriesP_all.filter(e => e.date >= tempPeriod.start && e.date <= tempPeriod.end);
         const entriesPChart = entriesP_all.filter(e => e.date >= pressurePeriod.start && e.date <= pressurePeriod.end).map(e => ({ date: e.date, value: e.value + PRES_OFFSET }));
-        
-        const entriesB_all = sortEntries(Object.keys(dataB || {}).map(k => {
-            const d = getUniversalDate(k);
-            return { date: d, value: Number(dataB[k].brightness ?? dataB[k] ?? 0) };
-        })).filter(e => !isNaN(e.date.getTime()));
 
         const entriesR_current = parseRainEntries(rainMonthData[0]);
         const entriesR_prev = parseRainEntries(rainMonthData[1]);
@@ -1139,7 +1099,7 @@ async function fetchData() {
             return sum + (amount === null ? 0 : amount);
         }, 0);
 
-        updateUI(entriesT, entriesH, entriesHChart, entriesP, entriesPChart, entriesB_all.filter(e => e.date >= sunPeriod.start && e.date <= sunPeriod.end), entriesB_all, entriesR_current, entriesR_selected, rainPeriod.start, rainPeriod.end, tempPeriod.chartHours, humidityPeriod.chartHours, sunPeriod.chartHours, rainPeriod.chartHours, pressurePeriod.chartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths);
+        updateUI(entriesT, entriesH, entriesHChart, entriesP, entriesPChart, entriesR_current, entriesR_selected, rainPeriod.start, rainPeriod.end, tempPeriod.chartHours, humidityPeriod.chartHours, rainPeriod.chartHours, pressurePeriod.chartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths);
         const nowText = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
         setDataStatus('ok', `Daten geladen: ${nowText}`);
     } catch (e) {
@@ -1150,7 +1110,7 @@ async function fetchData() {
     }
 }
 
-    function updateUI(entriesT, entriesH, entriesHChart, entriesP, entriesPChart, entriesB, entriesB_all, entriesRCurrent, entriesRSelected, rainRangeStart, rainRangeEnd, hours, humidityHoursPeriod, sunHoursPeriod, rainChartHours, pressureChartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths) {
+    function updateUI(entriesT, entriesH, entriesHChart, entriesP, entriesPChart, entriesRCurrent, entriesRSelected, rainRangeStart, rainRangeEnd, hours, humidityHoursPeriod, rainChartHours, pressureChartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths) {
     const now = new Date();
     const currentMonthName = monthNames[now.getMonth()];
 
@@ -1298,42 +1258,6 @@ async function fetchData() {
         const fallbackMonthName = rainPeriodValue === 'prevMonth' ? getRainMonthMeta(now, 1).monthName : currentMonthName;
         document.getElementById('rain-last-val').innerText = `Noch kein Regen im ${fallbackMonthName}`;
         renderRainChart([], rainChartHours);
-    }
-
-    // Sonnen-Logik
-    if (entriesB.length > 0) {
-        const lastB = entriesB[entriesB.length-1].value;
-        let r, g, b;
-        if (lastB < 5500) { r = 148; g = 163; b = 184; } 
-        else if (lastB < 7000) { r = 243; g = 156; b = 18; } 
-        else if (lastB < 10000) { r = 249; g = 206; b = 29; }
-        else { r = 255; g = 255; b = 255; }
-        document.getElementById('sun-icon-svg').style.color = `rgb(${r},${g},${b})`;
-        document.getElementById('sun-val-display').style.color = `rgb(${r},${g},${b})`;
-        
-        const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const startOfYear = new Date(now.getFullYear(), 0, 1);
-        
-        const calcSunHours = (list) => {
-            let count = 0;
-            for (let i = 1; i < list.length; i++) {
-                if (list[i].value >= SUN_THRESHOLD) {
-                    const diffMin = (list[i].date - list[i-1].date) / 60000;
-                    if (diffMin > 0 && diffMin < 15) count += diffMin;
-                }
-            }
-            return (count / 60).toFixed(1);
-        };
-        setValueWithFlash('sun-day', calcSunHours(entriesB_all.filter(e => e.date >= startOfDay && e.date <= now)));
-        setValueWithFlash('sun-month', calcSunHours(entriesB_all.filter(e => e.date >= startOfMonth && e.date <= now)));
-        setValueWithFlash('sun-year', calcSunHours(entriesB_all.filter(e => e.date >= startOfYear && e.date <= now)));
-        renderBrightChart(entriesB, sunHoursPeriod);
-    } else {
-        setValueWithFlash('sun-day', '0.0');
-        setValueWithFlash('sun-month', '0.0');
-        setValueWithFlash('sun-year', '0.0');
-        renderBrightChart([], sunHoursPeriod);
     }
 }
 
@@ -1522,58 +1446,6 @@ function renderHumidityChart(ent, hrs) {
             }
         },
         plugins: [minMaxPlugin, crosshairPlugin]
-    });
-}
-
-function renderBrightChart(ent, hrs) {
-    const ctx = document.getElementById('brightChart').getContext('2d');
-    if (charts['brightChart']) charts['brightChart'].destroy();
-    charts['brightChart'] = new Chart(ctx, {
-        type: 'line',
-        data: {
-            labels: ent.map(e => getSmartLabel(e.date, hrs)),
-            datasets: [{
-                label: 'Lux', data: ent.map(e => e.value), fill: true,
-                pointRadius: (ctx) => ctx.dataIndex === ent.length - 1 ? 3.5 : 0,
-                pointHoverRadius: (ctx) => ctx.dataIndex === ent.length - 1 ? 5 : 3,
-                pointBackgroundColor: (ctx) => ctx.dataIndex === ent.length - 1 ? '#ffffff' : 'transparent',
-                pointBorderColor: (ctx) => ctx.dataIndex === ent.length - 1 ? '#facc15' : 'transparent',
-                pointBorderWidth: (ctx) => ctx.dataIndex === ent.length - 1 ? 2 : 0,
-                tension: 0.4,
-                borderColor: '#ffd54f', backgroundColor: (c) => {
-                    const { ctx, chartArea } = c.chart;
-                    if (!chartArea) return null;
-                    const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
-                    gradient.addColorStop(0, 'rgba(250, 204, 21, 0.00)');
-                    gradient.addColorStop(0.32, 'rgba(250, 204, 21, 0.18)');
-                    gradient.addColorStop(0.66, 'rgba(253, 224, 71, 0.26)');
-                    gradient.addColorStop(1, 'rgba(255, 255, 255, 0.34)');
-                    return gradient;
-                },
-                segment: { borderColor: ctx => { const val = (ctx.p0.parsed.y + ctx.p1.parsed.y) / 2; if (val >= 10000) return '#ffffff'; if (val >= 7000) return '#f9ce1d'; if (val >= 5500) return '#f39c12'; return '#4b5563'; } }
-            }]
-        },
-        options: { 
-            responsive: true, maintainAspectRatio: false, animation: false, 
-            plugins: { legend: { display: false } }, 
-            scales: { 
-                y: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: CHART_GRID_COLOR } }, 
-                x: { 
-                    ticks: { 
-                        color: CHART_TEXT_COLOR, 
-                        maxTicksLimit: hrs === 4 ? 5 : 8,
-                        callback: function(val, index) {
-                            const label = this.getLabelForValue(val);
-                            if (hrs === 4) {
-                                if (index > 0 && label === this.getLabelForValue(val - 1)) return '';
-                            }
-                            return label;
-                        }
-                    } 
-                } 
-            } 
-        },
-        plugins: [rainIntensityBandsPlugin, crosshairPlugin]
     });
 }
 
