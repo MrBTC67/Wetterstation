@@ -235,25 +235,9 @@
             --card-top-mid: #22d3ee;
             --card-top-end: #a5f3fc;
         }
-        .card.forecast { --accent-color: var(--color-forecast); }
-        .card.forecast {
-            --card-tint: rgba(255, 204, 128, 0.20);
-            --card-border: rgba(255, 204, 128, 0.52);
-            --card-top-start: #ffd07a;
-            --card-top-mid: #f59e0b;
-            --card-top-end: #fcd34d;
-        }
-        .card.forecast h3 {
-            color: #ffe5b5;
-        }
-        .card.dew-card {
-            --accent-color: var(--color-dew);
-            --card-tint: rgba(220, 231, 117, 0.24);
-            --card-border: rgba(220, 231, 117, 0.48);
-            --card-top-start: #d9f99d;
-            --card-top-mid: #bef264;
-            --card-top-end: #ecfccb;
-        }
+        .dew-secondary { margin-top: 8px; color: var(--text-muted); display: flex; align-items: baseline; gap: 5px; font-weight: 700; }
+        .dew-secondary-label { font-size: 0.72em; }
+        .dew-secondary strong { color: var(--color-dew); font-size: 1.9em; }
         .card.bright {
             --accent-color: var(--color-bright);
             --card-tint: rgba(255, 213, 79, 0.24);
@@ -261,17 +245,6 @@
             --card-top-start: #fde68a;
             --card-top-mid: #facc15;
             --card-top-end: #fef3c7;
-        }
-        .forecast-line {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-        }
-        .forecast-icon {
-            font-size: 1.15em;
-            line-height: 1;
-            filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.18));
         }
         
         .card-icon { width: 20px; height: 20px; margin-bottom: 8px; stroke: currentColor; opacity: 0.8; }
@@ -295,6 +268,13 @@
             background: rgba(15, 23, 42, 0.4); border-radius: 24px; padding: 15px 10px 45px 10px; 
             margin-bottom: 15px; border: 1px solid var(--border-color); height: 320px; 
             box-sizing: border-box; position: relative; 
+        }
+        .fog-note {
+            margin: -8px 0 15px;
+            color: #fdba74;
+            font-size: 0.78em;
+            font-weight: 700;
+            text-align: center;
         }
 
         .status-good { color: #34d399 !important; }
@@ -428,9 +408,6 @@
                 align-self: center;
                 text-align: center;
             }
-            .forecast-icon {
-                font-size: 0.8em;
-            }
             #rainCard .val-display,
             #card-bright .val-display {
                 font-size: 0.82em;
@@ -454,7 +431,6 @@
             #curr-hum,
             #min-temp-val,
             #max-temp-val,
-            #curr-temp-dew,
             #curr-pres {
                 font-size: 2em;
                 line-height: 1;
@@ -463,11 +439,11 @@
                 font-size: 1.8em;
                 line-height: 1;
             }
+            .dew-secondary strong { font-size: 2em; line-height: 1; }
             #temp-display .unit,
             #hum-display .unit,
             .card.min .unit,
-            .card.max .unit,
-            #dew-display .unit {
+            .card.max .unit {
                 font-size: 2em;
                 line-height: 1;
             }
@@ -496,7 +472,6 @@
                 <strong>Taupunkt:</strong> Temperatur, bei der Luftfeuchtigkeit kondensiert.<br>
                 <strong>Luftdruck:</strong> Normalwert ca. 1013 hPa.<br>
                 <strong>Niederschlag:</strong> In Deutschland ca. 800 mm pro Jahr.<br>
-                <strong>Prognose:</strong> Trendberechnung aus Luftdruckänderung (letzte Stunde).
             </div>
         </div>
     </div>
@@ -526,6 +501,7 @@
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5L12 2 8.1 9.5C6.1 11.1 5 13 5 15a7 7 0 0 0 7 7Z"></path></svg>
             <h3>Feuchte</h3>
             <div id="hum-display" class="val-display accent-text"><span id="curr-hum">--</span><span class="unit">%</span></div>
+            <div class="dew-secondary"><span class="dew-secondary-label">Taupunkt</span><strong id="curr-temp-dew">--</strong><span class="unit">°C</span></div>
         </div>
         <div class="card pres">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M12 7v5l3 3"></path></svg>
@@ -546,23 +522,9 @@
         </div>
     </div>
 
-    <div class="stats">
-        <div id="card-dew" class="card dew-card">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M7 16.3c2.2 0 4-1.8 4-4 0-2.2-4-6-4-6s-4 3.8-4 6c0 2.2 1.8 4 4 4Z"></path><path d="M17 20.3c2.2 0 4-1.8 4-4 0-2.2-4-6-4-6s-4 3.8-4 6c0 2.2 1.8 4 4 4Z"></path></svg>
-            <h3>Taupunkt</h3>
-            <div id="dew-display" class="val-display accent-text"><span id="curr-temp-dew">--</span><span class="unit">°C</span></div>
-        </div>
-        <div class="card forecast">
-            <h3>Prognose</h3>
-            <div class="val-display forecast-line">
-                <span id="forecast-icon" class="forecast-icon">⛅</span>
-                <span id="forecast-val" style="color: var(--text-muted); font-size: 0.9em;">...</span>
-            </div>
-        </div>
-    </div>
-
     <div class="controls-row"><label style="color: #86efac; font-size: 0.9em;">Temperatur</label><select id="period" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
     <div class="chart-box"><canvas id="mainChart"></canvas></div>
+    <div class="fog-note">Roter Bereich: Nebel möglich</div>
 
     <div class="section-header"><h2 style="color: #5eead4;">Feuchte</h2><select id="humidityPeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
     <div class="chart-box"><canvas id="humidityChart"></canvas></div>
@@ -849,23 +811,26 @@ function applyDynamicCardTheme(cardId, valueDisplayId) {
     card.style.setProperty('--card-top-end', toRgbCss(topEnd));
 }
 
-function getForecastPresentation(diff) {
-    if (diff > 0.5) {
-        return { text: 'Heiter', icon: '☀️' };
-    }
-    if (diff < -0.5) {
-        return { text: 'Wind/Regen', icon: '🌧️' };
-    }
-    return { text: 'Beständig', icon: '⛅' };
-}
-
 function calculateDewPoint(temp, hum) { 
     if (temp === undefined || hum === undefined || hum <= 0) return 0; 
     const a = 17.27, b = 237.7, alpha = ((a * temp) / (b + temp)) + Math.log(hum / 100.0); 
     return (b * alpha) / (a - alpha); 
 }
 
-// Markiert wie im Datenlogger Taupunkt-Risikopunkte mit 1 bis 2 °C Abstand.
+function findNearestHumidity(tempEntry, humidityEntries, maxDifferenceMs = 5 * 60 * 1000) {
+    let nearest = null;
+    let nearestDifference = Infinity;
+    for (const humidityEntry of humidityEntries) {
+        const difference = Math.abs(humidityEntry.date - tempEntry.date);
+        if (difference < nearestDifference) {
+            nearest = humidityEntry;
+            nearestDifference = difference;
+        }
+    }
+    return nearestDifference <= maxDifferenceMs ? nearest : null;
+}
+
+// Markiert Taupunktnähe bis 1,5 °C; bis 1 °C dezent rot, darüber orange.
 const dewRiskZones = {
     id: 'dewRiskZones',
     beforeDatasetsDraw(chart) {
@@ -876,14 +841,21 @@ const dewRiskZones = {
         ctx.save();
         for (let i = 0; i < values.length; i++) {
             const gap = Number(points[i]) - Number(values[i]);
-            if (!Number.isFinite(gap) || gap < 1 || gap > 2) continue;
+            if (!Number.isFinite(gap) || gap < 0 || gap > 1.5) continue;
             const x = scales.x.getPixelForValue(i);
             const previousX = i > 0 ? scales.x.getPixelForValue(i - 1) : x - 8;
             const nextX = i < values.length - 1 ? scales.x.getPixelForValue(i + 1) : x + 8;
             const width = Math.max(2, Math.min(x - previousX, nextX - x));
-            const orangeStrength = 1 - ((gap - 1) / (2 - 1));
-            const orangeAlpha = 0.08 + (orangeStrength * 0.22);
-            ctx.fillStyle = `rgba(249, 115, 22, ${orangeAlpha.toFixed(3)})`;
+            let zoneColor;
+            if (gap <= 1) {
+                const redAlpha = 0.12 + (0.10 * (1 - gap));
+                zoneColor = `rgba(239, 68, 68, ${redAlpha.toFixed(3)})`;
+            } else {
+                const orangeStrength = (1.5 - gap) / 0.5;
+                const orangeAlpha = 0.08 + (orangeStrength * 0.08);
+                zoneColor = `rgba(249, 115, 22, ${orangeAlpha.toFixed(3)})`;
+            }
+            ctx.fillStyle = zoneColor;
             ctx.fillRect(x - width, chartArea.top, width * 2, chartArea.bottom - chartArea.top);
         }
         ctx.restore();
@@ -1169,18 +1141,24 @@ async function fetchData() {
     }
     renderHumidityChart(entriesHChart, humidityHoursPeriod);
     if (entriesH.length > 0 && entriesT.length > 0) {
-        let lastH = entriesH[entriesH.length-1].value;
-        let lastT = entriesT[entriesT.length-1].value;
-        let dewPoint = calculateDewPoint(lastT, lastH);
-        setValueWithFlash('curr-temp-dew', dewPoint.toFixed(1));
-        const dewDisplayEl = document.getElementById('dew-display');
-        dewDisplayEl.style.color = getTempColor(dewPoint);
-        applyDynamicCardTheme('card-dew', 'dew-display');
         if (charts.mainChart) {
-            charts.mainChart.dewValues = entriesT.map((entry, index) =>
-                entriesH[index] ? calculateDewPoint(entry.value, entriesH[index].value) : NaN
-            );
+            charts.mainChart.dewValues = entriesT.map(entry => {
+                const humidityEntry = findNearestHumidity(entry, entriesH);
+                return humidityEntry ? calculateDewPoint(entry.value, humidityEntry.value) : NaN;
+            });
             charts.mainChart.update('none');
+        }
+
+        const lastTempEntry = entriesT[entriesT.length - 1];
+        // Für die aktuelle Karte darf der letzte passende Feuchtewert bis zu 15 Minuten alt sein.
+        // Die Diagrammwerte bleiben weiterhin auf 5 Minuten begrenzt.
+        const currentHumidityEntry = findNearestHumidity(lastTempEntry, entriesH, 15 * 60 * 1000)
+            || entriesH[entriesH.length - 1];
+        if (currentHumidityEntry) {
+            const dewPoint = calculateDewPoint(lastTempEntry.value, currentHumidityEntry.value);
+            const dewValueEl = document.getElementById('curr-temp-dew');
+            setValueWithFlash(dewValueEl, dewPoint.toFixed(1));
+            dewValueEl.style.color = getTempColor(dewPoint);
         }
     }
     if (entriesP.length > 0) {
@@ -1205,15 +1183,9 @@ async function fetchData() {
                 trendArrowEl.innerText = '→';
                 trendArrowEl.className = 'pres-trend-arrow flat';
             }
-            const forecast = getForecastPresentation(ratePerHour);
-            document.getElementById('forecast-val').innerText = forecast.text;
-            document.getElementById('forecast-icon').innerText = forecast.icon;
         } else {
             trendArrowEl.innerText = '→';
             trendArrowEl.className = 'pres-trend-arrow flat';
-            const forecast = getForecastPresentation(0);
-            document.getElementById('forecast-val').innerText = forecast.text;
-            document.getElementById('forecast-icon').innerText = forecast.icon;
             applyStatusClass(document.getElementById('pres-rate-val'), 'good');
         }
     }
