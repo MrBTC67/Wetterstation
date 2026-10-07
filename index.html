@@ -865,6 +865,31 @@ function calculateDewPoint(temp, hum) {
     return (b * alpha) / (a - alpha); 
 }
 
+// Markiert wie im Datenlogger Taupunkt-Risikopunkte mit 1 bis 2 °C Abstand.
+const dewRiskZones = {
+    id: 'dewRiskZones',
+    beforeDatasetsDraw(chart) {
+        const values = chart.dewValues;
+        if (!values || !chart.chartArea || !chart.scales.x) return;
+        const points = chart.data.datasets[0].data;
+        const { ctx, chartArea, scales } = chart;
+        ctx.save();
+        for (let i = 0; i < values.length; i++) {
+            const gap = Number(points[i]) - Number(values[i]);
+            if (!Number.isFinite(gap) || gap < 1 || gap > 2) continue;
+            const x = scales.x.getPixelForValue(i);
+            const previousX = i > 0 ? scales.x.getPixelForValue(i - 1) : x - 8;
+            const nextX = i < values.length - 1 ? scales.x.getPixelForValue(i + 1) : x + 8;
+            const width = Math.max(2, Math.min(x - previousX, nextX - x));
+            const orangeStrength = 1 - ((gap - 1) / (2 - 1));
+            const orangeAlpha = 0.08 + (orangeStrength * 0.22);
+            ctx.fillStyle = `rgba(249, 115, 22, ${orangeAlpha.toFixed(3)})`;
+            ctx.fillRect(x - width, chartArea.top, width * 2, chartArea.bottom - chartArea.top);
+        }
+        ctx.restore();
+    }
+};
+
 function getCutoffDate(val, now) {
     if (val === 30) {
         return new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
@@ -1151,6 +1176,12 @@ async function fetchData() {
         const dewDisplayEl = document.getElementById('dew-display');
         dewDisplayEl.style.color = getTempColor(dewPoint);
         applyDynamicCardTheme('card-dew', 'dew-display');
+        if (charts.mainChart) {
+            charts.mainChart.dewValues = entriesT.map((entry, index) =>
+                entriesH[index] ? calculateDewPoint(entry.value, entriesH[index].value) : NaN
+            );
+            charts.mainChart.update('none');
+        }
     }
     if (entriesP.length > 0) {
         let lastP = entriesP[entriesP.length-1].value + PRES_OFFSET;
@@ -1385,7 +1416,7 @@ function renderMainChart(ent, hrs) {
                 } 
             } 
         },
-        plugins: [minMaxPlugin, crosshairPlugin]
+        plugins: [minMaxPlugin, crosshairPlugin, dewRiskZones]
     });
 }
 
