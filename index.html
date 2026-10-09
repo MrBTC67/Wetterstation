@@ -1493,8 +1493,11 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
                 pointBackgroundColor: (ctx) => ctx.dataIndex === rainData.length - 1 ? '#f8fafc' : 'transparent',
                 pointBorderColor: (ctx) => ctx.dataIndex === rainData.length - 1 ? '#22d3ee' : 'transparent',
                 pointBorderWidth: (ctx) => ctx.dataIndex === rainData.length - 1 ? 2 : 0,
+                // Die Messpunkte bleiben unverändert. Chart.js verbindet sie
+                // nur für die Darstellung zeitlinear; der aktuelle Rand bleibt
+                // bis zum nächsten echten Wippenschlag waagerecht.
                 tension: 0,
-                stepped: 'before',
+                stepped: false,
                 borderColor: '#4dd0e1', 
                 backgroundColor: (c) => {
                     const { ctx, chartArea } = c.chart;
