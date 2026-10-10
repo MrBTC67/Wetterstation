@@ -1,0 +1,12 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "wetterstation",
+      "runtimeExecutable": "python",
+      "runtimeArgs": ["-c", "import os,sys,http.server as h; h.test(HandlerClass=h.SimpleHTTPRequestHandler, port=int(os.environ.get('PORT', 8765)))"],
+      "port": 8765,
+      "autoPort": true
+    }
+  ]
+}
