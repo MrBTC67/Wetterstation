@@ -289,6 +289,7 @@
         .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
         .temp-scale { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; font-size: 0.7em; color: var(--text-muted); }
         .temp-scale-bar { width: 200px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #ba68c8, #64b5f6, #26a69a, #fff176, #ffb74d, #ef5350); }
+        .temp-scale-bar.hum { background: linear-gradient(90deg, #ffb74d, #fff176, #26a69a, #64b5f6, #ef5350); }
 
         .rain-table { width: 100%; border-collapse: collapse; margin: 0 0 20px 0; background: rgba(77, 208, 225, 0.05); border: 1px solid rgba(77, 208, 225, 0.1); border-radius: 15px; overflow: hidden; font-size: 0.9em; }
         .rain-table th, .rain-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid rgba(77, 208, 225, 0.1); }
@@ -496,6 +497,7 @@
 
     <div class="section-header"><h2 style="color: #5eead4;">Feuchte</h2><select id="humidityPeriod" aria-label="Zeitraum Feuchte" onchange="fetchData()"></select></div>
     <div class="chart-box"><canvas id="humidityChart"></canvas></div>
+    <div class="temp-scale" aria-hidden="true"><span>0 %</span><div class="temp-scale-bar hum"></div><span>100 %</span></div>
 
     <section class="rain-section">
     <div class="section-header"><div class="section-title"><h2 style="color: var(--color-dry);">Niederschlag</h2><span id="rain-total" class="section-total"></span></div><select id="rainPeriod" aria-label="Zeitraum Niederschlag" onchange="fetchData()"></select></div>
@@ -1284,18 +1286,29 @@ function makeCategoryTickCallback(ent, hrs) {
         if (!dayIndex.has(key)) dayIndex.set(key, dayIndex.size);
     }
     const dayStep = dayTickStep(dayIndex.size);
+    // Die Zeitachse ist nach Messpunkten verteilt: Beschriftungen, die einer schon gesetzten zu nahe kämen, entfallen.
+    const minLabelGap = 64;
+    let lastLabelX = -Infinity;
     return function(val, index) {
         const label = this.getLabelForValue(val);
+        if (index === 0) lastLabelX = -Infinity;
+        let wanted;
         if (shortPeriod) {
             const date = ent[index]?.date;
             if (!date) return '';
             const prev = ent[index - 1]?.date;
             const firstOfHour = !prev || prev.getHours() !== date.getHours() || prev.toDateString() !== date.toDateString();
-            return firstOfHour && date.getHours() % hourStep === 0 ? label : '';
+            wanted = firstOfHour && date.getHours() % hourStep === 0;
+        } else {
+            const day = dayIndex.get(ent[index]?.date.toDateString());
+            const firstOfDay = index === 0 || dayIndex.get(ent[index - 1]?.date.toDateString()) !== day;
+            wanted = firstOfDay && day % dayStep === 0;
         }
-        const day = dayIndex.get(ent[index]?.date.toDateString());
-        const firstOfDay = index === 0 || dayIndex.get(ent[index - 1]?.date.toDateString()) !== day;
-        return firstOfDay && day % dayStep === 0 ? label : '';
+        if (!wanted) return '';
+        const x = this.getPixelForValue(index);
+        if (x - lastLabelX < minLabelGap) return '';
+        lastLabelX = x;
+        return label;
     };
 }
 
@@ -1340,18 +1353,31 @@ const TEMP_SCALE = [
     { t: 40, color: '#ef5350' }
 ];
 
-function temperatureLineGradient(c) {
-    const { ctx, chartArea, scales } = c.chart;
-    if (!chartArea || !scales.y) return '#26a69a';
-    const y = scales.y;
-    const bottom = y.getPixelForValue(TEMP_SCALE[0].t);
-    const top = y.getPixelForValue(TEMP_SCALE[TEMP_SCALE.length - 1].t);
-    const gradient = ctx.createLinearGradient(0, bottom, 0, top);
-    for (const stop of TEMP_SCALE) {
-        gradient.addColorStop((y.getPixelForValue(stop.t) - bottom) / (top - bottom), stop.color);
-    }
-    return gradient;
+// Gleiches Prinzip für die Feuchte: trocken warm (Orange), ausgewogen Türkis, feucht kühl (Blau bis Rot), fest auf 0–100 %.
+const HUMIDITY_SCALE = [
+    { t: 0, color: '#ffb74d' },
+    { t: 25, color: '#fff176' },
+    { t: 50, color: '#26a69a' },
+    { t: 75, color: '#64b5f6' },
+    { t: 100, color: '#ef5350' }
+];
+
+function scaleLineGradient(scale) {
+    return function(c) {
+        const { ctx, chartArea, scales } = c.chart;
+        if (!chartArea || !scales.y) return scale[Math.floor(scale.length / 2)].color;
+        const y = scales.y;
+        const bottom = y.getPixelForValue(scale[0].t);
+        const top = y.getPixelForValue(scale[scale.length - 1].t);
+        const gradient = ctx.createLinearGradient(0, bottom, 0, top);
+        for (const stop of scale) {
+            gradient.addColorStop((y.getPixelForValue(stop.t) - bottom) / (top - bottom), stop.color);
+        }
+        return gradient;
+    };
 }
+const temperatureLineGradient = scaleLineGradient(TEMP_SCALE);
+const humidityLineGradient = scaleLineGradient(HUMIDITY_SCALE);
 
 function renderMainChart(ent, hrs) {
     ent = withHourMarks(ent, periodBounds.temp);
@@ -1409,20 +1435,21 @@ function renderHumidityChart(ent, hrs) {
         .filter(value => value !== null && Number.isFinite(value));
     let humidityMin = 0;
     let humidityMax = 100;
+    let step = 10;
     if (humidityValues.length > 0) {
         const dataMin = Math.min(...humidityValues);
         const dataMax = Math.max(...humidityValues);
         const dataRange = dataMax - dataMin;
         const padding = Math.max(3, dataRange * 0.15);
         const minimumRange = 10;
-        // Ein Randwert allein braucht eine innere ganzzahlige Mitte, damit
-        // die Achse trotz Symmetrie einen gültigen Bereich behalten kann.
-        const center = Math.min(99, Math.max(1, Math.round((dataMin + dataMax) / 2)));
+        // Schrittweite so wählen, dass höchstens etwa sieben runde Beschriftungen entstehen.
         const requiredTolerance = Math.ceil(Math.max(minimumRange / 2, dataRange / 2 + padding));
-        const maximumSymmetricTolerance = Math.min(center, 100 - center);
-        const tolerance = Math.min(requiredTolerance, maximumSymmetricTolerance);
+        step = [1, 2, 5, 10, 20].find(s => requiredTolerance * 2 / s <= 7) || 20;
+        // Mitte und Abstand liegen auf Vielfachen der Schrittweite: runde Achsenwerte, beide Grenzen gleich weit von der Mitte.
+        const center = Math.min(100 - step, Math.max(step, Math.round((dataMin + dataMax) / 2 / step) * step));
+        const maximumSymmetricTolerance = Math.floor(Math.min(center, 100 - center) / step) * step;
+        const tolerance = Math.min(Math.ceil(requiredTolerance / step) * step, maximumSymmetricTolerance);
 
-        // Beide Grenzen bleiben exakt gleich weit vom Datenmittelpunkt entfernt.
         humidityMin = center - tolerance;
         humidityMax = center + tolerance;
     }
@@ -1435,7 +1462,7 @@ function renderHumidityChart(ent, hrs) {
                 ...latestPointStyle(ent.length, '#2dd4bf'),
                 tension: 0.35,
                 spanGaps: true,
-                borderColor: '#2dd4bf', backgroundColor: (c) => {
+                borderColor: humidityLineGradient, backgroundColor: (c) => {
                     const { ctx, chartArea } = c.chart;
                     if (!chartArea) return null;
                     const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
@@ -1456,7 +1483,7 @@ function renderHumidityChart(ent, hrs) {
                 y: {
                     min: humidityMin,
                     max: humidityMax,
-                    ticks: { color: CHART_TEXT_COLOR, stepSize: 1, precision: 0, callback: v => `${v} %` },
+                    ticks: { color: CHART_TEXT_COLOR, stepSize: step, precision: 0, callback: v => `${v} %` },
                     grid: { color: CHART_GRID_COLOR }
                 },
                 x: {
