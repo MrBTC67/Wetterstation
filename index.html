@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wetterstation Kirchheide - Slate Mode</title>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
     <style>
         :root { 
             --color-dry: #4dd0e1; 
@@ -186,6 +186,7 @@
             min-height: 2.2em;
         }
         .unit { font-size: 0.7em; font-weight: 400; color: var(--text-muted); }
+        .period-note { font-size: 0.65em; color: var(--text-muted); margin-top: 4px; }
         
         .card.temp {
             --accent-color: var(--color-temp);
@@ -248,10 +249,10 @@
         }
         
         .card-icon { width: 20px; height: 20px; margin-bottom: 8px; stroke: currentColor; opacity: 0.8; }
-        .card-icon { display: none; }
         #sun-icon-svg { display: block; }
         
-        #frost-alarm { position: absolute; left: 10px; top: 10px; display: none; color: var(--color-frost); animation: frost-pulse 1.5s infinite ease-in-out; }
+        #frost-alarm { position: absolute; left: 10px; bottom: 10px; display: none; align-items: center; gap: 4px; color: var(--color-frost); animation: frost-pulse 1.5s infinite ease-in-out; }
+        .frost-label { font-size: 0.65em; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
         @keyframes frost-pulse { 0% { opacity: 0.3; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0.3; transform: scale(0.9); } }
         
         .accent-text { color: var(--accent-color) !important; }
@@ -304,7 +305,11 @@
             flex-wrap: wrap;
             gap: 8px;
         }
-        .rain-stat-item { flex: 1; min-width: 180px; }
+        .rain-table { width: 100%; border-collapse: collapse; margin: -10px 0 20px 0; background: rgba(77, 208, 225, 0.05); border: 1px solid rgba(77, 208, 225, 0.1); border-radius: 15px; overflow: hidden; font-size: 0.9em; }
+        .rain-table th, .rain-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid rgba(77, 208, 225, 0.1); }
+        .rain-table tr:last-child th, .rain-table tr:last-child td { border-bottom: none; }
+        .rain-table th { width: 45%; font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 800; color: var(--text-muted); }
+        .rain-table td { text-align: right; font-weight: 700; color: var(--color-dry); transition: color 0.3s; }
         .rain-stat-label { font-size: 0.72em; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 3px; font-weight: 800; letter-spacing: 0.4px; }
         .rain-stat-val { font-size: 0.9em; font-weight: 700; color: var(--color-dry); transition: color 0.3s; }
 
@@ -359,15 +364,21 @@
 
         @media (max-width: 599px) {
             .rate-badge { min-width: 175px; }
+            .chart-box { height: 260px; }
             .rain-stats-row {
-                flex-direction: column;
+                display: grid;
+                grid-template-columns: repeat(2, minmax(0, 1fr));
                 gap: 1em;
             }
             .rain-stats-row .rain-stat-item {
-                flex: 0 0 100%;
-                max-width: 100%;
+                flex: none;
+                max-width: none;
                 min-width: 0;
                 margin-top: 0;
+            }
+            /* Die Info-Zeile bekommt die volle Breite, die übrigen Kennzahlen stehen zu zweit nebeneinander. */
+            .rain-stats-row .rain-stat-item:first-child {
+                grid-column: 1 / -1;
             }
             .rain-stats-row .rain-stat-label,
             .rain-stats-row .rain-stat-val {
@@ -478,10 +489,11 @@
         </div>
     </div>
     <div id="last-update-ts" class="last-update">Zuletzt aktualisiert: --:-- Uhr</div>
+    <div id="data-status" class="data-status"></div>
     
     <div class="stats">
         <div id="card-temp" class="card temp">
-            <div id="frost-alarm"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"></line><line x1="20" y1="12" x2="4" y2="12"></line><line x1="17.66" y1="6.34" x2="6.34" y2="17.66"></line><line x1="17.66" y1="17.66" x2="6.34" y2="6.34"></line></svg></div>
+            <div id="frost-alarm"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"></line><line x1="20" y1="12" x2="4" y2="12"></line><line x1="17.66" y1="6.34" x2="6.34" y2="17.66"></line><line x1="17.66" y1="17.66" x2="6.34" y2="6.34"></line></svg><span class="frost-label">Frostgefahr</span></div>
             <svg id="icon-temp" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
             <h3>Temperatur</h3>
             <div id="temp-display" class="val-display accent-text"><span id="curr-temp">--</span><span class="unit">°C</span></div>
@@ -490,11 +502,13 @@
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--color-min)"><path d="M12 9V3m0 0L9 6m3-3 3 3m-3 15v-6m0 0-3 3m3-3 3 3"></path><path d="M14 14.54V4a2 2 0 0 0-4 0v10.54a4 4 0 1 0 4 0Z"></path></svg>
             <h3>Min-Temp</h3>
             <div class="val-display accent-text" style="color: var(--color-min) !important;"><span id="min-temp-val">--</span><span class="unit">°C</span></div>
+            <div class="period-note minmax-period">Zeitraum: --</div>
         </div>
         <div class="card max">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--color-max)"><path d="M12 3v6m0 0L9 6m3 3 3-3m-3 9v6m0 0-3-3m3 3 3-3"></path><path d="M14 14.54V4a2 2 0 0 0-4 0v10.54a4 4 0 1 0 4 0Z"></path></svg>
             <h3>Max-Temp</h3>
             <div class="val-display accent-text" style="color: var(--color-max) !important;"><span id="max-temp-val">--</span><span class="unit">°C</span></div>
+            <div class="period-note minmax-period">Zeitraum: --</div>
         </div>
     </div>
 
@@ -503,7 +517,7 @@
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5L12 2 8.1 9.5C6.1 11.1 5 13 5 15a7 7 0 0 0 7 7Z"></path></svg>
             <h3>Feuchte</h3>
             <div id="hum-display" class="val-display accent-text"><span id="curr-hum">--</span><span class="unit">%</span></div>
-            <div class="dew-secondary"><span class="dew-secondary-label">TP</span><strong id="curr-temp-dew">--</strong><span class="unit dew-unit">°C</span></div>
+            <div class="dew-secondary"><span class="dew-secondary-label">Taupunkt</span><strong id="curr-temp-dew">--</strong><span class="unit dew-unit">°C</span></div>
         </div>
         <div class="card pres">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M12 7v5l3 3"></path></svg>
@@ -524,14 +538,22 @@
         </div>
     </div>
 
-    <div class="controls-row"><label style="color: #86efac; font-size: 0.9em;">Temperatur</label><select id="period" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
+    <div class="controls-row"><label for="period" style="color: #86efac; font-size: 0.9em;">Temperatur</label><select id="period" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
     <div class="chart-box"><canvas id="mainChart"></canvas></div>
-    <div class="fog-note">Roter Bereich: Nebel möglich</div>
+    <div class="legend-box">
+        <span class="legend-item"><span class="legend-dot" style="background: #ba68c8;"></span>unter -10 °C</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #64b5f6;"></span>-10 bis 0 °C</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #26a69a;"></span>0 bis 10 °C</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #fff176;"></span>10 bis 20 °C</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #ffb74d;"></span>20 bis 30 °C</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #ef5350;"></span>über 30 °C</span>
+    </div>
+    <div class="fog-note">Rote oder orange Bereiche = Nebel möglich</div>
 
-    <div class="section-header"><h2 style="color: #5eead4;">Feuchte</h2><select id="humidityPeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
+    <div class="section-header"><h2 style="color: #5eead4;">Feuchte</h2><select id="humidityPeriod" aria-label="Zeitraum Feuchte" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
     <div class="chart-box"><canvas id="humidityChart"></canvas></div>
 
-    <div class="section-header"><h2 style="color: var(--color-dry);">Niederschlag</h2><select id="rainPeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
+    <div class="section-header"><h2 style="color: var(--color-dry);">Niederschlag</h2><select id="rainPeriod" aria-label="Zeitraum Niederschlag" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
     <div class="chart-box"><canvas id="rainChart"></canvas></div>
     
     <div class="rate-row">
@@ -546,43 +568,36 @@
         <div id="prev-month-rain-grid" class="month-badge-grid"></div>
     </div>
 
-    <div class="rain-stats-row">
-        <div class="rain-stat-item" style="flex: 1;">
-            <span class="rain-stat-label">Info</span>
-            <span id="rain-last-val" class="rain-stat-val">--</span>
-        </div>
-        <div class="rain-stat-item">
-            <span class="rain-stat-label">Zeitraum-Summe</span>
-            <span id="rain-range-sum-val" class="rain-stat-val">--</span>
-        </div>
-        <div class="rain-stat-item">
-            <span class="rain-stat-label">Peak-Zeit</span>
-            <span id="rain-peak-time-val" class="rain-stat-val">--</span>
-        </div>
-        <div class="rain-stat-item">
-            <span class="rain-stat-label">Vergleich zur Norm Menge/Monat.</span>
-            <span id="rain-norm-val" class="rain-stat-val">--</span>
-        </div>
-        <div class="rain-stat-item">
-            <span class="rain-stat-label">Regenereignis</span>
-            <span id="rain-event-val" class="rain-stat-val">--</span>
-        </div>
-    </div>
+    <table class="rain-table">
+        <tbody>
+            <tr><th scope="row">Info</th><td id="rain-last-val">--</td></tr>
+            <tr><th scope="row">Zeitraum-Summe</th><td id="rain-range-sum-val">--</td></tr>
+            <tr><th scope="row">Peak-Zeit</th><td id="rain-peak-time-val">--</td></tr>
+            <tr><th scope="row">Vergleich zur Norm (Menge/Monat)</th><td id="rain-norm-val">--</td></tr>
+            <tr><th scope="row">Regenereignis</th><td id="rain-event-val">--</td></tr>
+        </tbody>
+    </table>
 
-    <div class="section-header"><h2 style="color: var(--color-pres);">Luftdruck</h2><select id="pressurePeriod" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
+    <div class="section-header"><h2 style="color: var(--color-pres);">Luftdruck</h2><select id="pressurePeriod" aria-label="Zeitraum Luftdruck" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
     <div class="chart-box"><canvas id="pressureChart"></canvas></div>
 </div>
 
 <script>
 const URL_BASE = "https://wetterdaten-98f0f-default-rtdb.europe-west1.firebasedatabase.app";
-const URL_T = `${URL_BASE}/temperature.json`;
-const URL_H = `${URL_BASE}/humidity.json`;
-const URL_P = `${URL_BASE}/pressure.json`;
+const SENSOR_URLS = [
+    { key: 'temperature', url: `${URL_BASE}/temperature.json` },
+    { key: 'humidity', url: `${URL_BASE}/humidity.json` },
+    { key: 'pressure', url: `${URL_BASE}/pressure.json` }
+];
+const FETCH_QUERY = '?orderBy="$key"&limitToLast=12000';
 
 const monthNames = ["Januar", "Februar", "M\u00e4rz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
 const PRES_OFFSET = 14.5;
 let charts = {};
+// Bei vielen Messpunkten nur Minimum und Maximum pro Bildbereich zeichnen, damit Extremwerte erhalten bleiben.
+Chart.defaults.plugins.decimation.enabled = true;
+Chart.defaults.plugins.decimation.algorithm = 'min-max';
 const CHART_TEXT_COLOR = '#94a3b8';
 const CHART_GRID_COLOR = 'rgba(255,255,255,0.05)';
 const PREVIOUS_MONTHS_TO_SHOW = 3;
@@ -598,7 +613,7 @@ function getRainIntensityColor(rate) {
 
 function getRainIntensityLabel(rate) {
     if (rate < RAIN_CLASS_LIGHT_MAX) return 'leicht';
-    if (rate < RAIN_CLASS_MODERATE_MAX) return 'maessig';
+    if (rate < RAIN_CLASS_MODERATE_MAX) return 'mäßig';
     return 'stark';
 }
 
@@ -814,7 +829,8 @@ function applyDynamicCardTheme(cardId, valueDisplayId) {
 }
 
 function calculateDewPoint(temp, hum) { 
-    if (temp === undefined || hum === undefined || hum <= 0) return 0; 
+    // Keine Zahl statt 0, sonst würde ein Sensorfehler als 0 °C Taupunkt erscheinen.
+    if (temp === undefined || hum === undefined || hum <= 0) return NaN;
     const a = 17.27, b = 237.7, alpha = ((a * temp) / (b + temp)) + Math.log(hum / 100.0); 
     return (b * alpha) / (a - alpha); 
 }
@@ -832,7 +848,9 @@ function findNearestHumidity(tempEntry, humidityEntries, maxDifferenceMs = 5 * 6
     return nearestDifference <= maxDifferenceMs ? nearest : null;
 }
 
-// Markiert Taupunktnähe bis 1,5 °C; bis 1 °C dezent rot, darüber orange.
+// Markiert Taupunktnähe bis 1 °C; bis 0,5 °C rot, darüber orange.
+const DEW_RED_MAX = 0.5;
+const DEW_ORANGE_MAX = 1.0;
 const dewRiskZones = {
     id: 'dewRiskZones',
     beforeDatasetsDraw(chart) {
@@ -842,8 +860,10 @@ const dewRiskZones = {
         const { ctx, chartArea, scales } = chart;
         ctx.save();
         for (let i = 0; i < values.length; i++) {
-            const gap = Number(points[i]) - Number(values[i]);
-            if (!Number.isFinite(gap) || gap < 0 || gap > 1.5) continue;
+            const rawGap = Number(points[i]) - Number(values[i]);
+            if (!Number.isFinite(rawGap) || rawGap > DEW_ORANGE_MAX) continue;
+            // Taupunkt über der Temperatur (Sensorabweichung bei Sättigung) zählt wie 0 °C Abstand.
+            const gap = Math.max(0, rawGap);
             const x = scales.x.getPixelForValue(i);
             const previousX = i > 0 ? scales.x.getPixelForValue(i - 1) : x - 8;
             const nextX = i < values.length - 1 ? scales.x.getPixelForValue(i + 1) : x + 8;
@@ -852,12 +872,12 @@ const dewRiskZones = {
             const left = i > 0 ? (previousX + x) / 2 : x - 8;
             const right = i < values.length - 1 ? (x + nextX) / 2 : x + 8;
             let zoneColor;
-            if (gap <= 1) {
-                const redAlpha = 0.12 + (0.10 * (1 - gap));
+            if (gap <= DEW_RED_MAX) {
+                const redAlpha = 0.16 + (0.06 * (DEW_RED_MAX - gap) / DEW_RED_MAX);
                 zoneColor = `rgba(239, 68, 68, ${redAlpha.toFixed(3)})`;
             } else {
-                const orangeStrength = (1.5 - gap) / 0.5;
-                const orangeAlpha = 0.08 + (orangeStrength * 0.08);
+                // Startet bei der Rotgrenze mit gleicher Deckkraft, damit kein Sprung entsteht.
+                const orangeAlpha = 0.08 + (0.08 * (DEW_ORANGE_MAX - gap) / (DEW_ORANGE_MAX - DEW_RED_MAX));
                 zoneColor = `rgba(249, 115, 22, ${orangeAlpha.toFixed(3)})`;
             }
             ctx.fillStyle = zoneColor;
@@ -1033,6 +1053,8 @@ async function fetchData() {
     const humidityPeriodValue = document.getElementById('humidityPeriod').value;
     const rainPeriodValue = document.getElementById('rainPeriod').value;
     const pressurePeriodValue = document.getElementById('pressurePeriod').value;
+    const tempPeriodLabel = document.getElementById('period').selectedOptions[0].text;
+    document.querySelectorAll('.minmax-period').forEach(el => { el.textContent = `Zeitraum: ${tempPeriodLabel}`; });
 
     const now = new Date();
     const tempPeriod = getPeriodConfig(tempPeriodValue, now);
@@ -1056,17 +1078,16 @@ async function fetchData() {
     const yearMonthUrls = yearMonthInfos.map(m => `${URL_BASE}/Regenmesser/${m.year}/${m.monthName}.json`);
     
     try {
+        const sensorUrls = SENSOR_URLS.map(s => s.url);
         const responses = await Promise.all([
-            fetch(`${URL_T}?orderBy="$key"&limitToLast=12000`),
-            fetch(`${URL_H}?orderBy="$key"&limitToLast=12000`),
-            fetch(`${URL_P}?orderBy="$key"&limitToLast=12000`),
-            ...rainMonthUrls.map(url => fetch(`${url}?orderBy="$key"&limitToLast=12000`)),
-            ...yearMonthUrls.map(url => fetch(`${url}?orderBy="$key"&limitToLast=12000`))
+            ...sensorUrls.map(url => fetch(`${url}${FETCH_QUERY}`)),
+            ...rainMonthUrls.map(url => fetch(`${url}${FETCH_QUERY}`)),
+            ...yearMonthUrls.map(url => fetch(`${url}${FETCH_QUERY}`))
         ]);
-        const dataT = await responses[0].json();
-        const dataH = await responses[1].json();
-        const dataP = await responses[2].json();
-        const rainResponsesOffset = 3;
+        const [dataT, dataH, dataP] = await Promise.all(
+            responses.slice(0, SENSOR_URLS.length).map(r => r.json())
+        );
+        const rainResponsesOffset = SENSOR_URLS.length;
         const rainResponsesEnd = rainResponsesOffset + rainMonthUrls.length;
         const rainMonthData = await Promise.all(responses.slice(rainResponsesOffset, rainResponsesEnd).map(r => r.json()));
         const yearMonthData = await Promise.all(responses.slice(rainResponsesEnd).map(r => r.json()));
@@ -1101,7 +1122,7 @@ async function fetchData() {
             return sum + (amount === null ? 0 : amount);
         }, 0);
 
-        updateUI(entriesT, entriesH, entriesHChart, entriesP, entriesPChart, entriesR_current, entriesR_selected, rainPeriod.start, rainPeriod.end, tempPeriod.chartHours, humidityPeriod.chartHours, rainPeriod.chartHours, pressurePeriod.chartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths);
+        updateUI(entriesT, entriesH, entriesHChart, entriesP, entriesPChart, entriesR_current, entriesR_selected, rainPeriod.start, rainPeriod.end, tempPeriod.chartHours, humidityPeriod.chartHours, rainPeriod.chartHours, pressurePeriod.chartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths, entriesP_all);
         const nowText = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
         setDataStatus('ok', `Daten geladen: ${nowText}`);
     } catch (e) {
@@ -1112,7 +1133,7 @@ async function fetchData() {
     }
 }
 
-    function updateUI(entriesT, entriesH, entriesHChart, entriesP, entriesPChart, entriesRCurrent, entriesRSelected, rainRangeStart, rainRangeEnd, hours, humidityHoursPeriod, rainChartHours, pressureChartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths) {
+    function updateUI(entriesT, entriesH, entriesHChart, entriesP, entriesPChart, entriesRCurrent, entriesRSelected, rainRangeStart, rainRangeEnd, hours, humidityHoursPeriod, rainChartHours, pressureChartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths, entriesPAll) {
     const now = new Date();
     const currentMonthName = monthNames[now.getMonth()];
 
@@ -1126,7 +1147,7 @@ async function fetchData() {
         iconTempEl.style.color = getComputedStyle(tempDisplayEl).color;
         setValueWithFlash('min-temp-val', Math.min(...entriesT.map(e => e.value)).toFixed(1));
         setValueWithFlash('max-temp-val', Math.max(...entriesT.map(e => e.value)).toFixed(1));
-        document.getElementById('frost-alarm').style.display = lastT <= 3 ? 'block' : 'none';
+        document.getElementById('frost-alarm').style.display = lastT <= 3 ? 'flex' : 'none';
         const lastDate = entriesT[entriesT.length-1].date;
         document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${lastDate.getHours().toString().padStart(2, '0')}:${lastDate.getMinutes().toString().padStart(2, '0')} Uhr`;
         renderMainChart(entriesT, hours);
@@ -1162,17 +1183,25 @@ async function fetchData() {
         if (currentHumidityEntry) {
             const dewPoint = calculateDewPoint(lastTempEntry.value, currentHumidityEntry.value);
             const dewValueEl = document.getElementById('curr-temp-dew');
-            setValueWithFlash(dewValueEl, dewPoint.toFixed(1));
-            dewValueEl.style.color = getTempColor(dewPoint);
+            if (Number.isFinite(dewPoint)) {
+                setValueWithFlash(dewValueEl, dewPoint.toFixed(1));
+                dewValueEl.style.color = getTempColor(dewPoint);
+            } else {
+                setValueWithFlash(dewValueEl, '--');
+                dewValueEl.style.color = '';
+            }
         }
     }
     if (entriesP.length > 0) {
         let lastP = entriesP[entriesP.length-1].value + PRES_OFFSET;
         setValueWithFlash('curr-pres', lastP.toFixed(0));
         const trendArrowEl = document.getElementById('pres-trend-arrow');
-        if (entriesP.length > 5) {
-            const firstP = entriesP[0];
-            const lastPEntry = entriesP[entriesP.length-1];
+        // Tendenz über die letzten 3 Stunden, unabhängig vom gewählten Zeitraum.
+        const trendStart = new Date(entriesPAll[entriesPAll.length - 1].date.getTime() - 3 * 3600000);
+        const trendEntries = entriesPAll.filter(e => e.date >= trendStart);
+        if (trendEntries.length > 5) {
+            const firstP = trendEntries[0];
+            const lastPEntry = trendEntries[trendEntries.length - 1];
             const diff = lastPEntry.value - firstP.value;
             const elapsedHours = (lastPEntry.date - firstP.date) / 3600000;
             const ratePerHour = elapsedHours > 0 ? (diff / elapsedHours) : 0;
@@ -1344,6 +1373,25 @@ const rainIntensityBandsPlugin = {
     }
 };
 
+// Beschriftet bei kurzen Zeiträumen je eine volle Stunde (alle 1, 2 oder 4 Stunden),
+// bei langen Zeiträumen wird doppelte Beschriftung direkt hintereinander ausgelassen.
+function makeCategoryTickCallback(ent, hrs) {
+    const shortPeriod = hrs <= 24;
+    const hourStep = hrs <= 4 ? 1 : (hrs <= 12 ? 2 : 4);
+    return function(val, index) {
+        const label = this.getLabelForValue(val);
+        if (shortPeriod) {
+            const date = ent[index]?.date;
+            if (!date) return '';
+            const prev = ent[index - 1]?.date;
+            const firstOfHour = !prev || prev.getHours() !== date.getHours() || prev.toDateString() !== date.toDateString();
+            return firstOfHour && date.getHours() % hourStep === 0 ? label : '';
+        }
+        if (index > 0 && label === this.getLabelForValue(val - 1)) return '';
+        return label;
+    };
+}
+
 function renderMainChart(ent, hrs) {
     const ctx = document.getElementById('mainChart').getContext('2d');
     if (charts['mainChart']) charts['mainChart'].destroy();
@@ -1353,11 +1401,11 @@ function renderMainChart(ent, hrs) {
             labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
                 label: 'Temp', data: ent.map(e => e.value), fill: true,
-                pointRadius: (ctx) => ctx.dataIndex === ent.length - 1 ? 3.5 : 0,
-                pointHoverRadius: (ctx) => ctx.dataIndex === ent.length - 1 ? 5 : 3,
-                pointBackgroundColor: (ctx) => ctx.dataIndex === ent.length - 1 ? '#f8fafc' : 'transparent',
-                pointBorderColor: (ctx) => ctx.dataIndex === ent.length - 1 ? '#22c55e' : 'transparent',
-                pointBorderWidth: (ctx) => ctx.dataIndex === ent.length - 1 ? 2 : 0,
+                pointRadius: (ctx) => ctx.parsed.x === ent.length - 1 ? 3.5 : 0,
+                pointHoverRadius: (ctx) => ctx.parsed.x === ent.length - 1 ? 5 : 3,
+                pointBackgroundColor: (ctx) => ctx.parsed.x === ent.length - 1 ? '#f8fafc' : 'transparent',
+                pointBorderColor: (ctx) => ctx.parsed.x === ent.length - 1 ? '#22c55e' : 'transparent',
+                pointBorderWidth: (ctx) => ctx.parsed.x === ent.length - 1 ? 2 : 0,
                 tension: 0.4,
                 borderColor: '#26a69a', backgroundColor: (c) => {
                     const { ctx, chartArea } = c.chart;
@@ -1376,19 +1424,14 @@ function renderMainChart(ent, hrs) {
             responsive: true, maintainAspectRatio: false, animation: false, 
             plugins: { legend: { display: false } }, 
             scales: { 
-                y: { grid: { color: CHART_GRID_COLOR }, ticks: { color: CHART_TEXT_COLOR } }, 
+                y: { grid: { color: CHART_GRID_COLOR }, ticks: { color: CHART_TEXT_COLOR, callback: v => `${v.toLocaleString('de-DE')} °C` } }, 
                 x: { 
                     grid: { display: false }, 
                     ticks: { 
                         color: CHART_TEXT_COLOR, 
                         maxTicksLimit: hrs === 4 ? 5 : 8,
-                        callback: function(val, index) {
-                            const label = this.getLabelForValue(val);
-                            if (hrs === 4) {
-                                if (index > 0 && label === this.getLabelForValue(val - 1)) return '';
-                            }
-                            return label;
-                        }
+                        autoSkip: hrs > 24,
+                        callback: makeCategoryTickCallback(ent, hrs)
                     } 
                 } 
             } 
@@ -1428,11 +1471,11 @@ function renderHumidityChart(ent, hrs) {
             labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
                 label: 'Feuchte', data: ent.map(e => e.value), fill: true,
-                pointRadius: (ctx) => ctx.dataIndex === ent.length - 1 ? 3.5 : 0,
-                pointHoverRadius: (ctx) => ctx.dataIndex === ent.length - 1 ? 5 : 3,
-                pointBackgroundColor: (ctx) => ctx.dataIndex === ent.length - 1 ? '#f8fafc' : 'transparent',
-                pointBorderColor: (ctx) => ctx.dataIndex === ent.length - 1 ? '#2dd4bf' : 'transparent',
-                pointBorderWidth: (ctx) => ctx.dataIndex === ent.length - 1 ? 2 : 0,
+                pointRadius: (ctx) => ctx.parsed.x === ent.length - 1 ? 3.5 : 0,
+                pointHoverRadius: (ctx) => ctx.parsed.x === ent.length - 1 ? 5 : 3,
+                pointBackgroundColor: (ctx) => ctx.parsed.x === ent.length - 1 ? '#f8fafc' : 'transparent',
+                pointBorderColor: (ctx) => ctx.parsed.x === ent.length - 1 ? '#2dd4bf' : 'transparent',
+                pointBorderWidth: (ctx) => ctx.parsed.x === ent.length - 1 ? 2 : 0,
                 tension: 0.35,
                 borderColor: '#2dd4bf', backgroundColor: (c) => {
                     const { ctx, chartArea } = c.chart;
@@ -1456,7 +1499,7 @@ function renderHumidityChart(ent, hrs) {
                 y: {
                     min: humidityMin,
                     max: humidityMax,
-                    ticks: { color: CHART_TEXT_COLOR, stepSize: 1, precision: 0 },
+                    ticks: { color: CHART_TEXT_COLOR, stepSize: 1, precision: 0, callback: v => `${v} %` },
                     grid: { color: CHART_GRID_COLOR }
                 },
                 x: {
@@ -1464,13 +1507,8 @@ function renderHumidityChart(ent, hrs) {
                     ticks: {
                         color: CHART_TEXT_COLOR,
                         maxTicksLimit: hrs === 4 ? 5 : 8,
-                        callback: function(val, index) {
-                            const label = this.getLabelForValue(val);
-                            if (hrs === 4) {
-                                if (index > 0 && label === this.getLabelForValue(val - 1)) return '';
-                            }
-                            return label;
-                        }
+                        autoSkip: hrs > 24,
+                        callback: makeCategoryTickCallback(ent, hrs)
                     }
                 }
             }
@@ -1513,11 +1551,11 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
                 label: 'Niederschlag', 
                 data: rainData,
                 fill: true, 
-                pointRadius: (ctx) => ctx.dataIndex === rainData.length - 1 ? 3.5 : 0,
-                pointHoverRadius: (ctx) => ctx.dataIndex === rainData.length - 1 ? 5 : 3,
-                pointBackgroundColor: (ctx) => ctx.dataIndex === rainData.length - 1 ? '#f8fafc' : 'transparent',
-                pointBorderColor: (ctx) => ctx.dataIndex === rainData.length - 1 ? '#22d3ee' : 'transparent',
-                pointBorderWidth: (ctx) => ctx.dataIndex === rainData.length - 1 ? 2 : 0,
+                pointRadius: (ctx) => ctx.parsed.x === rainData[rainData.length - 1].x ? 3.5 : 0,
+                pointHoverRadius: (ctx) => ctx.parsed.x === rainData[rainData.length - 1].x ? 5 : 3,
+                pointBackgroundColor: (ctx) => ctx.parsed.x === rainData[rainData.length - 1].x ? '#f8fafc' : 'transparent',
+                pointBorderColor: (ctx) => ctx.parsed.x === rainData[rainData.length - 1].x ? '#22d3ee' : 'transparent',
+                pointBorderWidth: (ctx) => ctx.parsed.x === rainData[rainData.length - 1].x ? 2 : 0,
                 // Die Messpunkte bleiben unverändert. Chart.js verbindet sie
                 // nur für die Darstellung zeitlinear; der aktuelle Rand bleibt
                 // bis zum nächsten echten Wippenschlag waagerecht.
@@ -1563,7 +1601,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
                 } 
             }, 
             scales: { 
-                y: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: CHART_GRID_COLOR } }, 
+                y: { ticks: { color: CHART_TEXT_COLOR, callback: v => `${v.toLocaleString('de-DE')} mm` }, grid: { color: CHART_GRID_COLOR } },
                 x: {
                     type: 'linear',
                     min: shortPeriod ? Math.floor(start / hourMs) * hourMs : start,
@@ -1584,7 +1622,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
                 } 
             } 
         },
-        plugins: [crosshairPlugin]
+        plugins: [rainIntensityBandsPlugin, crosshairPlugin]
     });
 }
 
@@ -1599,11 +1637,11 @@ function renderPressureChart(ent, hrs) {
                 label: 'Luftdruck',
                 data: ent.map(e => e.value),
                 fill: true,
-                pointRadius: (ctx) => ctx.dataIndex === ent.length - 1 ? 3.5 : 0,
-                pointHoverRadius: (ctx) => ctx.dataIndex === ent.length - 1 ? 5 : 3,
-                pointBackgroundColor: (ctx) => ctx.dataIndex === ent.length - 1 ? '#f8fafc' : 'transparent',
-                pointBorderColor: (ctx) => ctx.dataIndex === ent.length - 1 ? '#a78bfa' : 'transparent',
-                pointBorderWidth: (ctx) => ctx.dataIndex === ent.length - 1 ? 2 : 0,
+                pointRadius: (ctx) => ctx.parsed.x === ent.length - 1 ? 3.5 : 0,
+                pointHoverRadius: (ctx) => ctx.parsed.x === ent.length - 1 ? 5 : 3,
+                pointBackgroundColor: (ctx) => ctx.parsed.x === ent.length - 1 ? '#f8fafc' : 'transparent',
+                pointBorderColor: (ctx) => ctx.parsed.x === ent.length - 1 ? '#a78bfa' : 'transparent',
+                pointBorderWidth: (ctx) => ctx.parsed.x === ent.length - 1 ? 2 : 0,
                 tension: 0.35,
                 borderColor: '#9575cd',
                 backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#9575cd')
@@ -1619,19 +1657,14 @@ function renderPressureChart(ent, hrs) {
                 tooltip: { callbacks: { label: function(context) { return `Luftdruck: ${context.parsed.y.toFixed(1)} hPa`; } } }
             },
             scales: {
-                y: { ticks: { color: CHART_TEXT_COLOR }, grid: { color: CHART_GRID_COLOR } },
+                y: { ticks: { color: CHART_TEXT_COLOR, callback: v => `${v.toLocaleString('de-DE')} hPa` }, grid: { color: CHART_GRID_COLOR } },
                 x: {
                     grid: { display: false },
                     ticks: {
                         color: CHART_TEXT_COLOR,
                         maxTicksLimit: hrs === 4 ? 5 : 8,
-                        callback: function(val, index) {
-                            const label = this.getLabelForValue(val);
-                            if (hrs === 4) {
-                                if (index > 0 && label === this.getLabelForValue(val - 1)) return '';
-                            }
-                            return label;
-                        }
+                        autoSkip: hrs > 24,
+                        callback: makeCategoryTickCallback(ent, hrs)
                     }
                 }
             }
