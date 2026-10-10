@@ -245,7 +245,6 @@
         .dew-secondary strong { color: var(--color-dew); font-size: 1.9em; }
 
         .card-icon { width: 20px; height: 20px; margin-bottom: 8px; stroke: currentColor; opacity: 0.8; }
-        .spark { position: relative; width: 100%; height: 34px; margin-top: 8px; }
         
         #frost-alarm { position: absolute; left: 10px; bottom: 10px; display: none; align-items: center; gap: 4px; color: var(--color-frost); animation: frost-pulse 1.5s infinite ease-in-out; }
         .frost-label { font-size: 0.65em; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -333,7 +332,6 @@
         .month-stat-val { font-size: 1em; color: var(--text-main); font-weight: 800; }
 
         @media (max-width: 599px) {
-            .spark { display: none; }
             .rate-badge { min-width: 175px; }
             .chart-box { height: 260px; }
             .stats {
@@ -451,7 +449,6 @@
             <svg id="icon-temp" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
             <h3>Temperatur</h3>
             <div id="temp-display" class="val-display accent-text"><span id="curr-temp">--</span><span class="unit">°C</span><span id="temp-trend" class="trend-arrow">→</span></div>
-            <div class="spark"><canvas id="spark-temp"></canvas></div>
         </div>
         <div class="card min">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--color-min)"><path d="M12 9V3m0 0L9 6m3-3 3 3m-3 15v-6m0 0-3 3m3-3 3 3"></path><path d="M14 14.54V4a2 2 0 0 0-4 0v10.54a4 4 0 1 0 4 0Z"></path></svg>
@@ -473,7 +470,6 @@
             <h3>Feuchte</h3>
             <div id="hum-display" class="val-display accent-text"><span id="curr-hum">--</span><span class="unit">%</span><span id="hum-trend" class="trend-arrow">→</span></div>
             <div class="dew-secondary"><span class="dew-secondary-label">Taupunkt</span><strong id="curr-temp-dew">--</strong><span class="unit dew-unit">°C</span></div>
-            <div class="spark"><canvas id="spark-hum"></canvas></div>
         </div>
         <div id="rainCard" class="card rain">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 14.89c0-4 5-9 8-9s8 5 8 9a8 8 0 0 1-16 0ZM5 18l1.5-1.5M10 20l1.5-1.5M15 18l1.5-1.5"></path></svg>
@@ -491,7 +487,6 @@
                 <div class="pres-main-line"><span id="curr-pres">--</span><span class="unit"> hPa</span><span id="pres-trend-arrow" class="pres-trend-arrow flat">→</span></div>
                 <span id="pres-rate-val" class="pres-rate">-- hPa/h</span>
             </div>
-            <div class="spark"><canvas id="spark-pres"></canvas></div>
         </div>
     </div>
 
@@ -1627,43 +1622,6 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
     });
 }
 
-// Kleiner Verlauf der letzten 6 Stunden für die Kopfkarten.
-function renderSparkline(canvasId, series, color) {
-    const ctx = document.getElementById(canvasId).getContext('2d');
-    if (charts[canvasId]) charts[canvasId].destroy();
-
-    const last = series.length ? series[series.length - 1].date.getTime() : 0;
-    const points = series
-        .filter(e => e.date.getTime() >= last - 6 * 3600000)
-        .map(e => ({ x: e.date.getTime(), y: e.value }));
-
-    charts[canvasId] = new Chart(ctx, {
-        type: 'line',
-        data: {
-            datasets: [{
-                data: points,
-                borderColor: color,
-                borderWidth: 1.5,
-                pointRadius: 0,
-                tension: 0.35,
-                fill: true,
-                backgroundColor: c => createVerticalGradient(c.chart.ctx, c.chart.chartArea, color)
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            animation: false,
-            events: [],
-            plugins: { legend: { display: false }, tooltip: { enabled: false } },
-            scales: {
-                x: { type: 'linear', display: false },
-                y: { display: false, grace: '10%' }
-            }
-        }
-    });
-}
-
 // Änderung pro Stunde über die letzten 3 Stunden, null wenn zu wenige Messwerte vorliegen.
 function getRatePerHour(series) {
     if (!series.length) return null;
@@ -1708,9 +1666,6 @@ function setTrendArrow(elId, rate, threshold, scale, value) {
 
 function renderSparklines() {
     if (!sparkSource) return;
-    renderSparkline('spark-temp', sparkSource.temp, '#26a69a');
-    renderSparkline('spark-hum', sparkSource.hum, '#2dd4bf');
-    renderSparkline('spark-pres', sparkSource.pres, '#9575cd');
     setTrendArrow('temp-trend', getRatePerHour(sparkSource.temp), 0.3, TEMP_SCALE, sparkSource.temp.at(-1)?.value);
     setTrendArrow('hum-trend', getRatePerHour(sparkSource.hum), 3, HUMIDITY_SCALE, sparkSource.hum.at(-1)?.value);
 }
