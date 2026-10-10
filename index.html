@@ -90,7 +90,7 @@
         
         .data-status {
             display: inline-block;
-            font-size: 0.72em;
+            font-size: 0.85em;
             margin-bottom: 18px;
             padding: 4px 10px;
             border-radius: 999px;
@@ -98,6 +98,18 @@
             color: var(--text-muted);
             background: rgba(255,255,255,0.03);
             min-height: 14px;
+        }
+        .frost-banner {
+            display: none;
+            margin: -6px auto 18px;
+            max-width: 420px;
+            padding: 8px 14px;
+            border-radius: 12px;
+            border: 1px solid rgba(56, 189, 248, 0.5);
+            background: rgba(56, 189, 248, 0.12);
+            color: var(--color-frost);
+            font-size: 0.85em;
+            font-weight: 800;
         }
         .data-status.loading {
             color: var(--color-forecast);
@@ -248,7 +260,7 @@
         .pres-trend-arrow.flat { color: var(--text-muted); }
         .trend-arrow { font-size: 0.75em; font-weight: 800; color: var(--text-muted); line-height: 1; }
         .section-title { display: flex; align-items: baseline; gap: 12px; }
-        .section-total { font-size: 0.85em; font-weight: 800; color: var(--color-dry); }
+        .section-total { font-size: 0.85em; font-weight: 800; color: var(--color-dry); white-space: nowrap; }
         .rain-line { font-size: 0.85em; display: flex; align-items: baseline; gap: 5px; color: var(--text-main); font-weight: 600; margin-top: 2px; }
         .rain-label { font-size: 0.65em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800; }
         
@@ -420,6 +432,7 @@
         </div>
     </div>
     <div id="data-status" class="data-status"></div>
+    <div id="frost-banner" class="frost-banner">❄ Frostgefahr: <span id="frost-banner-temp">--</span> °C</div>
     
     <div class="stats">
         <div id="card-temp" class="card temp">
@@ -553,6 +566,8 @@ Chart.defaults.plugins.decimation.enabled = true;
 Chart.defaults.plugins.decimation.algorithm = 'min-max';
 const CHART_TEXT_COLOR = '#94a3b8';
 const CHART_GRID_COLOR = 'rgba(255,255,255,0.05)';
+// Auf schmalen Bildschirmen passen nur wenige Zeitbeschriftungen nebeneinander.
+const tickLimit = desktopLimit => window.innerWidth < 600 ? 3 : desktopLimit;
 const PREVIOUS_MONTHS_TO_SHOW = 3;
 const RAIN_CLASS_LIGHT_MAX = 2.5;
 const RAIN_CLASS_MODERATE_MAX = 10;
@@ -1040,8 +1055,9 @@ async function fetchData() {
         updateUI(entriesT, entriesH, entriesHChart, entriesP, entriesPChart, entriesR_current, entriesR_selected, rainPeriod.start, rainPeriod.end, tempPeriod.chartHours, humidityPeriod.chartHours, rainPeriod.chartHours, pressurePeriod.chartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths, entriesP_all);
         sparkSource = { temp: entriesT_all, hum: entriesH_all, pres: entriesP_all };
         renderSparklines();
+        linkCursors(entriesT, entriesHChart);
         const nowText = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
-        setDataStatus('ok', `Daten geladen: ${nowText}`);
+        setDataStatus('ok', `Stand ${nowText} Uhr · aktualisiert jede Minute`);
     } catch (e) {
         console.error("Fehler:", e);
         setDataStatus('error', 'Daten konnten nicht geladen werden');
@@ -1066,6 +1082,8 @@ async function fetchData() {
         setValueWithFlash('min-temp-val', Math.min(...entriesT.map(e => e.value)).toFixed(1));
         setValueWithFlash('max-temp-val', Math.max(...entriesT.map(e => e.value)).toFixed(1));
         document.getElementById('frost-alarm').style.display = lastT <= 3 ? 'flex' : 'none';
+        document.getElementById('frost-banner').style.display = lastT <= 3 ? 'block' : 'none';
+        document.getElementById('frost-banner-temp').innerText = lastT.toFixed(1);
         renderMainChart(entriesT, hours);
     }
     if (entriesH.length > 0) {
@@ -1171,7 +1189,9 @@ async function fetchData() {
     if (entriesRSelected.length > 0) {
         const korrigierteEntries = buildMonthSeries(entriesRSelected);
         const rainFilter = korrigierteEntries.filter(e => e.date >= rainRangeStart && e.date <= rainRangeEnd);
-        const rainMeta = analyzeRainTimeline(rainFilter);
+        // Der letzte Messwert vor Beginn des Zeitraums ist der Ausgangspunkt, sonst geht ein Anstieg am Anfang verloren.
+        const rainAnchor = korrigierteEntries.filter(e => e.date < rainRangeStart).at(-1);
+        const rainMeta = analyzeRainTimeline(rainAnchor ? [rainAnchor, ...rainFilter] : rainFilter);
 
         setValueWithFlash('ctrl-rain-rate', rainMeta.currentRainRate.toFixed(1));
         const peakEl = document.getElementById('rain-peak-val');
@@ -1255,7 +1275,8 @@ const minMaxPlugin = {
 // bei langen Zeiträumen wird doppelte Beschriftung direkt hintereinander ausgelassen.
 function makeCategoryTickCallback(ent, hrs) {
     const shortPeriod = hrs <= 24;
-    const hourStep = hrs <= 4 ? 1 : (hrs <= 12 ? 2 : 4);
+    // Auf dem Handy wird der Abstand verdoppelt, damit die Uhrzeiten nicht zusammenlaufen.
+    const hourStep = (hrs <= 4 ? 1 : (hrs <= 12 ? 2 : 4)) * (window.innerWidth < 600 ? 2 : 1);
     return function(val, index) {
         const label = this.getLabelForValue(val);
         if (shortPeriod) {
@@ -1315,7 +1336,7 @@ function renderMainChart(ent, hrs) {
                     grid: { display: false }, 
                     ticks: { 
                         color: CHART_TEXT_COLOR, 
-                        maxTicksLimit: hrs === 4 ? 5 : 8,
+                        maxTicksLimit: tickLimit(hrs === 4 ? 5 : 8),
                         autoSkip: hrs > 24,
                         callback: makeCategoryTickCallback(ent, hrs)
                     } 
@@ -1388,7 +1409,7 @@ function renderHumidityChart(ent, hrs) {
                     grid: { display: false },
                     ticks: {
                         color: CHART_TEXT_COLOR,
-                        maxTicksLimit: hrs === 4 ? 5 : 8,
+                        maxTicksLimit: tickLimit(hrs === 4 ? 5 : 8),
                         autoSkip: hrs > 24,
                         callback: makeCategoryTickCallback(ent, hrs)
                     }
@@ -1501,7 +1522,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
                 },
                 x: {
                     grid: { display: false },
-                    ticks: { color: CHART_TEXT_COLOR, maxTicksLimit: hrs === 4 ? 7 : 8, maxRotation: 0 }
+                    ticks: { color: CHART_TEXT_COLOR, maxTicksLimit: tickLimit(hrs === 4 ? 7 : 8), maxRotation: 0 }
                 }
             }
         }
@@ -1609,7 +1630,7 @@ function renderPressureChart(ent, hrs) {
                     grid: { display: false },
                     ticks: {
                         color: CHART_TEXT_COLOR,
-                        maxTicksLimit: hrs === 4 ? 5 : 8,
+                        maxTicksLimit: tickLimit(hrs === 4 ? 5 : 8),
                         autoSkip: hrs > 24,
                         callback: makeCategoryTickCallback(ent, hrs)
                     }
@@ -1640,6 +1661,45 @@ function populatePeriodSelects() {
         for (const opt of PERIOD_OPTIONS) sel.add(new Option(opt.label, opt.value));
         sel.value = '24';
     }
+}
+
+// Temperatur- und Feuchtediagramm teilen sich den Cursor: Der Zeitpunkt im einen wird im anderen markiert.
+function linkCursors(tempEntries, humidityEntries) {
+    const main = charts.mainChart;
+    const hum = charts.humidityChart;
+    if (!main || !hum) return;
+    main.$dates = tempEntries.map(e => e.date.getTime());
+    hum.$dates = humidityEntries.map(e => e.date.getTime());
+    for (const chart of [main, hum]) {
+        chart.options.interaction = { mode: 'index', intersect: false };
+        chart.options.onHover = (event, elements, source) => mirrorCursor(source, elements);
+        chart.canvas.onmouseleave = () => mirrorCursor(chart, []);
+        chart.update('none');
+    }
+}
+
+function mirrorCursor(source, elements) {
+    const target = source === charts.mainChart ? charts.humidityChart : charts.mainChart;
+    if (!target || !target.$dates) return;
+    if (!elements.length) {
+        target.setActiveElements([]);
+        target.tooltip.setActiveElements([], { x: 0, y: 0 });
+        target.update('none');
+        return;
+    }
+    const time = source.$dates[elements[0].index];
+    let best = -1;
+    let bestDiff = Infinity;
+    target.$dates.forEach((t, i) => {
+        const diff = Math.abs(t - time);
+        if (diff < bestDiff) { bestDiff = diff; best = i; }
+    });
+    const point = target.getDatasetMeta(0).data[best];
+    if (!point) return;
+    const active = [{ datasetIndex: 0, index: best }];
+    target.setActiveElements(active);
+    target.tooltip.setActiveElements(active, { x: point.x, y: point.y });
+    target.update('none');
 }
 
 populatePeriodSelects(); fetchData(); setInterval(fetchData, 60000);
