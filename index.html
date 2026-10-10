@@ -287,6 +287,8 @@
         .legend-box { display: flex; justify-content: center; gap: 15px; margin-top: 10px; font-size: 0.7em; color: var(--text-muted); flex-wrap: wrap; }
         .legend-item { display: flex; align-items: center; gap: 5px; }
         .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+        .temp-scale { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; font-size: 0.7em; color: var(--text-muted); }
+        .temp-scale-bar { width: 200px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #ba68c8, #64b5f6, #26a69a, #fff176, #ffb74d, #ef5350); }
 
         .rain-table { width: 100%; border-collapse: collapse; margin: 0 0 20px 0; background: rgba(77, 208, 225, 0.05); border: 1px solid rgba(77, 208, 225, 0.1); border-radius: 15px; overflow: hidden; font-size: 0.9em; }
         .rain-table th, .rain-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid rgba(77, 208, 225, 0.1); }
@@ -490,6 +492,7 @@
         <span class="legend-item"><span class="legend-dot" style="background: rgba(239, 68, 68, 0.45);"></span>Taupunkt ≤ 0,5 °C (Nebelgefahr)</span>
         <span class="legend-item"><span class="legend-dot" style="background: rgba(249, 115, 22, 0.4);"></span>Taupunkt 0,5–1 °C</span>
     </div>
+    <div class="temp-scale" aria-hidden="true"><span>−10 °C</span><div class="temp-scale-bar"></div><span>40 °C</span></div>
 
     <div class="section-header"><h2 style="color: #5eead4;">Feuchte</h2><select id="humidityPeriod" aria-label="Zeitraum Feuchte" onchange="fetchData()"></select></div>
     <div class="chart-box"><canvas id="humidityChart"></canvas></div>
@@ -1326,6 +1329,30 @@ function withHourMarks(entries, period) {
     return [...entries, ...marks].sort((a, b) => a.date - b.date);
 }
 
+// Fester Farbverlauf über die Temperaturskala. Dieselbe Farbe steht immer für dieselbe Temperatur,
+// unabhängig vom aktuellen Wertebereich. Die Stützpunkte entsprechen den Farben der Kopfkarte.
+const TEMP_SCALE = [
+    { t: -10, color: '#ba68c8' },
+    { t: 0, color: '#64b5f6' },
+    { t: 10, color: '#26a69a' },
+    { t: 20, color: '#fff176' },
+    { t: 30, color: '#ffb74d' },
+    { t: 40, color: '#ef5350' }
+];
+
+function temperatureLineGradient(c) {
+    const { ctx, chartArea, scales } = c.chart;
+    if (!chartArea || !scales.y) return '#26a69a';
+    const y = scales.y;
+    const bottom = y.getPixelForValue(TEMP_SCALE[0].t);
+    const top = y.getPixelForValue(TEMP_SCALE[TEMP_SCALE.length - 1].t);
+    const gradient = ctx.createLinearGradient(0, bottom, 0, top);
+    for (const stop of TEMP_SCALE) {
+        gradient.addColorStop((y.getPixelForValue(stop.t) - bottom) / (top - bottom), stop.color);
+    }
+    return gradient;
+}
+
 function renderMainChart(ent, hrs) {
     ent = withHourMarks(ent, periodBounds.temp);
     chartGrids.temp = ent;
@@ -1340,7 +1367,7 @@ function renderMainChart(ent, hrs) {
                 ...latestPointStyle(ent.length, '#22c55e'),
                 tension: 0.4,
                 spanGaps: true,
-                borderColor: '#26a69a', backgroundColor: (c) => {
+                borderColor: temperatureLineGradient, backgroundColor: (c) => {
                     const { ctx, chartArea } = c.chart;
                     if (!chartArea) return null;
                     const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
