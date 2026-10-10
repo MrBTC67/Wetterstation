@@ -847,7 +847,10 @@ const dewRiskZones = {
             const x = scales.x.getPixelForValue(i);
             const previousX = i > 0 ? scales.x.getPixelForValue(i - 1) : x - 8;
             const nextX = i < values.length - 1 ? scales.x.getPixelForValue(i + 1) : x + 8;
-            const width = Math.max(2, Math.min(x - previousX, nextX - x));
+            // Bis zur Mitte zwischen den Messpunkten zeichnen, damit sich
+            // halbtransparente Warnflächen nicht gegenseitig überlagern.
+            const left = i > 0 ? (previousX + x) / 2 : x - 8;
+            const right = i < values.length - 1 ? (x + nextX) / 2 : x + 8;
             let zoneColor;
             if (gap <= 1) {
                 const redAlpha = 0.12 + (0.10 * (1 - gap));
@@ -858,7 +861,7 @@ const dewRiskZones = {
                 zoneColor = `rgba(249, 115, 22, ${orangeAlpha.toFixed(3)})`;
             }
             ctx.fillStyle = zoneColor;
-            ctx.fillRect(x - width, chartArea.top, width * 2, chartArea.bottom - chartArea.top);
+            ctx.fillRect(left, chartArea.top, Math.max(2, right - left), chartArea.bottom - chartArea.top);
         }
         ctx.restore();
     }
@@ -1397,6 +1400,28 @@ function renderMainChart(ent, hrs) {
 function renderHumidityChart(ent, hrs) {
     const ctx = document.getElementById('humidityChart').getContext('2d');
     if (charts['humidityChart']) charts['humidityChart'].destroy();
+    const humidityValues = ent
+        .map(entry => Number(entry.value))
+        .filter(value => Number.isFinite(value));
+    let humidityMin = 0;
+    let humidityMax = 100;
+    if (humidityValues.length > 0) {
+        const dataMin = Math.min(...humidityValues);
+        const dataMax = Math.max(...humidityValues);
+        const dataRange = dataMax - dataMin;
+        const padding = Math.max(3, dataRange * 0.15);
+        const minimumRange = 10;
+        // Ein Randwert allein braucht eine innere ganzzahlige Mitte, damit
+        // die Achse trotz Symmetrie einen gültigen Bereich behalten kann.
+        const center = Math.min(99, Math.max(1, Math.round((dataMin + dataMax) / 2)));
+        const requiredTolerance = Math.ceil(Math.max(minimumRange / 2, dataRange / 2 + padding));
+        const maximumSymmetricTolerance = Math.min(center, 100 - center);
+        const tolerance = Math.min(requiredTolerance, maximumSymmetricTolerance);
+
+        // Beide Grenzen bleiben exakt gleich weit vom Datenmittelpunkt entfernt.
+        humidityMin = center - tolerance;
+        humidityMax = center + tolerance;
+    }
     charts['humidityChart'] = new Chart(ctx, {
         type: 'line',
         data: {
@@ -1429,9 +1454,9 @@ function renderHumidityChart(ent, hrs) {
             plugins: { legend: { display: false } },
             scales: {
                 y: {
-                    min: 0,
-                    max: 100,
-                    ticks: { color: CHART_TEXT_COLOR },
+                    min: humidityMin,
+                    max: humidityMax,
+                    ticks: { color: CHART_TEXT_COLOR, stepSize: 1, precision: 0 },
                     grid: { color: CHART_GRID_COLOR }
                 },
                 x: {
