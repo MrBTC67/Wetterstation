@@ -839,6 +839,15 @@ function getPeriodConfig(periodValue, now) {
         };
     }
 
+    if (periodValue === 'today') {
+        return {
+            start: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0),
+            end: now,
+            chartHours: 24,
+            isPrevMonth: false
+        };
+    }
+
     const hours = parseInt(periodValue, 10);
     return {
         start: getCutoffDate(hours, now),
@@ -1555,9 +1564,18 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
         return value;
     };
 
+    // Rate in mm/h für das Intervall a–b. Die noch laufende Stunde (Ende = jetzt) wird auf die volle Stunde bezogen,
+    // sonst würde ein neuer Balken nach wenigen Minuten hochgerechnet und sofort gelb statt grün starten.
+    const ratePerHour = (a, b) => {
+        const ms = b === end ? Math.max(b - a, 3600000) : b - a;
+        return Math.max(0, totalAt(b) - totalAt(a)) / ms * 3600000;
+    };
+
     const labels = [];
     const amounts = [];
     const rates = [];
+    // Farbe und Legende beziehen sich auf mm/h: Bei Tagesbalken zählt die stärkste Stunde des Tages, nicht der Tagesdurchschnitt.
+    const peakRates = [];
     const buckets = getRainBuckets(start, end);
     const dailyBars = end - start > 24 * 3600000;
     const dayStep = dayTickStep(buckets.length);
@@ -1573,7 +1591,15 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
             : new Date(bucket.from).getHours() % hourStep === 0;
         labels.push(isTick ? bucket.label : '');
         amounts.push(amount);
-        rates.push(amount / ((to - from) / 3600000));
+        rates.push(dailyBars ? amount / ((to - from) / 3600000) : ratePerHour(from, to));
+        let peak = rates[rates.length - 1];
+        if (dailyBars) {
+            peak = 0;
+            for (let t = from; t < to; t += 3600000) {
+                peak = Math.max(peak, ratePerHour(t, Math.min(t + 3600000, to)));
+            }
+        }
+        peakRates.push(peak);
     }
 
     const total = amounts.reduce((sum, amount) => sum + amount, 0);
@@ -1586,7 +1612,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
             datasets: [{
                 label: 'Niederschlag',
                 data: amounts,
-                backgroundColor: rates.map(rate => getRainIntensityColor(rate)),
+                backgroundColor: peakRates.map(rate => getRainIntensityColor(rate)),
                 borderRadius: 4,
                 borderSkipped: false
             }]
@@ -1602,7 +1628,8 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
                     callbacks: {
                         label: context => [
                             `Regen: ${amounts[context.dataIndex].toFixed(1)} mm`,
-                            `Ø Rate: ${rates[context.dataIndex].toFixed(1)} mm/h`
+                            `Ø Rate: ${rates[context.dataIndex].toFixed(1)} mm/h`,
+                            ...(dailyBars ? [`Max. Rate: ${peakRates[context.dataIndex].toFixed(1)} mm/h`] : [])
                         ]
                     }
                 }
@@ -1733,8 +1760,10 @@ function populatePeriodSelects() {
         const sel = document.getElementById(id);
         if (!sel) continue;
         sel.innerHTML = '';
-        for (const opt of PERIOD_OPTIONS) sel.add(new Option(opt.label, opt.value));
-        sel.value = '24';
+        // Nur der Niederschlag bietet "Heute" an: Das entspricht dem Tageswert (0:00 Uhr bis jetzt) im Regen-Gadget.
+        const options = id === 'rainPeriod' ? [{ value: 'today', label: 'Heute' }, ...PERIOD_OPTIONS] : PERIOD_OPTIONS;
+        for (const opt of options) sel.add(new Option(opt.label, opt.value));
+        sel.value = id === 'rainPeriod' ? 'today' : '24';
     }
 }
 
