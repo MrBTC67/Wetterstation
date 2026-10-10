@@ -247,6 +247,8 @@
         .pres-trend-arrow.down { color: var(--color-min); }
         .pres-trend-arrow.flat { color: var(--text-muted); }
         .trend-arrow { font-size: 0.75em; font-weight: 800; color: var(--text-muted); line-height: 1; }
+        .section-title { display: flex; align-items: baseline; gap: 12px; }
+        .section-total { font-size: 0.85em; font-weight: 800; color: var(--color-dry); }
         .rain-line { font-size: 0.85em; display: flex; align-items: baseline; gap: 5px; color: var(--text-main); font-weight: 600; margin-top: 2px; }
         .rain-label { font-size: 0.65em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800; }
         
@@ -493,7 +495,7 @@
     </div>
 
     <section class="rain-section">
-    <div class="section-header"><h2 style="color: var(--color-dry);">Niederschlag</h2><select id="rainPeriod" aria-label="Zeitraum Niederschlag" onchange="fetchData()"></select></div>
+    <div class="section-header"><div class="section-title"><h2 style="color: var(--color-dry);">Niederschlag</h2><span id="rain-total" class="section-total"></span></div><select id="rainPeriod" aria-label="Zeitraum Niederschlag" onchange="fetchData()"></select></div>
     <div class="chart-box"><canvas id="rainChart"></canvas></div>
     <div class="legend-box">
         <span class="legend-item"><span class="legend-dot" style="background: #34d399;"></span>leicht (&lt; 2,5 mm/h)</span>
@@ -1397,19 +1399,43 @@ function renderHumidityChart(ent, hrs) {
     });
 }
 
-// Balkenbreite richtet sich nach dem Zeitraum: 1 Std bei kurzen, 6 Std bei Wochen- und 24 Std bei Monatsansichten.
-function getRainBucketHours(hrs) {
-    if (hrs <= 24) return 1;
-    if (hrs <= 168) return 6;
-    return 24;
+// Zeitabschnitte für die Niederschlagsbalken: bis 24 Std stündlich, darüber Kalendertage in lokaler Zeit.
+function getRainBuckets(start, end) {
+    const spanHours = (end - start) / 3600000;
+    const buckets = [];
+
+    if (spanHours > 24) {
+        const day = new Date(start);
+        day.setHours(0, 0, 0, 0);
+        while (day.getTime() < end) {
+            const next = new Date(day);
+            next.setDate(next.getDate() + 1);
+            buckets.push({
+                from: day.getTime(),
+                to: next.getTime(),
+                label: `${day.getDate().toString().padStart(2, '0')}.${(day.getMonth() + 1).toString().padStart(2, '0')}.`
+            });
+            day.setTime(next.getTime());
+        }
+        return buckets;
+    }
+
+    const hour = new Date(start);
+    hour.setMinutes(0, 0, 0);
+    for (let t = hour.getTime(); t < end; t += 3600000) {
+        buckets.push({
+            from: t,
+            to: t + 3600000,
+            label: `${new Date(t).getHours().toString().padStart(2, '0')}:00 Uhr`
+        });
+    }
+    return buckets;
 }
 
 function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
     const ctx = document.getElementById('rainChart').getContext('2d');
     if (charts['rainChart']) charts['rainChart'].destroy();
 
-    const bucketHours = getRainBucketHours(hrs);
-    const bucketMs = bucketHours * 3600000;
     const start = rangeStart.getTime();
     const end = rangeEnd.getTime();
 
@@ -1426,19 +1452,18 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
     const labels = [];
     const amounts = [];
     const rates = [];
-    const firstBucket = Math.floor(start / bucketMs) * bucketMs;
-    for (let t = firstBucket; t < end; t += bucketMs) {
-        const from = Math.max(t, start);
-        const to = Math.min(t + bucketMs, end);
+    for (const bucket of getRainBuckets(start, end)) {
+        const from = Math.max(bucket.from, start);
+        const to = Math.min(bucket.to, end);
         if (to <= from) continue;
         const amount = Math.max(0, totalAt(to) - totalAt(from));
-        const bucketStart = new Date(t);
-        labels.push(bucketHours >= 24
-            ? `${bucketStart.getDate().toString().padStart(2, '0')}.${(bucketStart.getMonth() + 1).toString().padStart(2, '0')}.`
-            : `${bucketStart.getHours().toString().padStart(2, '0')}:00 Uhr`);
+        labels.push(bucket.label);
         amounts.push(amount);
         rates.push(amount / ((to - from) / 3600000));
     }
+
+    const total = amounts.reduce((sum, amount) => sum + amount, 0);
+    document.getElementById('rain-total').innerText = `Summe: ${total.toFixed(1)} mm`;
 
     charts['rainChart'] = new Chart(ctx, {
         type: 'bar',
