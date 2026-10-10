@@ -115,13 +115,6 @@
             background: rgba(239, 83, 80, 0.1);
         }
         
-        .controls-row { 
-            margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; gap: 10px; 
-            padding: 12px 18px; background: rgba(255,255,255,0.03); border-radius: 16px; 
-            border: 1px solid var(--border-color); 
-        }
-        .controls-row label { font-size: 0.8em; color: var(--text-muted); font-weight: bold; }
-        
         select { 
             background: #1e293b; color: var(--text-main); border: 1px solid #334155; 
             padding: 6px 12px; border-radius: 10px; cursor: pointer; font-size: 13px; outline: none; 
@@ -238,17 +231,8 @@
         .dew-secondary { margin-top: 8px; color: var(--text-muted); display: flex; align-items: baseline; gap: 5px; font-weight: 700; }
         .dew-secondary-label { font-size: 0.72em; }
         .dew-secondary strong { color: var(--color-dew); font-size: 1.9em; }
-        .card.bright {
-            --accent-color: var(--color-bright);
-            --card-tint: rgba(255, 213, 79, 0.24);
-            --card-border: rgba(255, 213, 79, 0.50);
-            --card-top-start: #fde68a;
-            --card-top-mid: #facc15;
-            --card-top-end: #fef3c7;
-        }
-        
+
         .card-icon { width: 20px; height: 20px; margin-bottom: 8px; stroke: currentColor; opacity: 0.8; }
-        #sun-icon-svg { display: block; }
         
         #frost-alarm { position: absolute; left: 10px; bottom: 10px; display: none; align-items: center; gap: 4px; color: var(--color-frost); animation: frost-pulse 1.5s infinite ease-in-out; }
         .frost-label { font-size: 0.65em; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
@@ -288,21 +272,11 @@
         .legend-item { display: flex; align-items: center; gap: 5px; }
         .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
 
-        .rain-stats-row { 
-            display: flex; justify-content: space-around; 
-            background: rgba(77, 208, 225, 0.05); 
-            border: 1px solid rgba(77, 208, 225, 0.1);
-            border-radius: 15px; padding: 10px; margin-top: -10px; margin-bottom: 20px;
-            flex-wrap: wrap;
-            gap: 8px;
-        }
-        .rain-table { width: 100%; border-collapse: collapse; margin: -10px 0 20px 0; background: rgba(77, 208, 225, 0.05); border: 1px solid rgba(77, 208, 225, 0.1); border-radius: 15px; overflow: hidden; font-size: 0.9em; }
+        .rain-table { width: 100%; border-collapse: collapse; margin: 0 0 20px 0; background: rgba(77, 208, 225, 0.05); border: 1px solid rgba(77, 208, 225, 0.1); border-radius: 15px; overflow: hidden; font-size: 0.9em; }
         .rain-table th, .rain-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid rgba(77, 208, 225, 0.1); }
         .rain-table tr:last-child th, .rain-table tr:last-child td { border-bottom: none; }
         .rain-table th { width: 45%; font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 800; color: var(--text-muted); }
         .rain-table td { text-align: right; font-weight: 700; color: var(--color-dry); transition: color 0.3s; }
-        .rain-stat-label { font-size: 0.72em; text-transform: uppercase; color: var(--text-muted); display: block; margin-bottom: 3px; font-weight: 800; letter-spacing: 0.4px; }
-        .rain-stat-val { font-size: 0.9em; font-weight: 700; color: var(--color-dry); transition: color 0.3s; }
 
         .rate-badge {
             background: rgba(30, 41, 59, 0.8);
@@ -339,45 +313,9 @@
         .month-stat-badge { border-color: rgba(77, 208, 225, 0.45); }
         .month-stat-val { font-size: 1em; color: var(--text-main); font-weight: 800; }
 
-        @media (min-width: 600px) {
-            .rain-stats-row {
-                justify-content: flex-start;
-            }
-            .rain-stats-row .rain-stat-item {
-                flex: 0 0 calc((100% - 16px) / 3);
-                max-width: calc((100% - 16px) / 3);
-                min-width: 0;
-            }
-            .rain-stats-row .rain-stat-item:nth-child(n + 4) {
-                margin-top: 0.9em;
-            }
-        }
-
         @media (max-width: 599px) {
             .rate-badge { min-width: 175px; }
             .chart-box { height: 260px; }
-            .rain-stats-row {
-                display: grid;
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-                gap: 1em;
-            }
-            .rain-stats-row .rain-stat-item {
-                flex: none;
-                max-width: none;
-                min-width: 0;
-                margin-top: 0;
-            }
-            /* Die Info-Zeile bekommt die volle Breite, die übrigen Kennzahlen stehen zu zweit nebeneinander. */
-            .rain-stats-row .rain-stat-item:first-child {
-                grid-column: 1 / -1;
-            }
-            .rain-stats-row .rain-stat-label,
-            .rain-stats-row .rain-stat-val {
-                font-size: 0.8em;
-            }
-            .rain-stats-row .rain-stat-label {
-                margin-bottom: 0;
-            }
             .stats {
                 grid-template-columns: repeat(3, minmax(0, 1fr));
                 gap: 6px;
@@ -410,17 +348,14 @@
                 align-self: center;
                 text-align: center;
             }
-            #rainCard .val-display,
-            #card-bright .val-display {
+            #rainCard .val-display {
                 font-size: 0.82em;
             }
-            #rainCard .rain-line,
-            #card-bright .rain-line {
+            #rainCard .rain-line {
                 font-size: 0.72em;
                 gap: 4px;
             }
-            #rainCard .rain-label,
-            #card-bright .rain-label {
+            #rainCard .rain-label {
                 font-size: 1.2em;
             }
             #hum-display {
@@ -509,14 +444,6 @@
             <div id="hum-display" class="val-display accent-text"><span id="curr-hum">--</span><span class="unit">%</span></div>
             <div class="dew-secondary"><span class="dew-secondary-label">Taupunkt</span><strong id="curr-temp-dew">--</strong><span class="unit dew-unit">°C</span></div>
         </div>
-        <div class="card pres">
-            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M12 7v5l3 3"></path></svg>
-            <h3>Luftdruck</h3>
-            <div class="val-display accent-text" style="color: var(--color-pres) !important; flex-direction: column; align-items: flex-start; gap: 0;">
-                <div class="pres-main-line"><span id="curr-pres">--</span><span class="unit"> hPa</span><span id="pres-trend-arrow" class="pres-trend-arrow flat">→</span></div>
-                <span id="pres-rate-val" class="pres-rate">-- hPa/h</span>
-            </div>
-        </div>
         <div id="rainCard" class="card rain">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 14.89c0-4 5-9 8-9s8 5 8 9a8 8 0 0 1-16 0ZM5 18l1.5-1.5M10 20l1.5-1.5M15 18l1.5-1.5"></path></svg>
             <h3 style="text-transform: none;">REGEN: mm</h3>
@@ -526,9 +453,17 @@
                 <div class="rain-line"><span class="rain-label">Jahr:</span> <span id="year-rain">--</span></div>
             </div>
         </div>
+        <div class="card pres">
+            <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M12 7v5l3 3"></path></svg>
+            <h3>Luftdruck</h3>
+            <div class="val-display accent-text" style="color: var(--color-pres) !important; flex-direction: column; align-items: flex-start; gap: 0;">
+                <div class="pres-main-line"><span id="curr-pres">--</span><span class="unit"> hPa</span><span id="pres-trend-arrow" class="pres-trend-arrow flat">→</span></div>
+                <span id="pres-rate-val" class="pres-rate">-- hPa/h</span>
+            </div>
+        </div>
     </div>
 
-    <div class="controls-row"><label for="period" style="color: #86efac; font-size: 0.9em;">Temperatur</label><select id="period" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
+    <div class="section-header"><h2 style="color: #86efac;">Temperatur</h2><select id="period" aria-label="Zeitraum Temperatur" onchange="fetchData()"></select></div>
     <div class="chart-box"><canvas id="mainChart"></canvas></div>
     <div class="legend-box">
         <span class="legend-item"><span class="legend-dot" style="background: #ba68c8;"></span>unter -10 °C</span>
@@ -543,7 +478,7 @@
         <span class="legend-item"><span class="legend-dot" style="background: rgba(249, 115, 22, 0.4);"></span>Taupunkt 0,5–1 °C</span>
     </div>
 
-    <div class="section-header"><h2 style="color: #5eead4;">Feuchte</h2><select id="humidityPeriod" aria-label="Zeitraum Feuchte" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
+    <div class="section-header"><h2 style="color: #5eead4;">Feuchte</h2><select id="humidityPeriod" aria-label="Zeitraum Feuchte" onchange="fetchData()"></select></div>
     <div class="chart-box"><canvas id="humidityChart"></canvas></div>
     <div class="legend-box">
         <span class="legend-item"><span class="legend-dot" style="background: #34d399;"></span>35–75 % (gut)</span>
@@ -551,7 +486,8 @@
         <span class="legend-item"><span class="legend-dot" style="background: #f87171;"></span>≤ 25 % / ≥ 88 % (kritisch)</span>
     </div>
 
-    <div class="section-header"><h2 style="color: var(--color-dry);">Niederschlag</h2><select id="rainPeriod" aria-label="Zeitraum Niederschlag" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
+    <section class="rain-section">
+    <div class="section-header"><h2 style="color: var(--color-dry);">Niederschlag</h2><select id="rainPeriod" aria-label="Zeitraum Niederschlag" onchange="fetchData()"></select></div>
     <div class="chart-box"><canvas id="rainChart"></canvas></div>
     <div class="legend-box">
         <span class="legend-item"><span class="legend-dot" style="background: #34d399;"></span>leicht (&lt; 2,5 mm/h)</span>
@@ -581,7 +517,9 @@
         </tbody>
     </table>
 
-    <div class="section-header"><h2 style="color: var(--color-pres);">Luftdruck</h2><select id="pressurePeriod" aria-label="Zeitraum Luftdruck" onchange="fetchData()"><option value="4">4 Std</option><option value="12">12 Std</option><option value="24" selected>24 Std</option><option value="168">7 Tage</option><option value="336">14 Tage</option><option value="30">1 Monat</option><option value="prevMonth">Vormonat</option></select></div>
+    </section>
+
+    <div class="section-header"><h2 style="color: var(--color-pres);">Luftdruck</h2><select id="pressurePeriod" aria-label="Zeitraum Luftdruck" onchange="fetchData()"></select></div>
     <div class="chart-box"><canvas id="pressureChart"></canvas></div>
 </div>
 
@@ -598,6 +536,8 @@ const monthNames = ["Januar", "Februar", "M\u00e4rz", "April", "Mai", "Juni", "J
 
 const PRES_OFFSET = 14.5;
 let charts = {};
+// Nach dem ersten Laden werden die Auswahlfelder nicht mehr gesperrt, sonst würden sie jede Minute kurz blockiert.
+let initialLoadDone = false;
 // Bei vielen Messpunkten nur Minimum und Maximum pro Bildbereich zeichnen, damit Extremwerte erhalten bleiben.
 Chart.defaults.plugins.decimation.enabled = true;
 Chart.defaults.plugins.decimation.algorithm = 'min-max';
@@ -629,16 +569,6 @@ function formatDateTimeShort(dt) {
     return `${day}.${month}. ${hh}:${mm}`;
 }
 
-function formatDurationHours(hours) {
-    if (!Number.isFinite(hours) || hours <= 0) return '0m';
-    const totalMin = Math.round(hours * 60);
-    const h = Math.floor(totalMin / 60);
-    const m = totalMin % 60;
-    if (h > 0 && m > 0) return `${h}h ${m}m`;
-    if (h > 0) return `${h}h`;
-    return `${m}m`;
-}
-
 function analyzeRainTimeline(series) {
     if (!series || series.length < 2) {
         return {
@@ -648,10 +578,7 @@ function analyzeRainTimeline(series) {
             lastRainTime: null,
             rangeSum: 0,
             latestEventStart: null,
-            latestEventEnd: null,
-            longestRainHours: 0,
-            longestDryHours: 0,
-            eventCount: 0
+            latestEventEnd: null
         };
     }
 
@@ -661,13 +588,9 @@ function analyzeRainTimeline(series) {
     let lastRainTime = null;
     let latestEventStart = null;
     let latestEventEnd = null;
-    let longestRainHours = 0;
-    let longestDryHours = 0;
-    let eventCount = 0;
 
     let inRain = false;
     let currentRainStart = null;
-    let currentDryStart = series[0].date;
 
     for (let i = 1; i < series.length; i++) {
         const prev = series[i - 1];
@@ -691,34 +614,17 @@ function analyzeRainTimeline(series) {
                 inRain = true;
                 currentRainStart = prev.date;
                 latestEventStart = currentRainStart;
-                eventCount += 1;
-                if (currentDryStart) {
-                    const dryHours = (prev.date - currentDryStart) / 3600000;
-                    if (dryHours > longestDryHours) longestDryHours = dryHours;
-                    currentDryStart = null;
-                }
             }
-        } else {
-            if (inRain && currentRainStart) {
-                const rainHours = (prev.date - currentRainStart) / 3600000;
-                if (rainHours > longestRainHours) longestRainHours = rainHours;
-                latestEventEnd = prev.date;
-                inRain = false;
-                currentRainStart = null;
-            }
-            if (!currentDryStart) currentDryStart = prev.date;
+        } else if (inRain && currentRainStart) {
+            latestEventEnd = prev.date;
+            inRain = false;
+            currentRainStart = null;
         }
     }
 
     const lastPoint = series[series.length - 1].date;
     if (inRain && currentRainStart) {
-        const rainHours = (lastPoint - currentRainStart) / 3600000;
-        if (rainHours > longestRainHours) longestRainHours = rainHours;
         latestEventEnd = lastPoint;
-    }
-    if (currentDryStart) {
-        const dryHours = (lastPoint - currentDryStart) / 3600000;
-        if (dryHours > longestDryHours) longestDryHours = dryHours;
     }
 
     const rangeSum = Math.max(0, series[series.length - 1].value - series[0].value);
@@ -730,10 +636,7 @@ function analyzeRainTimeline(series) {
         lastRainTime,
         rangeSum,
         latestEventStart,
-        latestEventEnd,
-        longestRainHours,
-        longestDryHours,
-        eventCount
+        latestEventEnd
     };
 }
 
@@ -965,10 +868,6 @@ function setValueWithFlash(elOrId, valueText) {
     }
 }
 
-function getTempStatus(t) {
-    return classifyTrafficLight(t, 4, 27, -1, 32);
-}
-
 function getHumidityStatus(h) {
     return classifyTrafficLight(h, 35, 75, 25, 88);
 }
@@ -1065,8 +964,10 @@ async function fetchData() {
     const rainPeriod = getPeriodConfig(rainPeriodValue, now);
     const pressurePeriod = getPeriodConfig(pressurePeriodValue, now);
 
-    setDataStatus('loading', 'Lade Messdaten...');
-    setControlsDisabled(true);
+    if (!initialLoadDone) {
+        setDataStatus('loading', 'Lade Messdaten...');
+        setControlsDisabled(true);
+    }
     
     const rainMonthInfos = [];
     for (let i = 0; i <= PREVIOUS_MONTHS_TO_SHOW; i++) {
@@ -1132,7 +1033,8 @@ async function fetchData() {
         console.error("Fehler:", e);
         setDataStatus('error', 'Daten konnten nicht geladen werden');
     } finally {
-        setControlsDisabled(false);
+        if (!initialLoadDone) setControlsDisabled(false);
+        initialLoadDone = true;
     }
 }
 
@@ -1393,6 +1295,18 @@ function makeCategoryTickCallback(ent, hrs) {
     };
 }
 
+// Hebt den letzten Messpunkt eines Verlaufs hervor.
+function latestPointStyle(count, borderColor) {
+    const isLatest = ctx => ctx.parsed.x === count - 1;
+    return {
+        pointRadius: ctx => isLatest(ctx) ? 3.5 : 0,
+        pointHoverRadius: ctx => isLatest(ctx) ? 5 : 3,
+        pointBackgroundColor: ctx => isLatest(ctx) ? '#f8fafc' : 'transparent',
+        pointBorderColor: ctx => isLatest(ctx) ? borderColor : 'transparent',
+        pointBorderWidth: ctx => isLatest(ctx) ? 2 : 0
+    };
+}
+
 function renderMainChart(ent, hrs) {
     const ctx = document.getElementById('mainChart').getContext('2d');
     if (charts['mainChart']) charts['mainChart'].destroy();
@@ -1402,11 +1316,7 @@ function renderMainChart(ent, hrs) {
             labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
                 label: 'Temp', data: ent.map(e => e.value), fill: true,
-                pointRadius: (ctx) => ctx.parsed.x === ent.length - 1 ? 3.5 : 0,
-                pointHoverRadius: (ctx) => ctx.parsed.x === ent.length - 1 ? 5 : 3,
-                pointBackgroundColor: (ctx) => ctx.parsed.x === ent.length - 1 ? '#f8fafc' : 'transparent',
-                pointBorderColor: (ctx) => ctx.parsed.x === ent.length - 1 ? '#22c55e' : 'transparent',
-                pointBorderWidth: (ctx) => ctx.parsed.x === ent.length - 1 ? 2 : 0,
+                ...latestPointStyle(ent.length, '#22c55e'),
                 tension: 0.4,
                 borderColor: '#26a69a', backgroundColor: (c) => {
                     const { ctx, chartArea } = c.chart;
@@ -1472,11 +1382,7 @@ function renderHumidityChart(ent, hrs) {
             labels: ent.map(e => getSmartLabel(e.date, hrs)),
             datasets: [{
                 label: 'Feuchte', data: ent.map(e => e.value), fill: true,
-                pointRadius: (ctx) => ctx.parsed.x === ent.length - 1 ? 3.5 : 0,
-                pointHoverRadius: (ctx) => ctx.parsed.x === ent.length - 1 ? 5 : 3,
-                pointBackgroundColor: (ctx) => ctx.parsed.x === ent.length - 1 ? '#f8fafc' : 'transparent',
-                pointBorderColor: (ctx) => ctx.parsed.x === ent.length - 1 ? '#2dd4bf' : 'transparent',
-                pointBorderWidth: (ctx) => ctx.parsed.x === ent.length - 1 ? 2 : 0,
+                ...latestPointStyle(ent.length, '#2dd4bf'),
                 tension: 0.35,
                 borderColor: '#2dd4bf', backgroundColor: (c) => {
                     const { ctx, chartArea } = c.chart;
@@ -1638,11 +1544,7 @@ function renderPressureChart(ent, hrs) {
                 label: 'Luftdruck',
                 data: ent.map(e => e.value),
                 fill: true,
-                pointRadius: (ctx) => ctx.parsed.x === ent.length - 1 ? 3.5 : 0,
-                pointHoverRadius: (ctx) => ctx.parsed.x === ent.length - 1 ? 5 : 3,
-                pointBackgroundColor: (ctx) => ctx.parsed.x === ent.length - 1 ? '#f8fafc' : 'transparent',
-                pointBorderColor: (ctx) => ctx.parsed.x === ent.length - 1 ? '#a78bfa' : 'transparent',
-                pointBorderWidth: (ctx) => ctx.parsed.x === ent.length - 1 ? 2 : 0,
+                ...latestPointStyle(ent.length, '#a78bfa'),
                 tension: 0.35,
                 borderColor: '#9575cd',
                 backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#9575cd')
@@ -1674,7 +1576,29 @@ function renderPressureChart(ent, hrs) {
     });
 }
 
-fetchData(); setInterval(fetchData, 60000);
+// Alle Zeitraum-Auswahlen nutzen dieselbe Optionsliste. Jede Sektion behält ihr eigenes Dropdown.
+const PERIOD_OPTIONS = [
+    { value: '4', label: '4 Std' },
+    { value: '12', label: '12 Std' },
+    { value: '24', label: '24 Std' },
+    { value: '168', label: '7 Tage' },
+    { value: '336', label: '14 Tage' },
+    { value: '30', label: '1 Monat' },
+    { value: 'prevMonth', label: 'Vormonat' }
+];
+const PERIOD_SELECT_IDS = ['period', 'humidityPeriod', 'rainPeriod', 'pressurePeriod'];
+
+function populatePeriodSelects() {
+    for (const id of PERIOD_SELECT_IDS) {
+        const sel = document.getElementById(id);
+        if (!sel) continue;
+        sel.innerHTML = '';
+        for (const opt of PERIOD_OPTIONS) sel.add(new Option(opt.label, opt.value));
+        sel.value = '24';
+    }
+}
+
+populatePeriodSelects(); fetchData(); setInterval(fetchData, 60000);
 </script>
 </body>
 </html>
