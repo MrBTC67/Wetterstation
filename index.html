@@ -88,7 +88,6 @@
         .info-wrapper:hover .info-tooltip { visibility: visible; }
         .info-tooltip b { color: var(--color-temp); display: block; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 3px; }
         
-        .last-update { font-size: 0.75em; color: var(--color-update); margin-bottom: 20px; font-weight: 600; opacity: 0.9; }
         .data-status {
             display: inline-block;
             font-size: 0.72em;
@@ -488,7 +487,6 @@
             </div>
         </div>
     </div>
-    <div id="last-update-ts" class="last-update">Zuletzt aktualisiert: --:-- Uhr</div>
     <div id="data-status" class="data-status"></div>
     
     <div class="stats">
@@ -1148,8 +1146,6 @@ async function fetchData() {
         setValueWithFlash('min-temp-val', Math.min(...entriesT.map(e => e.value)).toFixed(1));
         setValueWithFlash('max-temp-val', Math.max(...entriesT.map(e => e.value)).toFixed(1));
         document.getElementById('frost-alarm').style.display = lastT <= 3 ? 'flex' : 'none';
-        const lastDate = entriesT[entriesT.length-1].date;
-        document.getElementById('last-update-ts').innerText = `Zuletzt aktualisiert: ${lastDate.getHours().toString().padStart(2, '0')}:${lastDate.getMinutes().toString().padStart(2, '0')} Uhr`;
         renderMainChart(entriesT, hours);
     }
     if (entriesH.length > 0) {
