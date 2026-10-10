@@ -287,6 +287,8 @@
         .legend-box { display: flex; justify-content: center; gap: 15px; margin-top: 10px; font-size: 0.7em; color: var(--text-muted); flex-wrap: wrap; }
         .legend-item { display: flex; align-items: center; gap: 5px; }
         .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+        .temp-scale { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; font-size: 0.7em; color: var(--text-muted); }
+        .temp-scale-bar { width: 200px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #ba68c8, #64b5f6, #26a69a, #fff176, #ffb74d, #ef5350); }
 
         .rain-table { width: 100%; border-collapse: collapse; margin: 0 0 20px 0; background: rgba(77, 208, 225, 0.05); border: 1px solid rgba(77, 208, 225, 0.1); border-radius: 15px; overflow: hidden; font-size: 0.9em; }
         .rain-table th, .rain-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid rgba(77, 208, 225, 0.1); }
@@ -487,25 +489,13 @@
     <div class="section-header"><h2 style="color: #86efac;">Temperatur</h2><select id="period" aria-label="Zeitraum Temperatur" onchange="fetchData()"></select></div>
     <div class="chart-box"><canvas id="mainChart"></canvas></div>
     <div class="legend-box">
-        <span class="legend-item"><span class="legend-dot" style="background: #ba68c8;"></span>unter -10 °C</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #64b5f6;"></span>-10 bis 0 °C</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #26a69a;"></span>0 bis 10 °C</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #fff176;"></span>10 bis 20 °C</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #ffb74d;"></span>20 bis 30 °C</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #ef5350;"></span>über 30 °C</span>
-    </div>
-    <div class="legend-box">
         <span class="legend-item"><span class="legend-dot" style="background: rgba(239, 68, 68, 0.45);"></span>Taupunkt ≤ 0,5 °C (Nebelgefahr)</span>
         <span class="legend-item"><span class="legend-dot" style="background: rgba(249, 115, 22, 0.4);"></span>Taupunkt 0,5–1 °C</span>
     </div>
+    <div class="temp-scale" aria-hidden="true"><span>−10 °C</span><div class="temp-scale-bar"></div><span>40 °C</span></div>
 
     <div class="section-header"><h2 style="color: #5eead4;">Feuchte</h2><select id="humidityPeriod" aria-label="Zeitraum Feuchte" onchange="fetchData()"></select></div>
     <div class="chart-box"><canvas id="humidityChart"></canvas></div>
-    <div class="legend-box">
-        <span class="legend-item"><span class="legend-dot" style="background: #34d399;"></span>35–75 % (gut)</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #facc15;"></span>25–35 % / 75–88 % (Achtung)</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #f87171;"></span>≤ 25 % / ≥ 88 % (kritisch)</span>
-    </div>
 
     <section class="rain-section">
     <div class="section-header"><div class="section-title"><h2 style="color: var(--color-dry);">Niederschlag</h2><span id="rain-total" class="section-total"></span></div><select id="rainPeriod" aria-label="Zeitraum Niederschlag" onchange="fetchData()"></select></div>
@@ -559,11 +549,16 @@ const PRES_OFFSET = 14.5;
 let charts = {};
 // Ungefilterte Messreihen für die Mini-Verläufe in den Kopfkarten.
 let sparkSource = null;
+// Zeiträume der Diagramme (Start, Ende) und die daraus entstandenen Zeitachsen.
+let periodBounds = {};
+const chartGrids = {};
 // Nach dem ersten Laden werden die Auswahlfelder nicht mehr gesperrt, sonst würden sie jede Minute kurz blockiert.
 let initialLoadDone = false;
 // Bei vielen Messpunkten nur Minimum und Maximum pro Bildbereich zeichnen, damit Extremwerte erhalten bleiben.
 Chart.defaults.plugins.decimation.enabled = true;
 Chart.defaults.plugins.decimation.algorithm = 'min-max';
+// Leere Positionen (fehlende Messwerte zur vollen Stunde) zeigen keinen Tooltip.
+Chart.defaults.plugins.tooltip.filter = item => item.parsed.y !== null;
 const CHART_TEXT_COLOR = '#94a3b8';
 const CHART_GRID_COLOR = 'rgba(255,255,255,0.05)';
 // Gemeinsame Regeln für die Zeitachsen aller Diagramme. Auf dem Handy werden die Abstände größer.
@@ -795,7 +790,7 @@ const dewRiskZones = {
         const { ctx, chartArea, scales } = chart;
         ctx.save();
         for (let i = 0; i < values.length; i++) {
-            const rawGap = Number(points[i]) - Number(values[i]);
+            const rawGap = points[i] === null ? NaN : Number(points[i]) - Number(values[i]);
             if (!Number.isFinite(rawGap) || rawGap > DEW_ORANGE_MAX) continue;
             // Taupunkt über der Temperatur (Sensorabweichung bei Sättigung) zählt wie 0 °C Abstand.
             const gap = Math.max(0, rawGap);
@@ -992,6 +987,7 @@ async function fetchData() {
     const humidityPeriod = getPeriodConfig(humidityPeriodValue, now);
     const rainPeriod = getPeriodConfig(rainPeriodValue, now);
     const pressurePeriod = getPeriodConfig(pressurePeriodValue, now);
+    periodBounds = { temp: tempPeriod, hum: humidityPeriod, pres: pressurePeriod };
 
     if (!initialLoadDone) {
         setDataStatus('loading', 'Lade Messdaten...');
@@ -1059,7 +1055,7 @@ async function fetchData() {
         updateUI(entriesT, entriesH, entriesHChart, entriesP, entriesPChart, entriesR_current, entriesR_selected, rainPeriod.start, rainPeriod.end, tempPeriod.chartHours, humidityPeriod.chartHours, rainPeriod.chartHours, pressurePeriod.chartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths, entriesP_all);
         sparkSource = { temp: entriesT_all, hum: entriesH_all, pres: entriesP_all };
         renderSparklines();
-        linkCursors(entriesT, entriesHChart);
+        linkCursors();
         const nowText = now.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
         setDataStatus('ok', `Stand ${nowText} Uhr · aktualisiert jede Minute`);
     } catch (e) {
@@ -1106,7 +1102,8 @@ async function fetchData() {
     renderHumidityChart(entriesHChart, humidityHoursPeriod);
     if (entriesH.length > 0 && entriesT.length > 0) {
         if (charts.mainChart) {
-            charts.mainChart.dewValues = entriesT.map(entry => {
+            charts.mainChart.dewValues = chartGrids.temp.map(entry => {
+                if (entry.value === null) return NaN;
                 const humidityEntry = findNearestHumidity(entry, entriesH);
                 return humidityEntry ? calculateDewPoint(entry.value, humidityEntry.value) : NaN;
             });
@@ -1257,7 +1254,7 @@ const minMaxPlugin = {
         const chartId = chart.canvas.id;
         if (chartId !== 'mainChart' && chartId !== 'pressureChart' && chartId !== 'humidityChart') return;
         const { ctx, chartArea: { left, right, width }, scales: { y }, data } = chart;
-        const dataset = data.datasets[0].data;
+        const dataset = data.datasets[0].data.filter(v => v !== null);
         if (!dataset || !dataset.length) return;
         const minVal = Math.min(...dataset), maxVal = Math.max(...dataset);
         const unit = chartId === 'pressureChart' ? ' hPa' : (chartId === 'humidityChart' ? '%' : '°');
@@ -1314,7 +1311,51 @@ function latestPointStyle(count, borderColor) {
     };
 }
 
+// Ergänzt die vollen Stunden des Zeitraums als Positionen der Zeitachse. Fehlt dort ein Messwert, bleibt die Position leer (null).
+// Es werden keine Werte erfunden. Nur bei Zeiträumen bis 24 Std.
+function withHourMarks(entries, period) {
+    if (!period || period.end - period.start > 24 * 3600000) return entries;
+    const marks = [];
+    const hour = new Date(period.start);
+    hour.setMinutes(0, 0, 0);
+    if (hour < period.start) hour.setHours(hour.getHours() + 1);
+    for (; hour <= period.end; hour.setHours(hour.getHours() + 1)) {
+        const time = hour.getTime();
+        // Ein Messwert innerhalb von 2,5 Minuten zählt als Messwert zu dieser Stunde.
+        if (!entries.some(e => Math.abs(e.date.getTime() - time) < 150000)) {
+            marks.push({ date: new Date(time), value: null });
+        }
+    }
+    return [...entries, ...marks].sort((a, b) => a.date - b.date);
+}
+
+// Fester Farbverlauf über die Temperaturskala. Dieselbe Farbe steht immer für dieselbe Temperatur,
+// unabhängig vom aktuellen Wertebereich. Die Stützpunkte entsprechen den Farben der Kopfkarte.
+const TEMP_SCALE = [
+    { t: -10, color: '#ba68c8' },
+    { t: 0, color: '#64b5f6' },
+    { t: 10, color: '#26a69a' },
+    { t: 20, color: '#fff176' },
+    { t: 30, color: '#ffb74d' },
+    { t: 40, color: '#ef5350' }
+];
+
+function temperatureLineGradient(c) {
+    const { ctx, chartArea, scales } = c.chart;
+    if (!chartArea || !scales.y) return '#26a69a';
+    const y = scales.y;
+    const bottom = y.getPixelForValue(TEMP_SCALE[0].t);
+    const top = y.getPixelForValue(TEMP_SCALE[TEMP_SCALE.length - 1].t);
+    const gradient = ctx.createLinearGradient(0, bottom, 0, top);
+    for (const stop of TEMP_SCALE) {
+        gradient.addColorStop((y.getPixelForValue(stop.t) - bottom) / (top - bottom), stop.color);
+    }
+    return gradient;
+}
+
 function renderMainChart(ent, hrs) {
+    ent = withHourMarks(ent, periodBounds.temp);
+    chartGrids.temp = ent;
     const ctx = document.getElementById('mainChart').getContext('2d');
     if (charts['mainChart']) charts['mainChart'].destroy();
     charts['mainChart'] = new Chart(ctx, {
@@ -1325,7 +1366,8 @@ function renderMainChart(ent, hrs) {
                 label: 'Temp', data: ent.map(e => e.value), fill: true,
                 ...latestPointStyle(ent.length, '#22c55e'),
                 tension: 0.4,
-                borderColor: '#26a69a', backgroundColor: (c) => {
+                spanGaps: true,
+                borderColor: temperatureLineGradient, backgroundColor: (c) => {
                     const { ctx, chartArea } = c.chart;
                     if (!chartArea) return null;
                     const gradient = ctx.createLinearGradient(0, chartArea.bottom, 0, chartArea.top);
@@ -1334,8 +1376,7 @@ function renderMainChart(ent, hrs) {
                     gradient.addColorStop(0.72, 'rgba(45, 212, 191, 0.26)');
                     gradient.addColorStop(1, 'rgba(125, 211, 252, 0.34)');
                     return gradient;
-                },
-                segment: { borderColor: ctx => ctx.p0.parsed && ctx.p1.parsed ? getTempColor((ctx.p0.parsed.y + ctx.p1.parsed.y) / 2) : '#26a69a' }
+                }
             }]
         },
         options: { 
@@ -1348,6 +1389,7 @@ function renderMainChart(ent, hrs) {
                     ticks: { 
                         color: CHART_TEXT_COLOR, 
                         autoSkip: false,
+                        maxRotation: 0,
                         callback: makeCategoryTickCallback(ent, hrs)
                     } 
                 } 
@@ -1360,9 +1402,11 @@ function renderMainChart(ent, hrs) {
 function renderHumidityChart(ent, hrs) {
     const ctx = document.getElementById('humidityChart').getContext('2d');
     if (charts['humidityChart']) charts['humidityChart'].destroy();
+    ent = withHourMarks(ent, periodBounds.hum);
+    chartGrids.hum = ent;
     const humidityValues = ent
-        .map(entry => Number(entry.value))
-        .filter(value => Number.isFinite(value));
+        .map(entry => entry.value)
+        .filter(value => value !== null && Number.isFinite(value));
     let humidityMin = 0;
     let humidityMax = 100;
     if (humidityValues.length > 0) {
@@ -1390,6 +1434,7 @@ function renderHumidityChart(ent, hrs) {
                 label: 'Feuchte', data: ent.map(e => e.value), fill: true,
                 ...latestPointStyle(ent.length, '#2dd4bf'),
                 tension: 0.35,
+                spanGaps: true,
                 borderColor: '#2dd4bf', backgroundColor: (c) => {
                     const { ctx, chartArea } = c.chart;
                     if (!chartArea) return null;
@@ -1399,8 +1444,7 @@ function renderHumidityChart(ent, hrs) {
                     gradient.addColorStop(0.72, 'rgba(94, 234, 212, 0.25)');
                     gradient.addColorStop(1, 'rgba(204, 251, 241, 0.34)');
                     return gradient;
-                },
-                segment: { borderColor: seg => seg.p0.parsed && seg.p1.parsed ? getHumidityColor((seg.p0.parsed.y + seg.p1.parsed.y) / 2) : '#2dd4bf' }
+                }
             }]
         },
         options: {
@@ -1420,6 +1464,7 @@ function renderHumidityChart(ent, hrs) {
                     ticks: {
                         color: CHART_TEXT_COLOR,
                         autoSkip: false,
+                        maxRotation: 0,
                         callback: makeCategoryTickCallback(ent, hrs)
                     }
                 }
@@ -1618,6 +1663,7 @@ function renderSparklines() {
 function renderPressureChart(ent, hrs) {
     const ctx = document.getElementById('pressureChart').getContext('2d');
     if (charts['pressureChart']) charts['pressureChart'].destroy();
+    ent = withHourMarks(ent, periodBounds.pres);
     charts['pressureChart'] = new Chart(ctx, {
         type: 'line',
         data: {
@@ -1628,6 +1674,7 @@ function renderPressureChart(ent, hrs) {
                 fill: true,
                 ...latestPointStyle(ent.length, '#a78bfa'),
                 tension: 0.35,
+                spanGaps: true,
                 borderColor: '#9575cd',
                 backgroundColor: (c) => createVerticalGradient(c.chart.ctx, c.chart.chartArea, '#9575cd')
             }]
@@ -1648,6 +1695,7 @@ function renderPressureChart(ent, hrs) {
                     ticks: {
                         color: CHART_TEXT_COLOR,
                         autoSkip: false,
+                        maxRotation: 0,
                         callback: makeCategoryTickCallback(ent, hrs)
                     }
                 }
@@ -1680,12 +1728,12 @@ function populatePeriodSelects() {
 }
 
 // Temperatur- und Feuchtediagramm teilen sich den Cursor: Der Zeitpunkt im einen wird im anderen markiert.
-function linkCursors(tempEntries, humidityEntries) {
+function linkCursors() {
     const main = charts.mainChart;
     const hum = charts.humidityChart;
     if (!main || !hum) return;
-    main.$dates = tempEntries.map(e => e.date.getTime());
-    hum.$dates = humidityEntries.map(e => e.date.getTime());
+    main.$dates = chartGrids.temp.map(e => e.date.getTime());
+    hum.$dates = chartGrids.hum.map(e => e.date.getTime());
     for (const chart of [main, hum]) {
         chart.options.interaction = { mode: 'index', intersect: false };
         chart.options.onHover = (event, elements, source) => mirrorCursor(source, elements);
