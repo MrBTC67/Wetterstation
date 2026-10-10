@@ -451,7 +451,6 @@
             <svg id="icon-temp" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
             <h3>Temperatur</h3>
             <div id="temp-display" class="val-display accent-text"><span id="curr-temp">--</span><span class="unit">°C</span><span id="temp-trend" class="trend-arrow">→</span></div>
-            <div class="spark"><canvas id="spark-temp"></canvas></div>
         </div>
         <div class="card min">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--color-min)"><path d="M12 9V3m0 0L9 6m3-3 3 3m-3 15v-6m0 0-3 3m3-3 3 3"></path><path d="M14 14.54V4a2 2 0 0 0-4 0v10.54a4 4 0 1 0 4 0Z"></path></svg>
@@ -473,7 +472,6 @@
             <h3>Feuchte</h3>
             <div id="hum-display" class="val-display accent-text"><span id="curr-hum">--</span><span class="unit">%</span><span id="hum-trend" class="trend-arrow">→</span></div>
             <div class="dew-secondary"><span class="dew-secondary-label">Taupunkt</span><strong id="curr-temp-dew">--</strong><span class="unit dew-unit">°C</span></div>
-            <div class="spark"><canvas id="spark-hum"></canvas></div>
         </div>
         <div id="rainCard" class="card rain">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 14.89c0-4 5-9 8-9s8 5 8 9a8 8 0 0 1-16 0ZM5 18l1.5-1.5M10 20l1.5-1.5M15 18l1.5-1.5"></path></svg>
@@ -1708,8 +1706,6 @@ function setTrendArrow(elId, rate, threshold, scale, value) {
 
 function renderSparklines() {
     if (!sparkSource) return;
-    renderSparkline('spark-temp', sparkSource.temp, '#26a69a');
-    renderSparkline('spark-hum', sparkSource.hum, '#2dd4bf');
     renderSparkline('spark-pres', sparkSource.pres, '#9575cd');
     setTrendArrow('temp-trend', getRatePerHour(sparkSource.temp), 0.3, TEMP_SCALE, sparkSource.temp.at(-1)?.value);
     setTrendArrow('hum-trend', getRatePerHour(sparkSource.hum), 3, HUMIDITY_SCALE, sparkSource.hum.at(-1)?.value);
