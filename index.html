@@ -566,8 +566,12 @@ Chart.defaults.plugins.decimation.enabled = true;
 Chart.defaults.plugins.decimation.algorithm = 'min-max';
 const CHART_TEXT_COLOR = '#94a3b8';
 const CHART_GRID_COLOR = 'rgba(255,255,255,0.05)';
-// Auf schmalen Bildschirmen passen nur wenige Zeitbeschriftungen nebeneinander.
-const tickLimit = desktopLimit => window.innerWidth < 600 ? 3 : desktopLimit;
+// Gemeinsame Regeln für die Zeitachsen aller Diagramme. Auf dem Handy werden die Abstände größer.
+const isNarrowScreen = () => window.innerWidth < 600;
+// Bei kurzen Zeiträumen: eine Uhrzeit alle 1, 2 oder 4 Stunden.
+const hourTickStep = hrs => (hrs <= 4 ? 1 : (hrs <= 12 ? 2 : 4)) * (isNarrowScreen() ? 2 : 1);
+// Bei langen Zeiträumen: ein Datum an jedem n-ten Tag, damit höchstens 8 (Handy: 4) Daten stehen.
+const dayTickStep = dayCount => Math.max(1, Math.ceil(dayCount / (isNarrowScreen() ? 4 : 8)));
 const PREVIOUS_MONTHS_TO_SHOW = 3;
 const RAIN_CLASS_LIGHT_MAX = 2.5;
 const RAIN_CLASS_MODERATE_MAX = 10;
@@ -1275,8 +1279,14 @@ const minMaxPlugin = {
 // bei langen Zeiträumen wird doppelte Beschriftung direkt hintereinander ausgelassen.
 function makeCategoryTickCallback(ent, hrs) {
     const shortPeriod = hrs <= 24;
-    // Auf dem Handy wird der Abstand verdoppelt, damit die Uhrzeiten nicht zusammenlaufen.
-    const hourStep = (hrs <= 4 ? 1 : (hrs <= 12 ? 2 : 4)) * (window.innerWidth < 600 ? 2 : 1);
+    const hourStep = hourTickStep(hrs);
+    // Kalendertage in der Reihenfolge ihres ersten Auftretens, für die Beschriftung bei langen Zeiträumen.
+    const dayIndex = new Map();
+    for (const e of ent) {
+        const key = e.date.toDateString();
+        if (!dayIndex.has(key)) dayIndex.set(key, dayIndex.size);
+    }
+    const dayStep = dayTickStep(dayIndex.size);
     return function(val, index) {
         const label = this.getLabelForValue(val);
         if (shortPeriod) {
@@ -1286,8 +1296,9 @@ function makeCategoryTickCallback(ent, hrs) {
             const firstOfHour = !prev || prev.getHours() !== date.getHours() || prev.toDateString() !== date.toDateString();
             return firstOfHour && date.getHours() % hourStep === 0 ? label : '';
         }
-        if (index > 0 && label === this.getLabelForValue(val - 1)) return '';
-        return label;
+        const day = dayIndex.get(ent[index]?.date.toDateString());
+        const firstOfDay = index === 0 || dayIndex.get(ent[index - 1]?.date.toDateString()) !== day;
+        return firstOfDay && day % dayStep === 0 ? label : '';
     };
 }
 
@@ -1336,8 +1347,7 @@ function renderMainChart(ent, hrs) {
                     grid: { display: false }, 
                     ticks: { 
                         color: CHART_TEXT_COLOR, 
-                        maxTicksLimit: tickLimit(hrs === 4 ? 5 : 8),
-                        autoSkip: hrs > 24,
+                        autoSkip: false,
                         callback: makeCategoryTickCallback(ent, hrs)
                     } 
                 } 
@@ -1409,8 +1419,7 @@ function renderHumidityChart(ent, hrs) {
                     grid: { display: false },
                     ticks: {
                         color: CHART_TEXT_COLOR,
-                        maxTicksLimit: tickLimit(hrs === 4 ? 5 : 8),
-                        autoSkip: hrs > 24,
+                        autoSkip: false,
                         callback: makeCategoryTickCallback(ent, hrs)
                     }
                 }
@@ -1473,12 +1482,20 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
     const labels = [];
     const amounts = [];
     const rates = [];
-    for (const bucket of getRainBuckets(start, end)) {
+    const buckets = getRainBuckets(start, end);
+    const dailyBars = end - start > 24 * 3600000;
+    const dayStep = dayTickStep(buckets.length);
+    const hourStep = hourTickStep(hrs);
+    for (const bucket of buckets) {
         const from = Math.max(bucket.from, start);
         const to = Math.min(bucket.to, end);
         if (to <= from) continue;
         const amount = Math.max(0, totalAt(to) - totalAt(from));
-        labels.push(bucket.label);
+        // Gleiche Beschriftungsregel wie bei den anderen Diagrammen.
+        const isTick = dailyBars
+            ? labels.length % dayStep === 0
+            : new Date(bucket.from).getHours() % hourStep === 0;
+        labels.push(isTick ? bucket.label : '');
         amounts.push(amount);
         rates.push(amount / ((to - from) / 3600000));
     }
@@ -1522,7 +1539,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
                 },
                 x: {
                     grid: { display: false },
-                    ticks: { color: CHART_TEXT_COLOR, maxTicksLimit: tickLimit(hrs === 4 ? 7 : 8), maxRotation: 0 }
+                    ticks: { color: CHART_TEXT_COLOR, autoSkip: false, maxRotation: 0 }
                 }
             }
         }
@@ -1630,8 +1647,7 @@ function renderPressureChart(ent, hrs) {
                     grid: { display: false },
                     ticks: {
                         color: CHART_TEXT_COLOR,
-                        maxTicksLimit: tickLimit(hrs === 4 ? 5 : 8),
-                        autoSkip: hrs > 24,
+                        autoSkip: false,
                         callback: makeCategoryTickCallback(ent, hrs)
                     }
                 }
