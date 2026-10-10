@@ -1558,6 +1558,8 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
     const labels = [];
     const amounts = [];
     const rates = [];
+    // Farbe und Legende beziehen sich auf mm/h: Bei Tagesbalken zählt die stärkste Stunde des Tages, nicht der Tagesdurchschnitt.
+    const peakRates = [];
     const buckets = getRainBuckets(start, end);
     const dailyBars = end - start > 24 * 3600000;
     const dayStep = dayTickStep(buckets.length);
@@ -1574,6 +1576,14 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
         labels.push(isTick ? bucket.label : '');
         amounts.push(amount);
         rates.push(amount / ((to - from) / 3600000));
+        let peak = rates[rates.length - 1];
+        if (dailyBars) {
+            peak = 0;
+            for (let t = from; t < to; t += 3600000) {
+                peak = Math.max(peak, Math.max(0, totalAt(Math.min(t + 3600000, to)) - totalAt(t)) / (Math.min(t + 3600000, to) - t) * 3600000);
+            }
+        }
+        peakRates.push(peak);
     }
 
     const total = amounts.reduce((sum, amount) => sum + amount, 0);
@@ -1586,7 +1596,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
             datasets: [{
                 label: 'Niederschlag',
                 data: amounts,
-                backgroundColor: rates.map(rate => getRainIntensityColor(rate)),
+                backgroundColor: peakRates.map(rate => getRainIntensityColor(rate)),
                 borderRadius: 4,
                 borderSkipped: false
             }]
@@ -1602,7 +1612,8 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
                     callbacks: {
                         label: context => [
                             `Regen: ${amounts[context.dataIndex].toFixed(1)} mm`,
-                            `Ø Rate: ${rates[context.dataIndex].toFixed(1)} mm/h`
+                            `Ø Rate: ${rates[context.dataIndex].toFixed(1)} mm/h`,
+                            ...(dailyBars ? [`Max. Rate: ${peakRates[context.dataIndex].toFixed(1)} mm/h`] : [])
                         ]
                     }
                 }
