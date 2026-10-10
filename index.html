@@ -399,6 +399,14 @@
             /* Match the humidity value: #curr-hum is 2em inside a 0.72em parent. */
             .dew-secondary strong { font-size: 1.44em; line-height: 1; }
             .dew-secondary .unit { font-size: 0.65em; line-height: 1; }
+            /* Pfeile im Verhältnis zur Zahl (2em im 0.72em-Elternelement), sonst kaum erkennbar. */
+            #temp-display .trend-arrow,
+            #hum-display .trend-arrow {
+                font-size: 2em;
+                line-height: 1;
+            }
+            /* Trendpfeile in Zahlengröße: .val-display ist hier nur 0.72em groß. */
+            .trend-arrow { font-size: 1.8em; }
             #temp-display .unit,
             #hum-display .unit,
             .card.min .unit,
@@ -1091,13 +1099,14 @@ async function fetchData() {
     if (entriesH.length > 0) {
         let lastH = entriesH[entriesH.length-1].value;
         const humDisplayEl = document.getElementById('hum-display');
-        const humColor = getHumidityColor(lastH);
+        const humColor = scaleColorAt(HUMIDITY_SCALE, lastH) || getHumidityColor(lastH);
         humDisplayEl.style.color = humColor;
         humDisplayEl.style.backgroundImage = 'none';
         humDisplayEl.style.webkitBackgroundClip = 'border-box';
         humDisplayEl.style.backgroundClip = 'border-box';
         humDisplayEl.style.webkitTextFillColor = '';
-        applyStatusClass(humDisplayEl, getHumidityStatus(lastH));
+        // accent-text setzt die Farbe mit !important und würde die Skalenfarbe überdecken.
+        humDisplayEl.classList.remove('accent-text', 'status-good', 'status-warn', 'status-crit');
         applyDynamicCardTheme('card-hum', 'hum-display');
         setValueWithFlash('curr-hum', lastH.toFixed(0));
     }
@@ -1667,10 +1676,30 @@ function getRatePerHour(series) {
     return hours > 0 ? (last.value - first.value) / hours : 0;
 }
 
+// Farbe der Diagrammskala (Stützpunkte, dazwischen interpoliert) für einen Wert.
+function scaleColorAt(scale, value) {
+    if (!Number.isFinite(value)) return null;
+    if (value <= scale[0].t) return scale[0].color;
+    for (let i = 1; i < scale.length; i++) {
+        if (value <= scale[i].t) {
+            const a = scale[i - 1], b = scale[i];
+            const ratio = (value - a.t) / (b.t - a.t);
+            return toRgbCss(mixRgb(parseHexRgb(a.color), parseHexRgb(b.color), ratio));
+        }
+    }
+    return scale[scale.length - 1].color;
+}
+
+function parseHexRgb(hex) {
+    return [1, 3, 5].map(i => parseInt(hex.slice(i, i + 2), 16));
+}
+
 // Pfeil ↑ oder ↓ nur bei Änderung über dem Schwellenwert, sonst →.
-function setTrendArrow(elId, rate, threshold) {
+// Die Farbe folgt dem aktuellen Wert auf der Skala des zugehörigen Diagramms.
+function setTrendArrow(elId, rate, threshold, scale, value) {
     const el = document.getElementById(elId);
     if (!el) return;
+    el.style.color = scaleColorAt(scale, value) || '';
     const up = rate !== null && rate > threshold;
     const down = rate !== null && rate < -threshold;
     el.innerText = up ? '↗' : down ? '↘' : '→';
@@ -1682,8 +1711,8 @@ function renderSparklines() {
     renderSparkline('spark-temp', sparkSource.temp, '#26a69a');
     renderSparkline('spark-hum', sparkSource.hum, '#2dd4bf');
     renderSparkline('spark-pres', sparkSource.pres, '#9575cd');
-    setTrendArrow('temp-trend', getRatePerHour(sparkSource.temp), 0.3);
-    setTrendArrow('hum-trend', getRatePerHour(sparkSource.hum), 3);
+    setTrendArrow('temp-trend', getRatePerHour(sparkSource.temp), 0.3, TEMP_SCALE, sparkSource.temp.at(-1)?.value);
+    setTrendArrow('hum-trend', getRatePerHour(sparkSource.hum), 3, HUMIDITY_SCALE, sparkSource.hum.at(-1)?.value);
 }
 
 
