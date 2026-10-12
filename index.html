@@ -505,10 +505,16 @@
     <section class="rain-section">
     <div class="section-header"><div class="section-title"><h2 style="color: var(--color-dry);">Niederschlag</h2><span id="rain-total" class="section-total"></span></div><select id="rainPeriod" aria-label="Zeitraum Niederschlag" onchange="fetchData()"></select></div>
     <div class="chart-box"><canvas id="rainChart"></canvas></div>
-    <div class="legend-box">
-        <span class="legend-item"><span class="legend-dot" style="background: #34d399;"></span>leicht (&lt; 2,5 mm/h)</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #facc15;"></span>mäßig (2,5–10 mm/h)</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #f87171;"></span>stark (≥ 10 mm/h)</span>
+    <div class="legend-box" id="rainDayLegend" style="display: none;">
+        <span class="legend-item"><span class="legend-dot" style="background: #4dd0e1;"></span>&lt; 20 mm/Tag</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #fb923c;"></span>20–50 mm/Tag</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #facc15;"></span>50–70 mm/Tag</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #f87171;"></span>≥ 70 mm/Tag</span>
+    </div>
+    <div class="legend-box" id="rainMonthLegend" style="display: none;">
+        <span class="legend-item"><span class="legend-dot" style="background: #fb923c;"></span>unter Norm (&lt; 100 %)</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #60a5fa;"></span>gleich bis über Norm (100–130 %)</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #a78bfa;"></span>deutlich über Norm (≥ 130 %)</span>
     </div>
     
     <div class="rate-row">
@@ -528,7 +534,7 @@
             <tr><th scope="row">Info</th><td id="rain-last-val">--</td></tr>
             <tr><th scope="row">Zeitraum-Summe</th><td id="rain-range-sum-val">--</td></tr>
             <tr><th scope="row">Peak-Zeit</th><td id="rain-peak-time-val">--</td></tr>
-            <tr><th scope="row">Vergleich zur Norm (Menge/Monat)</th><td id="rain-norm-val">--</td></tr>
+            <tr><th scope="row">Vergleich zur Norm</th><td id="rain-norm-val">--</td></tr>
             <tr><th scope="row">Regenereignis</th><td id="rain-event-val">--</td></tr>
         </tbody>
     </table>
@@ -575,6 +581,26 @@ const dayTickStep = dayCount => Math.max(1, Math.ceil(dayCount / (isNarrowScreen
 const PREVIOUS_MONTHS_TO_SHOW = 3;
 const RAIN_CLASS_LIGHT_MAX = 2.5;
 const RAIN_CLASS_MODERATE_MAX = 10;
+const RAIN_BAR_COLOR = '#4dd0e1';
+// Tagesmengen in mm: Einfärbung nur bei Tagesbalken (7 Tage, Monat, Vormonat ...).
+const RAIN_DAY_CLASSES = [
+    { min: 70, color: '#f87171', label: '≥ 70 mm' },
+    { min: 50, color: '#facc15', label: '50–70 mm' },
+    { min: 20, color: '#fb923c', label: '20–50 mm' },
+    { min: 0, color: RAIN_BAR_COLOR, label: '< 20 mm' }
+];
+const getRainDayColor = amount => RAIN_DAY_CLASSES.find(c => amount >= c.min).color;
+// Monatsbalken im Jahresverlauf: Anteil an der Monatsnorm (MONTHLY_RAIN_NORMAL_MM).
+const RAIN_NORM_CLASSES = [
+    { min: 1.3, color: '#a78bfa' },
+    { min: 1, color: '#60a5fa' },
+    { min: 0, color: '#fb923c' }
+];
+const getRainNormColor = (amount, norm) => {
+    if (!(norm > 0)) return RAIN_BAR_COLOR;
+    const share = amount / norm;
+    return RAIN_NORM_CLASSES.find(c => share >= c.min).color;
+};
 const MONTHLY_RAIN_NORMAL_MM = [67, 53, 57, 51, 70, 78, 76, 74, 59, 58, 66, 73];
 
 function getRainIntensityColor(rate) {
@@ -839,6 +865,15 @@ function getPeriodConfig(periodValue, now) {
         };
     }
 
+    if (periodValue === 'year') {
+        return {
+            start: new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0),
+            end: now,
+            chartHours: 30,
+            isPrevMonth: false
+        };
+    }
+
     if (periodValue === 'today') {
         return {
             start: new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0),
@@ -989,6 +1024,7 @@ function updatePreviousMonthsUI(prevMonthStats) {
 }
 
 async function fetchData() {
+    const now = new Date();
     const tempPeriodValue = document.getElementById('period').value;
     const humidityPeriodValue = document.getElementById('humidityPeriod').value;
     const rainPeriodValue = document.getElementById('rainPeriod').value;
@@ -996,7 +1032,6 @@ async function fetchData() {
     const tempPeriodLabel = document.getElementById('period').selectedOptions[0].text;
     document.querySelectorAll('.minmax-period').forEach(el => { el.textContent = `Zeitraum: ${tempPeriodLabel}`; });
 
-    const now = new Date();
     const tempPeriod = getPeriodConfig(tempPeriodValue, now);
     const humidityPeriod = getPeriodConfig(humidityPeriodValue, now);
     const rainPeriod = getPeriodConfig(rainPeriodValue, now);
@@ -1047,8 +1082,10 @@ async function fetchData() {
         const entriesPChart = entriesP_all.filter(e => e.date >= pressurePeriod.start && e.date <= pressurePeriod.end).map(e => ({ date: e.date, value: e.value + PRES_OFFSET }));
 
         const entriesR_current = parseRainEntries(rainMonthData[0]);
-        const entriesR_prev = parseRainEntries(rainMonthData[1]);
-        const entriesR_selected = rainPeriod.isPrevMonth ? entriesR_prev : entriesR_current;
+        // Jahr: alle Monatsdateien hintereinander; buildMonthSeries erkennt den Zählerreset am Monatsanfang.
+        const entriesR_selected = rainPeriodValue === 'prevMonth' ? parseRainEntries(rainMonthData[1])
+            : rainPeriodValue === 'year' ? yearMonthData.flatMap(md => parseRainEntries(md))
+            : entriesR_current;
         const prevMonthStats = rainMonthData
             .slice(1)
             .map((monthData, idx) => {
@@ -1194,8 +1231,10 @@ async function fetchData() {
 
     const selectedMonthSeries = entriesRSelected.length > 0 ? buildMonthSeries(entriesRSelected) : [];
     const selectedMonthTotal = selectedMonthSeries.length > 0 ? selectedMonthSeries[selectedMonthSeries.length - 1].value : 0;
-    const normMonthIndex = rainPeriodValue === 'prevMonth' ? (now.getMonth() + 11) % 12 : now.getMonth();
-    const normMonthVal = MONTHLY_RAIN_NORMAL_MM[normMonthIndex] || 0;
+    // Norm: bei "Jahr" die Summe der Monatsnormen bis einschließlich aktuellem Monat.
+    const normMonthVal = rainPeriodValue === 'year'
+        ? MONTHLY_RAIN_NORMAL_MM.slice(0, now.getMonth() + 1).reduce((sum, v) => sum + v, 0)
+        : MONTHLY_RAIN_NORMAL_MM[rainPeriodValue === 'prevMonth' ? (now.getMonth() + 11) % 12 : now.getMonth()] || 0;
     const normPercent = normMonthVal > 0 ? (selectedMonthTotal / normMonthVal) * 100 : 0;
     document.getElementById('rain-norm-val').innerText = normMonthVal > 0
         ? `${selectedMonthTotal.toFixed(1)} / ${normMonthVal.toFixed(1)} mm (${normPercent.toFixed(0)}%)`
@@ -1235,7 +1274,7 @@ async function fetchData() {
         } else {
             document.getElementById('rain-last-val').innerText = "Kein Regen im Zeitraum";
         }
-        renderRainChart(korrigierteEntries, rainChartHours, rainRangeStart, rainRangeEnd);
+        renderRainChart(korrigierteEntries, rainChartHours, rainRangeStart, rainRangeEnd, rainPeriodValue === 'year');
     } else {
         setValueWithFlash('ctrl-rain-rate', '0.0');
         setValueWithFlash('rain-peak-val', '0.0');
@@ -1244,9 +1283,10 @@ async function fetchData() {
         peakTimeEl.style.color = 'var(--text-main)';
         document.getElementById('rain-range-sum-val').innerText = '0.0 mm';
         document.getElementById('rain-event-val').innerText = 'Kein Regenereignis';
-        const fallbackMonthName = rainPeriodValue === 'prevMonth' ? getRainMonthMeta(now, 1).monthName : currentMonthName;
-        document.getElementById('rain-last-val').innerText = `Noch kein Regen im ${fallbackMonthName}`;
-        renderRainChart([], rainChartHours, rainRangeStart, rainRangeEnd);
+        const fallbackPeriod = rainPeriodValue === 'year' ? 'diesem Jahr'
+            : `im ${rainPeriodValue === 'prevMonth' ? monthNames[(now.getMonth() + 11) % 12] : currentMonthName}`;
+        document.getElementById('rain-last-val').innerText = `Noch kein Regen ${fallbackPeriod}`;
+        renderRainChart([], rainChartHours, rainRangeStart, rainRangeEnd, rainPeriodValue === 'year');
     }
 }
 
@@ -1515,9 +1555,26 @@ function renderHumidityChart(ent, hrs) {
 }
 
 // Zeitabschnitte für die Niederschlagsbalken: bis 24 Std stündlich, darüber Kalendertage in lokaler Zeit.
-function getRainBuckets(start, end) {
+function getRainBuckets(start, end, monthly) {
     const spanHours = (end - start) / 3600000;
     const buckets = [];
+
+    if (monthly) {
+        // Jahresübersicht: ein Balken pro Kalendermonat.
+        const startDate = new Date(start);
+        const month = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+        while (month.getTime() < end) {
+            const next = new Date(month.getFullYear(), month.getMonth() + 1, 1);
+            buckets.push({
+                from: month.getTime(),
+                to: next.getTime(),
+                label: monthNames[month.getMonth()].slice(0, 3),
+                monthIndex: month.getMonth()
+            });
+            month.setTime(next.getTime());
+        }
+        return buckets;
+    }
 
     if (spanHours > 24) {
         const day = new Date(start);
@@ -1547,7 +1604,8 @@ function getRainBuckets(start, end) {
     return buckets;
 }
 
-function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
+// monthly: Jahresansicht mit einem Balken pro Kalendermonat (unabhängig von der Länge des Zeitraums).
+function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
     const ctx = document.getElementById('rainChart').getContext('2d');
     if (charts['rainChart']) charts['rainChart'].destroy();
 
@@ -1564,20 +1622,12 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
         return value;
     };
 
-    // Rate in mm/h für das Intervall a–b. Die noch laufende Stunde (Ende = jetzt) wird auf die volle Stunde bezogen,
-    // sonst würde ein neuer Balken nach wenigen Minuten hochgerechnet und sofort gelb statt grün starten.
-    const ratePerHour = (a, b) => {
-        const ms = b === end ? Math.max(b - a, 3600000) : b - a;
-        return Math.max(0, totalAt(b) - totalAt(a)) / ms * 3600000;
-    };
-
     const labels = [];
     const amounts = [];
-    const rates = [];
-    // Farbe und Legende beziehen sich auf mm/h: Bei Tagesbalken zählt die stärkste Stunde des Tages, nicht der Tagesdurchschnitt.
-    const peakRates = [];
-    const buckets = getRainBuckets(start, end);
-    const dailyBars = end - start > 24 * 3600000;
+    const colors = [];
+    const buckets = getRainBuckets(start, end, monthly);
+    const monthlyBars = monthly;
+    const dailyBars = !monthly && end - start > 24 * 3600000;
     const dayStep = dayTickStep(buckets.length);
     const hourStep = hourTickStep(hrs);
     for (const bucket of buckets) {
@@ -1586,24 +1636,20 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
         if (to <= from) continue;
         const amount = Math.max(0, totalAt(to) - totalAt(from));
         // Gleiche Beschriftungsregel wie bei den anderen Diagrammen.
-        const isTick = dailyBars
+        const isTick = monthlyBars || (dailyBars
             ? labels.length % dayStep === 0
-            : new Date(bucket.from).getHours() % hourStep === 0;
+            : new Date(bucket.from).getHours() % hourStep === 0);
         labels.push(isTick ? bucket.label : '');
         amounts.push(amount);
-        rates.push(dailyBars ? amount / ((to - from) / 3600000) : ratePerHour(from, to));
-        let peak = rates[rates.length - 1];
-        if (dailyBars) {
-            peak = 0;
-            for (let t = from; t < to; t += 3600000) {
-                peak = Math.max(peak, ratePerHour(t, Math.min(t + 3600000, to)));
-            }
-        }
-        peakRates.push(peak);
+        colors.push(monthlyBars ? getRainNormColor(amount, MONTHLY_RAIN_NORMAL_MM[bucket.monthIndex])
+            : dailyBars ? getRainDayColor(amount)
+            : RAIN_BAR_COLOR);
     }
 
     const total = amounts.reduce((sum, amount) => sum + amount, 0);
     document.getElementById('rain-total').innerText = `Summe: ${total.toFixed(1)} mm`;
+    document.getElementById('rainDayLegend').style.display = dailyBars ? '' : 'none';
+    document.getElementById('rainMonthLegend').style.display = monthlyBars ? '' : 'none';
 
     charts['rainChart'] = new Chart(ctx, {
         type: 'bar',
@@ -1612,7 +1658,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
             datasets: [{
                 label: 'Niederschlag',
                 data: amounts,
-                backgroundColor: peakRates.map(rate => getRainIntensityColor(rate)),
+                backgroundColor: colors,
                 borderRadius: 4,
                 borderSkipped: false
             }]
@@ -1626,11 +1672,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd) {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: context => [
-                            `Regen: ${amounts[context.dataIndex].toFixed(1)} mm`,
-                            `Ø Rate: ${rates[context.dataIndex].toFixed(1)} mm/h`,
-                            ...(dailyBars ? [`Max. Rate: ${peakRates[context.dataIndex].toFixed(1)} mm/h`] : [])
-                        ]
+                        label: context => `Regen: ${amounts[context.dataIndex].toFixed(1)} mm`
                     }
                 }
             },
@@ -1750,10 +1792,20 @@ const PERIOD_OPTIONS = [
     { value: '24', label: '24 Std' },
     { value: '168', label: '7 Tage' },
     { value: '336', label: '14 Tage' },
-    { value: '30', label: '1 Monat' },
-    { value: 'prevMonth', label: 'Vormonat' }
+    { value: '30', label: '1 Monat' }
 ];
 const PERIOD_SELECT_IDS = ['period', 'humidityPeriod', 'rainPeriod', 'pressurePeriod'];
+
+// Niederschlag: "Heute", kurze Zeiträume, aktueller Monat, Vormonat und das ganze Jahr (Balken monatsweise).
+function getRainPeriodOptions() {
+    return [
+        { value: 'today', label: 'Heute' },
+        ...PERIOD_OPTIONS.filter(o => o.value !== '30'),
+        { value: '30', label: 'Aktueller Monat' },
+        { value: 'prevMonth', label: 'Vormonat' },
+        { value: 'year', label: 'Jahr' }
+    ];
+}
 
 function populatePeriodSelects() {
     for (const id of PERIOD_SELECT_IDS) {
@@ -1761,7 +1813,7 @@ function populatePeriodSelects() {
         if (!sel) continue;
         sel.innerHTML = '';
         // Nur der Niederschlag bietet "Heute" an: Das entspricht dem Tageswert (0:00 Uhr bis jetzt) im Regen-Gadget.
-        const options = id === 'rainPeriod' ? [{ value: 'today', label: 'Heute' }, ...PERIOD_OPTIONS] : PERIOD_OPTIONS;
+        const options = id === 'rainPeriod' ? getRainPeriodOptions() : PERIOD_OPTIONS;
         for (const opt of options) sel.add(new Option(opt.label, opt.value));
         sel.value = id === 'rainPeriod' ? 'today' : '24';
     }
