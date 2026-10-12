@@ -6,109 +6,109 @@
     <title>Wetterstation Kirchheide - Slate Mode</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0"></script>
     <style>
-        :root { 
-            --color-dry: #4dd0e1; 
-            --color-light: #4dd0e1; 
-            --color-mod: #fbc02d; 
-            --color-heavy: #f57c00; 
-            --color-extreme: #d32f2f; 
-            --color-temp: #26a69a; 
-            --color-min: #64b5f6; 
-            --color-max: #ef5350; 
+        :root {
+            /* Messwertfarben: werden von der Seite selbst genutzt (Skalen, Statusfarben, Akzente). */
+            --color-dry: #4dd0e1;
+            --color-light: #4dd0e1;
+            --color-mod: #fbc02d;
+            --color-heavy: #f57c00;
+            --color-extreme: #d32f2f;
+            --color-temp: #26a69a;
+            --color-min: #64b5f6;
+            --color-max: #ef5350;
             --color-forecast: #ffcc80;
-            --color-dew: #dce775; 
-            --color-pres: #9575cd; 
-            --color-bright: #ffd54f; 
+            --color-dew: #dce775;
+            --color-pres: #9575cd;
+            --color-bright: #ffd54f;
             --color-tsl: #81c784;
-            --color-update: #81c784; 
-            --bg-body: #1e293b; 
-            --bg-container: #0f172a;
-            --bg-card: rgba(30, 41, 59, 0.7);
-            --text-main: #f1f5f9;
-            --text-muted: #94a3b8;
-            --border-color: rgba(255,255,255,0.06);
-            --card-shadow: 0 10px 25px rgba(0,0,0,0.3);
-            --color-frost: #38bdf8; 
+            --color-update: #81c784;
+            --color-frost: #38bdf8;
             --color-ice: #0ea5e9;
+            /* Oberfläche: dunkel und ruhig, wie im Mockup. */
+            --bg-body: #0b1117;
+            --bg-container: #0b1117;
+            --bg-surface: #121b24;
+            --bg-surface-2: #0f1720;
+            --bg-card: #121b24;
+            --text-main: #e6edf3;
+            --text-muted: #8a9aab;
+            --border-color: #1f2d3a;
+            --border-hover: #2c4153;
+            --card-shadow: none;
         }
-        
-        body { 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-            background: var(--bg-body); 
-            color: var(--text-main); 
-            text-align: center; 
-            padding: 5px; margin: 0; 
-            background-image: radial-gradient(circle at 50% 0%, #334155 0%, #1e293b 100%);
-            background-attachment: fixed;
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-main);
+            text-align: left;
+            line-height: 1.45;
+            padding: 12px;
+            margin: 0;
         }
-        
-        .container { 
-            max-width: 900px; 
-            margin: auto; 
-            background: var(--bg-container); 
-            padding: 12px; 
-            border-radius: 28px; 
-            box-shadow: 0 25px 70px rgba(0,0,0,0.5); 
-            border: 1px solid rgba(255,255,255,0.05); 
-            position: relative; 
+
+        .container {
+            max-width: 1080px;
+            margin: 0 auto;
+            position: relative;
         }
-        
-        .header-box { 
-            display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 5px; 
-            position: relative; margin: 10px 0 20px 0; 
+
+        .header-box {
+            display: flex; flex-direction: column; align-items: flex-start; gap: 4px;
+            position: relative; margin: 8px 0 18px 0;
         }
-        
-        .main-title { 
-            font-size: 1.3em; 
-            background: linear-gradient(135deg, var(--color-temp), #fff); 
-            -webkit-background-clip: text; 
-            -webkit-text-fill-color: transparent; 
-            font-weight: 800; letter-spacing: 1px; margin: 0; 
+
+        .main-title {
+            font-size: 1.25em;
+            font-weight: 700;
+            color: var(--text-main);
+            margin: 0;
+            letter-spacing: 0;
         }
-        
-        .altitude { font-size: 0.75em; color: var(--text-muted); font-weight: 400; }
-        
-        .info-wrapper { position: relative; cursor: help; margin-top: 5px; }
-        .info-icon { 
-            width: 22px; height: 22px; border-radius: 50%; 
-            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); 
-            display: flex; align-items: center; justify-content: center; 
-            font-size: 0.7em; font-weight: bold; color: var(--color-temp); 
+
+        .altitude { font-size: 0.85em; color: var(--text-muted); font-weight: 400; }
+
+        .info-wrapper { position: relative; cursor: help; margin-top: 4px; }
+        .info-icon {
+            width: 22px; height: 22px; border-radius: 50%;
+            background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 0.7em; font-weight: bold; color: var(--color-temp);
         }
-        
-        .info-tooltip { 
-            visibility: hidden; width: 280px; 
-            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(15px); 
-            border: 1px solid rgba(255,255,255,0.1); border-radius: 15px; 
-            padding: 15px; position: absolute; z-index: 100; top: 35px; 
-            left: 50%; transform: translateX(-50%); text-align: left; 
-            font-size: 0.75em; line-height: 1.5; box-shadow: 0 10px 40px rgba(0,0,0,0.6); 
+
+        .info-tooltip {
+            visibility: hidden; width: 280px;
+            background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(15px);
+            border: 1px solid rgba(255,255,255,0.1); border-radius: 15px;
+            padding: 15px; position: absolute; z-index: 100; top: 35px;
+            left: 0; text-align: left;
+            font-size: 0.75em; line-height: 1.5; box-shadow: 0 10px 40px rgba(0,0,0,0.6);
             color: var(--text-main);
         }
         .info-wrapper:hover .info-tooltip { visibility: visible; }
         .info-tooltip b { color: var(--color-temp); display: block; margin-bottom: 5px; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 3px; }
-        
+
         .data-status {
             display: inline-block;
-            font-size: 0.85em;
-            margin-bottom: 18px;
+            font-size: 0.8em;
+            margin-bottom: 16px;
             padding: 4px 10px;
             border-radius: 999px;
             border: 1px solid var(--border-color);
             color: var(--text-muted);
-            background: rgba(255,255,255,0.03);
+            background: transparent;
             min-height: 14px;
         }
         .frost-banner {
             display: none;
-            margin: -6px auto 18px;
+            margin: 0 0 18px 0;
             max-width: 420px;
             padding: 8px 14px;
             border-radius: 12px;
             border: 1px solid rgba(56, 189, 248, 0.5);
             background: rgba(56, 189, 248, 0.12);
             color: var(--color-frost);
-            font-size: 0.85em;
+            font-size: 0.9em;
             font-weight: 800;
         }
         .data-status.loading {
@@ -126,72 +126,70 @@
             border-color: rgba(239, 83, 80, 0.45);
             background: rgba(239, 83, 80, 0.1);
         }
-        
-        select { 
-            background: #1e293b; color: var(--text-main); border: 1px solid #334155; 
-            padding: 6px 12px; border-radius: 10px; cursor: pointer; font-size: 13px; outline: none; 
-            transition: border 0.3s; 
+
+        select {
+            background: var(--bg-surface-2); color: var(--text-main); border: 1px solid var(--border-color);
+            padding: 6px 10px; border-radius: 10px; cursor: pointer; font: inherit; font-size: 13px; outline: none;
+            transition: border-color 0.3s;
         }
-        select:hover { border-color: var(--color-temp); }
-        
-        .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 12px; }
-        
-        .card { 
-            --card-tint: rgba(148, 163, 184, 0.18);
-            --card-border: rgba(148, 163, 184, 0.42);
-            --card-top-start: #94a3b8;
-            --card-top-mid: #64748b;
-            --card-top-end: #cbd5e1;
-            position: relative; padding: 15px 10px;
-            background: linear-gradient(170deg, var(--card-tint) 0%, rgba(30, 41, 59, 0.78) 46%, rgba(15, 23, 42, 0.92) 100%);
-            border-radius: 20px; border: 1px solid var(--card-border); 
-            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275); 
-            display: flex; flex-direction: column; align-items: center; 
-            justify-content: flex-start;
-            min-height: 160px;
+        select:hover, select:focus-visible { border-color: var(--color-temp); }
+        select:disabled { opacity: 0.6; cursor: default; }
+
+        .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin-bottom: 12px; }
+
+        .card {
+            position: relative;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr);
+            column-gap: 10px;
+            align-content: start;
+            padding: 16px 18px;
+            min-height: 150px;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
             overflow: hidden;
-            box-shadow: 0 14px 34px rgba(0, 0, 0, 0.42), 0 0 0 1px color-mix(in srgb, var(--card-border) 48%, transparent) inset;
+            text-align: left;
+            transition: transform 0.15s ease, border-color 0.2s ease;
         }
-        
-        .card::before { 
-            content: ''; position: absolute; top: 0; left: 0; width: 100%; height: 3px; 
-            background: linear-gradient(90deg, var(--card-top-start) 0%, var(--card-top-mid) 45%, var(--card-top-end) 100%);
-            opacity: 1;
-            height: 4px;
+        .card::before { display: none; }
+        .card:hover {
+            transform: translateY(-2px);
+            border-color: var(--border-hover);
         }
-        
-        .card:hover { 
-            transform: translateY(-6px); 
-            border-color: var(--card-top-mid);
-            box-shadow: 0 18px 40px rgba(0,0,0,0.5), 0 0 0 1px color-mix(in srgb, var(--card-top-mid) 35%, transparent) inset;
-        }
-        
+
         .card h3 {
-            margin: 0 0 10px 0;
-            min-height: 2.1em;
-            display: flex;
-            align-items: flex-end;
-            justify-content: center;
-            font-size: 0.7em;
-            color: var(--text-muted);
-            text-transform: uppercase;
-            letter-spacing: 1.5px;
-            font-weight: 800;
-            text-align: center;
-        }
-        .val-display {
-            font-size: 1.25em;
-            font-weight: 800;
-            color: var(--text-main);
+            margin: 0;
             display: flex;
             align-items: center;
-            justify-content: center;
-            gap: 4px;
-            min-height: 2.2em;
+            font-size: 13px;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: none;
+            letter-spacing: 0;
+            text-align: left;
+            min-height: 0;
         }
-        .unit { font-size: 0.7em; font-weight: 400; color: var(--text-muted); }
-        .period-note { font-size: 0.65em; color: var(--text-muted); margin-top: 4px; }
-        
+        .val-display {
+            font-size: 1.8em;
+            font-weight: 600;
+            color: var(--text-main);
+            display: flex;
+            align-items: baseline;
+            justify-content: flex-start;
+            gap: 4px;
+            min-height: 0;
+            margin-top: 12px;
+            line-height: 1.1;
+        }
+        .unit { font-size: 0.6em; font-weight: 400; color: var(--text-muted); }
+        .period-note { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+
+        /* Symbol und Überschrift nebeneinander, alle übrigen Inhalte darunter. */
+        .card > .card-icon { grid-column: 1; grid-row: 1; width: 20px; height: 20px; margin: 0; align-self: center; stroke: currentColor; opacity: 0.85; flex: none; }
+        .card > h3 { grid-column: 2; grid-row: 1; }
+        .card > :not(.card-icon):not(h3):not(#frost-alarm) { grid-column: 1 / -1; }
+
         .card.temp {
             --accent-color: var(--color-temp);
             --card-tint: rgba(38, 166, 154, 0.24);
@@ -240,17 +238,18 @@
             --card-top-mid: #22d3ee;
             --card-top-end: #a5f3fc;
         }
-        .dew-secondary { margin-top: 8px; color: var(--text-muted); display: flex; align-items: baseline; gap: 5px; font-weight: 700; }
-        .dew-secondary-label { font-size: 0.72em; }
-        .dew-secondary strong { color: var(--color-dew); font-size: 1.9em; }
+        .dew-secondary { margin-top: 8px; color: var(--text-muted); display: flex; align-items: baseline; gap: 6px; font-weight: 600; }
+        .dew-secondary-label { font-size: 12px; }
+        .dew-secondary strong { color: var(--color-dew); font-size: 1.5em; }
 
-        .card-icon { width: 20px; height: 20px; margin-bottom: 8px; stroke: currentColor; opacity: 0.8; }
-        
-        #frost-alarm { position: absolute; left: 10px; bottom: 10px; display: none; align-items: center; gap: 4px; color: var(--color-frost); animation: frost-pulse 1.5s infinite ease-in-out; }
-        .frost-label { font-size: 0.65em; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+        .card-icon { width: 20px; height: 20px; stroke: currentColor; opacity: 0.85; }
+
+        #frost-alarm { position: absolute; top: 12px; right: 14px; left: auto; bottom: auto; display: none; align-items: center; gap: 4px; color: var(--color-frost); animation: frost-pulse 1.5s infinite ease-in-out; }
+        .frost-label { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
         @keyframes frost-pulse { 0% { opacity: 0.3; transform: scale(0.9); } 50% { opacity: 1; transform: scale(1.1); } 100% { opacity: 0.3; transform: scale(0.9); } }
-        
+
         .accent-text { color: var(--accent-color) !important; }
+        #temp-display { font-size: 3.4em; font-weight: 300; line-height: 1; margin-top: 8px; }
         .pres-rate { font-size: 0.5em; display: block; margin-top: 5px; font-weight: 400; color: var(--text-muted) !important; }
         .pres-main-line { display: flex; align-items: center; gap: 6px; }
         .pres-trend-arrow { font-size: 0.75em; font-weight: 800; color: var(--text-muted); line-height: 1; }
@@ -258,15 +257,20 @@
         .pres-trend-arrow.down { color: var(--color-min); }
         .pres-trend-arrow.flat { color: var(--text-muted); }
         .trend-arrow { font-size: 0.75em; font-weight: 800; color: var(--text-muted); line-height: 1; }
-        .section-title { display: flex; align-items: baseline; gap: 12px; }
-        .section-total { font-size: 0.85em; font-weight: 800; color: var(--color-dry); white-space: nowrap; }
-        .rain-line { font-size: 0.85em; display: flex; align-items: baseline; gap: 5px; color: var(--text-main); font-weight: 600; margin-top: 2px; }
-        .rain-label { font-size: 0.65em; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; font-weight: 800; }
-        
-        .chart-box { 
-            background: rgba(15, 23, 42, 0.4); border-radius: 24px; padding: 15px 10px 45px 10px; 
-            margin-bottom: 15px; border: 1px solid var(--border-color); height: 320px; 
-            box-sizing: border-box; position: relative; 
+        .section-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+        .section-total { font-size: 0.85em; font-weight: 700; color: var(--color-dry); white-space: nowrap; }
+        .rain-line { font-size: 1em; display: flex; align-items: baseline; gap: 6px; color: var(--text-main); font-weight: 600; margin-top: 2px; }
+        .rain-label { font-size: 0.7em; color: var(--text-muted); font-weight: 600; }
+
+        .chart-box {
+            position: relative;
+            height: 300px;
+            margin: 0 0 4px 0;
+            padding: 0;
+            background: none;
+            border: none;
+            border-radius: 0;
+            box-sizing: border-box;
         }
         .status-good { color: #34d399 !important; }
         .status-warn { color: #facc15 !important; }
@@ -279,43 +283,62 @@
             0% { filter: brightness(1.45); text-shadow: 0 0 10px rgba(255,255,255,0.25); }
             100% { filter: brightness(1); text-shadow: none; }
         }
-        
-        .section-header { margin: 30px 0 15px 0; padding: 0 5px; display: flex; justify-content: space-between; align-items: center; }
-        .section-header h2 { font-size: 0.9em; text-transform: uppercase; color: var(--text-muted); margin: 0; letter-spacing: 2px; font-weight: 800; }
-        
-        .legend-box { display: flex; justify-content: center; gap: 15px; margin-top: 10px; font-size: 0.7em; color: var(--text-muted); flex-wrap: wrap; }
-        .legend-item { display: flex; align-items: center; gap: 5px; }
-        .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
-        .temp-scale { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 8px; font-size: 0.7em; color: var(--text-muted); }
+
+        /* Ein Diagrammbereich als eigene Karte: Überschrift, Diagramm, Legende und Auswahl. */
+        .panel {
+            background: var(--bg-surface);
+            border: 1px solid var(--border-color);
+            border-radius: 18px;
+            padding: 18px 20px;
+            margin: 0 0 16px 0;
+        }
+        .section-header {
+            margin: 0 0 12px 0;
+            padding: 0;
+            display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;
+        }
+        .section-header h2 {
+            display: flex; align-items: center; gap: 8px;
+            font-size: 15px; font-weight: 600; text-transform: none; letter-spacing: 0;
+            color: var(--text-main); margin: 0;
+        }
+        .section-icon {
+            width: 20px; height: 20px; flex: none;
+            stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round;
+        }
+
+        .legend-box { display: flex; justify-content: flex-start; gap: 8px 14px; margin-top: 10px; font-size: 12px; color: var(--text-muted); flex-wrap: wrap; }
+        .legend-item { display: flex; align-items: center; gap: 6px; }
+        .legend-dot { width: 10px; height: 10px; border-radius: 3px; }
+        .temp-scale { display: flex; align-items: center; justify-content: center; gap: 8px; margin-top: 10px; font-size: 12px; color: var(--text-muted); }
         .temp-scale-bar { width: 200px; height: 8px; border-radius: 4px; background: linear-gradient(90deg, #ba68c8, #64b5f6, #26a69a, #fff176, #ffb74d, #ef5350); }
         .temp-scale-bar.hum { background: linear-gradient(90deg, #ffb74d, #fff176, #26a69a, #64b5f6, #ef5350); }
 
-        .rain-table { width: 100%; border-collapse: collapse; margin: 0 0 20px 0; background: rgba(77, 208, 225, 0.05); border: 1px solid rgba(77, 208, 225, 0.1); border-radius: 15px; overflow: hidden; font-size: 0.9em; }
-        .rain-table th, .rain-table td { padding: 10px 14px; text-align: left; border-bottom: 1px solid rgba(77, 208, 225, 0.1); }
+        .rain-table { width: 100%; border-collapse: collapse; margin: 0; background: transparent; border: none; font-size: 13px; }
+        .rain-table th, .rain-table td { padding: 9px 0; text-align: left; border-bottom: 1px solid var(--border-color); }
         .rain-table tr:last-child th, .rain-table tr:last-child td { border-bottom: none; }
-        .rain-table th { width: 45%; font-size: 0.72em; text-transform: uppercase; letter-spacing: 0.4px; font-weight: 800; color: var(--text-muted); }
-        .rain-table td { text-align: right; font-weight: 700; color: var(--color-dry); transition: color 0.3s; }
+        .rain-table th { width: 45%; font-size: 13px; font-weight: 500; color: var(--text-muted); text-transform: none; letter-spacing: 0; }
+        .rain-table td { text-align: right; font-weight: 600; color: var(--text-main); transition: color 0.3s; }
 
         .rate-badge {
-            background: rgba(30, 41, 59, 0.8);
-            border: 1px solid var(--color-dry);
+            background: var(--bg-surface-2);
+            border: 1px solid var(--border-color);
             border-radius: 12px;
-            padding: 8px 15px;
+            padding: 10px 14px;
             display: inline-block;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-            min-width: 220px;
+            min-width: 200px;
             box-sizing: border-box;
-            text-align: center;
+            text-align: left;
         }
-        .rate-badge-label { font-size: 0.7em; text-transform: uppercase; color: var(--text-muted); font-weight: 800; display: block; margin-bottom: 2px; }
-        .rate-badge-val { font-size: 1em; color: var(--color-dry); font-weight: 800; }
+        .rate-badge-label { font-size: 12px; text-transform: none; color: var(--text-muted); font-weight: 600; display: block; margin-bottom: 2px; }
+        .rate-badge-val { font-size: 1.1em; color: var(--color-dry); font-weight: 700; }
 
         .rate-row {
             display: flex;
-            justify-content: center;
+            justify-content: flex-start;
             align-items: stretch;
             gap: 10px;
-            margin: 14px 0 20px 0;
+            margin: 14px 0 16px 0;
             flex-wrap: wrap;
         }
 
@@ -323,106 +346,76 @@
             display: flex;
             gap: 10px;
             flex-wrap: wrap;
-            justify-content: center;
+            justify-content: flex-start;
             align-items: stretch;
             max-width: 100%;
         }
 
-        .month-stat-badge { border-color: rgba(77, 208, 225, 0.45); }
-        .month-stat-val { font-size: 1em; color: var(--text-main); font-weight: 800; }
+        .month-stat-badge { border-color: var(--border-color); }
+        .month-stat-val { font-size: 1em; color: var(--text-main); font-weight: 700; }
 
         @media (max-width: 599px) {
-            .rate-badge { min-width: 175px; }
-            .chart-box { height: 260px; }
-            .stats {
-                grid-template-columns: repeat(3, minmax(0, 1fr));
-                gap: 6px;
-                margin-bottom: 8px;
-            }
+            body { padding: 10px; }
+            .main-title { font-size: 1.15em; }
+            .panel { padding: 14px 12px; border-radius: 16px; }
+            .section-header h2 { font-size: 14px; }
+            .chart-box { height: 240px; }
+            .rate-badge { min-width: 150px; }
+            .legend-box { font-size: 11px; }
+            .stats { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; margin-bottom: 8px; }
+            /* Auf dem Handy untereinander: Symbol oben, Überschrift, dann Wert. */
             .card {
-                min-height: 74px;
-                padding: 7px 5px;
-                border-radius: 12px;
+                grid-template-columns: minmax(0, 1fr);
+                row-gap: 4px;
+                min-height: 0;
+                padding: 12px 10px;
+                border-radius: 14px;
             }
-            .card h3 {
-                min-height: 1.2em;
-                font-size: 0.7em;
-                letter-spacing: 0.6px;
-                margin-bottom: 4px;
-            }
-            .val-display {
-                min-height: 1.3em;
-                font-size: 0.72em;
-                gap: 2px;
-                font-weight: 850;
-            }
-            .unit { font-size: 0.52em; font-weight: 550; }
-            .rain-line { font-size: 0.62em; gap: 3px; font-weight: 700; }
-            .rain-label { font-size: 0.5em; letter-spacing: 0.2px; font-weight: 850; }
-            .pres-rate { font-size: 0.9em; margin-top: 2px; font-weight: 550; }
+            .card > .card-icon, .card > h3 { grid-column: 1; grid-row: auto; }
+            .card > .card-icon { width: 18px; height: 18px; }
+            .card h3 { font-size: 11px; font-weight: 600; }
+            .val-display { font-size: 1.15em; margin-top: 4px; }
+            #temp-display { font-size: 2.3em; margin-top: 4px; }
+            .unit { font-size: 0.6em; }
+            .period-note { font-size: 11px; }
+            .dew-secondary { font-size: 12px; flex-wrap: wrap; }
+            .dew-secondary strong { font-size: 1.3em; }
+            .pres-rate { font-size: 0.9em; margin-top: 2px; }
             .pres-main-line { gap: 3px; }
             #pres-trend-arrow { display: none; }
-            #pres-rate-val {
-                align-self: center;
-                text-align: center;
-            }
-            #rainCard .val-display {
-                font-size: 0.82em;
-            }
-            #rainCard .rain-line {
-                font-size: 0.72em;
-                gap: 4px;
-            }
-            #rainCard .rain-label {
-                font-size: 1.2em;
-            }
+            #pres-rate-val { align-self: flex-start; text-align: left; }
+            #rainCard .val-display { font-size: 0.95em; }
+            #rainCard .rain-line { font-size: 0.9em; gap: 4px; }
+            #rainCard .rain-label { font-size: 0.85em; }
+            #frost-alarm { top: 8px; right: 8px; }
+            #frost-alarm svg { width: 16px; height: 16px; }
+            .frost-label { display: none; }
+            .frost-banner { font-size: 13px; }
+            /* Trendpfeile in Zahlengröße, sonst kaum erkennbar. */
+            #temp-display .trend-arrow,
+            #hum-display .trend-arrow { font-size: 0.6em; }
             #hum-display {
                 background-image: none !important;
                 -webkit-background-clip: border-box !important;
                 background-clip: border-box !important;
                 -webkit-text-fill-color: currentColor !important;
             }
-            #curr-temp,
-            #curr-hum,
-            #min-temp-val,
-            #max-temp-val,
-            #curr-pres {
-                font-size: 2em;
-                line-height: 1;
-            }
-            .pres-main-line .unit {
-                font-size: 1.8em;
-                line-height: 1;
-            }
-            /* Match the humidity value: #curr-hum is 2em inside a 0.72em parent. */
-            .dew-secondary strong { font-size: 1.44em; line-height: 1; }
-            .dew-secondary .unit { font-size: 0.65em; line-height: 1; }
-            /* Pfeile im Verhältnis zur Zahl (2em im 0.72em-Elternelement), sonst kaum erkennbar. */
-            #temp-display .trend-arrow,
-            #hum-display .trend-arrow {
-                font-size: 2em;
-                line-height: 1;
-            }
-            /* Trendpfeile in Zahlengröße: .val-display ist hier nur 0.72em groß. */
-            .trend-arrow { font-size: 1.8em; }
-            #temp-display .unit,
-            #hum-display .unit,
-            .card.min .unit,
-            .card.max .unit {
-                font-size: 2em;
-                line-height: 1;
-            }
         }
 
-        @media (min-width: 600px) { 
-            body { padding: 20px; } 
-            .container { padding: 35px; } 
-            .main-title { font-size: 1.8em; } 
-            .stats { gap: 18px; } 
-            .card { min-height: 176px; }
-            .val-display { font-size: 1.9em; } 
-            .card-icon { width: 28px; height: 28px; position: absolute; right: 18px; top: 18px; } 
+        @media (min-width: 600px) {
+            body { padding: 24px; }
+            .main-title { font-size: 1.5em; }
+            .stats { gap: 16px; margin-bottom: 16px; }
+            .card { min-height: 160px; }
+            .val-display { font-size: 1.8em; }
+            #temp-display { font-size: 3.4em; }
+            .card > .card-icon, .card-icon { width: 22px; height: 22px; }
+            #rainCard .val-display { font-size: 1.2em; }
+            .panel { padding: 18px 20px; }
+            .chart-box { height: 300px; }
         }
+        .dew-secondary .unit { font-size: 0.85em; }
+        .rate-badge .unit { font-size: 0.8em; }
     </style>
 </head>
 <body>
@@ -442,13 +435,13 @@
     </div>
     <div id="data-status" class="data-status"></div>
     <div id="frost-banner" class="frost-banner">❄ Frostgefahr: <span id="frost-banner-temp">--</span> °C</div>
-    
+
     <div class="stats">
         <div id="card-temp" class="card temp">
             <div id="frost-alarm"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"></line><line x1="20" y1="12" x2="4" y2="12"></line><line x1="17.66" y1="6.34" x2="6.34" y2="17.66"></line><line x1="17.66" y1="17.66" x2="6.34" y2="6.34"></line></svg><span class="frost-label">Frostgefahr</span></div>
             <svg id="icon-temp" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
             <h3>Temperatur</h3>
-            <div id="temp-display" class="val-display accent-text"><span id="curr-temp">--</span><span class="unit">°C</span><span id="temp-trend" class="trend-arrow">→</span></div>
+            <div id="temp-display" class="val-display"><span id="curr-temp">--</span><span class="unit">°C</span><span id="temp-trend" class="trend-arrow">→</span></div>
         </div>
         <div class="card min">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--color-min)"><path d="M12 9V3m0 0L9 6m3-3 3 3m-3 15v-6m0 0-3 3m3-3 3 3"></path><path d="M14 14.54V4a2 2 0 0 0-4 0v10.54a4 4 0 1 0 4 0Z"></path></svg>
@@ -474,7 +467,7 @@
         <div id="rainCard" class="card rain">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 14.89c0-4 5-9 8-9s8 5 8 9a8 8 0 0 1-16 0ZM5 18l1.5-1.5M10 20l1.5-1.5M15 18l1.5-1.5"></path></svg>
             <h3 style="text-transform: none;">REGEN: mm</h3>
-            <div class="val-display" style="flex-direction: column; align-items: center; gap: 2px;">
+            <div class="val-display" style="flex-direction: column; align-items: flex-start; gap: 2px;">
                 <div class="rain-line"><span class="rain-label">Tag:</span> <span id="day-rain">--</span></div>
                 <div class="rain-line"><span class="rain-label">Monat:</span> <span id="curr-rain">--</span></div>
                 <div class="rain-line"><span class="rain-label">Jahr:</span> <span id="year-rain">--</span></div>
@@ -490,20 +483,24 @@
         </div>
     </div>
 
-    <div class="section-header"><h2 style="color: #86efac;">Temperatur</h2><select id="period" aria-label="Zeitraum Temperatur" onchange="fetchData()"></select></div>
-    <div class="chart-box"><canvas id="mainChart"></canvas></div>
-    <div class="legend-box">
-        <span class="legend-item"><span class="legend-dot" style="background: rgba(239, 68, 68, 0.45);"></span>Taupunkt ≤ 0,5 °C (Nebelgefahr)</span>
-        <span class="legend-item"><span class="legend-dot" style="background: rgba(249, 115, 22, 0.4);"></span>Taupunkt 0,5–1 °C</span>
+    <div class="panel">
+        <div class="section-header"><h2><svg class="section-icon" viewBox="0 0 24 24" style="color: #86efac;"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>Temperatur</h2><select id="period" aria-label="Zeitraum Temperatur" onchange="fetchData()"></select></div>
+        <div class="chart-box"><canvas id="mainChart"></canvas></div>
+        <div class="legend-box">
+            <span class="legend-item"><span class="legend-dot" style="background: rgba(239, 68, 68, 0.45);"></span>Taupunkt ≤ 0,5 °C (Nebelgefahr)</span>
+            <span class="legend-item"><span class="legend-dot" style="background: rgba(249, 115, 22, 0.4);"></span>Taupunkt 0,5–1 °C</span>
+        </div>
+        <div class="temp-scale" aria-hidden="true"><span>−10 °C</span><div class="temp-scale-bar"></div><span>40 °C</span></div>
     </div>
-    <div class="temp-scale" aria-hidden="true"><span>−10 °C</span><div class="temp-scale-bar"></div><span>40 °C</span></div>
 
-    <div class="section-header"><h2 style="color: #5eead4;">Feuchte</h2><select id="humidityPeriod" aria-label="Zeitraum Feuchte" onchange="fetchData()"></select></div>
-    <div class="chart-box"><canvas id="humidityChart"></canvas></div>
-    <div class="temp-scale" aria-hidden="true"><span>0 %</span><div class="temp-scale-bar hum"></div><span>100 %</span></div>
+    <div class="panel">
+        <div class="section-header"><h2><svg class="section-icon" viewBox="0 0 24 24" style="color: #5eead4;"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5L12 2 8.1 9.5C6.1 11.1 5 13 5 15a7 7 0 0 0 7 7Z"/></svg>Feuchte</h2><select id="humidityPeriod" aria-label="Zeitraum Feuchte" onchange="fetchData()"></select></div>
+        <div class="chart-box"><canvas id="humidityChart"></canvas></div>
+        <div class="temp-scale" aria-hidden="true"><span>0 %</span><div class="temp-scale-bar hum"></div><span>100 %</span></div>
+    </div>
 
-    <section class="rain-section">
-    <div class="section-header"><div class="section-title"><h2 style="color: var(--color-dry);">Niederschlag</h2><span id="rain-total" class="section-total"></span></div><select id="rainPeriod" aria-label="Zeitraum Niederschlag" onchange="fetchData()"></select></div>
+    <section class="rain-section panel">
+    <div class="section-header"><div class="section-title"><h2><svg class="section-icon" viewBox="0 0 24 24" style="color: var(--color-dry);"><path d="M4 14.89c0-4 5-9 8-9s8 5 8 9a8 8 0 0 1-16 0ZM5 18l1.5-1.5M10 20l1.5-1.5M15 18l1.5-1.5"/></svg>Niederschlag</h2><span id="rain-total" class="section-total"></span></div><select id="rainPeriod" aria-label="Zeitraum Niederschlag" onchange="fetchData()"></select></div>
     <div class="chart-box"><canvas id="rainChart"></canvas></div>
     <div class="legend-box" id="rainDayLegend" style="display: none;">
         <span class="legend-item"><span class="legend-dot" style="background: #4dd0e1;"></span>&lt; 20 mm/Tag</span>
@@ -515,8 +512,9 @@
         <span class="legend-item"><span class="legend-dot" style="background: #fb923c;"></span>unter Norm (&lt; 100 %)</span>
         <span class="legend-item"><span class="legend-dot" style="background: #60a5fa;"></span>gleich bis über Norm (100–130 %)</span>
         <span class="legend-item"><span class="legend-dot" style="background: #a78bfa;"></span>deutlich über Norm (≥ 130 %)</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #4b5563;"></span>keine Messdaten</span>
     </div>
-    
+
     <div class="rate-row">
         <div class="rate-badge">
             <span class="rate-badge-label">Aktuelle Regenrate</span>
@@ -541,8 +539,10 @@
 
     </section>
 
-    <div class="section-header"><h2 style="color: var(--color-pres);">Luftdruck</h2><select id="pressurePeriod" aria-label="Zeitraum Luftdruck" onchange="fetchData()"></select></div>
-    <div class="chart-box"><canvas id="pressureChart"></canvas></div>
+    <div class="panel">
+        <div class="section-header"><h2><svg class="section-icon" viewBox="0 0 24 24" style="color: var(--color-pres);"><circle cx="12" cy="12" r="10"/><path d="M12 7v5l3 3"/></svg>Luftdruck</h2><select id="pressurePeriod" aria-label="Zeitraum Luftdruck" onchange="fetchData()"></select></div>
+        <div class="chart-box"><canvas id="pressureChart"></canvas></div>
+    </div>
 </div>
 
 <script>
@@ -582,6 +582,7 @@ const PREVIOUS_MONTHS_TO_SHOW = 3;
 const RAIN_CLASS_LIGHT_MAX = 2.5;
 const RAIN_CLASS_MODERATE_MAX = 10;
 const RAIN_BAR_COLOR = '#4dd0e1';
+const RAIN_NO_DATA_COLOR = '#4b5563';
 // Tagesmengen in mm: Einfärbung nur bei Tagesbalken (7 Tage, Monat, Vormonat ...).
 const RAIN_DAY_CLASSES = [
     { min: 70, color: '#f87171', label: '≥ 70 mm' },
@@ -1232,8 +1233,12 @@ async function fetchData() {
     const selectedMonthSeries = entriesRSelected.length > 0 ? buildMonthSeries(entriesRSelected) : [];
     const selectedMonthTotal = selectedMonthSeries.length > 0 ? selectedMonthSeries[selectedMonthSeries.length - 1].value : 0;
     // Norm: bei "Jahr" die Summe der Monatsnormen bis einschließlich aktuellem Monat.
+    // Nur Monate mit Messdaten zählen, sonst wird die Norm für Zeiten vor Inbetriebnahme mitgerechnet.
+    const yearMonthsWithData = new Set(entriesRSelected.map(e => e.date.getMonth()));
     const normMonthVal = rainPeriodValue === 'year'
-        ? MONTHLY_RAIN_NORMAL_MM.slice(0, now.getMonth() + 1).reduce((sum, v) => sum + v, 0)
+        ? MONTHLY_RAIN_NORMAL_MM.slice(0, now.getMonth() + 1)
+            .filter((_, k) => yearMonthsWithData.has(k))
+            .reduce((sum, v) => sum + v, 0)
         : MONTHLY_RAIN_NORMAL_MM[rainPeriodValue === 'prevMonth' ? (now.getMonth() + 11) % 12 : now.getMonth()] || 0;
     const normPercent = normMonthVal > 0 ? (selectedMonthTotal / normMonthVal) * 100 : 0;
     document.getElementById('rain-norm-val').innerText = normMonthVal > 0
@@ -1640,13 +1645,16 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
             ? labels.length % dayStep === 0
             : new Date(bucket.from).getHours() % hourStep === 0);
         labels.push(isTick ? bucket.label : '');
-        amounts.push(amount);
-        colors.push(monthlyBars ? getRainNormColor(amount, MONTHLY_RAIN_NORMAL_MM[bucket.monthIndex])
+        // Monat ohne Messwerte (z. B. vor Inbetriebnahme): kein Balken, sondern "keine Messdaten".
+        const hasData = !monthlyBars || ent.some(e => e.date.getTime() >= from && e.date.getTime() < to);
+        amounts.push(hasData ? amount : null);
+        colors.push(!hasData ? RAIN_NO_DATA_COLOR
+            : monthlyBars ? getRainNormColor(amount, MONTHLY_RAIN_NORMAL_MM[bucket.monthIndex])
             : dailyBars ? getRainDayColor(amount)
             : RAIN_BAR_COLOR);
     }
 
-    const total = amounts.reduce((sum, amount) => sum + amount, 0);
+    const total = amounts.reduce((sum, amount) => sum + (amount ?? 0), 0);
     document.getElementById('rain-total').innerText = `Summe: ${total.toFixed(1)} mm`;
     document.getElementById('rainDayLegend').style.display = dailyBars ? '' : 'none';
     document.getElementById('rainMonthLegend').style.display = monthlyBars ? '' : 'none';
@@ -1672,7 +1680,9 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: context => `Regen: ${amounts[context.dataIndex].toFixed(1)} mm`
+                        label: context => amounts[context.dataIndex] == null
+                            ? 'Keine Messdaten'
+                            : `Regen: ${amounts[context.dataIndex].toFixed(1)} mm`
                     }
                 }
             },
