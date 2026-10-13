@@ -184,6 +184,7 @@
         }
         .unit { font-size: 0.6em; font-weight: 400; color: var(--text-muted); }
         .period-note { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+        #min-temp-time { font-size: 16px; font-weight: 600; }
 
         /* Symbol und Überschrift nebeneinander, alle übrigen Inhalte darunter. */
         .card > .card-icon { grid-column: 1; grid-row: 1; width: 20px; height: 20px; margin: 0; align-self: center; stroke: currentColor; opacity: 0.85; flex: none; }
@@ -452,6 +453,7 @@
             <h3>Min-Temp</h3>
             <div class="val-display accent-text" style="color: var(--color-min) !important;"><span id="min-temp-val">--</span><span class="unit">°C</span></div>
             <div class="period-note minmax-period">Zeitraum: --</div>
+            <div class="period-note min-temp-time" id="min-temp-time"></div>
         </div>
         <div class="card max">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--color-max)"><path d="M12 3v6m0 0L9 6m3 3 3-3m-3 9v6m0 0-3-3m3 3 3-3"></path><path d="M14 14.54V4a2 2 0 0 0-4 0v10.54a4 4 0 1 0 4 0Z"></path></svg>
@@ -1151,7 +1153,10 @@ async function fetchData() {
         applyDynamicCardTheme('card-temp', 'temp-display');
         const iconTempEl = document.getElementById('icon-temp');
         iconTempEl.style.color = getComputedStyle(tempDisplayEl).color;
-        setValueWithFlash('min-temp-val', Math.min(...entriesT.map(e => e.value)).toFixed(1));
+        const minTempEntry = entriesT.reduce((min, e) => (e.value < min.value ? e : min), entriesT[0]);
+        setValueWithFlash('min-temp-val', minTempEntry.value.toFixed(1));
+        const minTempTime = minTempEntry.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('min-temp-time').textContent = `um ${minTempTime} Uhr`;
         setValueWithFlash('max-temp-val', Math.max(...entriesT.map(e => e.value)).toFixed(1));
         document.getElementById('frost-alarm').style.display = lastT <= 3 ? 'flex' : 'none';
         document.getElementById('frost-banner').style.display = lastT <= 3 ? 'block' : 'none';
