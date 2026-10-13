@@ -375,10 +375,13 @@
             .card > .card-icon { width: 18px; height: 18px; }
             .card h3 { font-size: 11px; font-weight: 600; }
             .val-display { font-size: 1.15em; margin-top: 4px; }
-            #temp-display { font-size: 2.3em; margin-top: 4px; }
+            /* Feuchte und Temperatur gleich groß; Trendpfeil auf dem Handy eigene Zeile unter dem Wert. */
+            #temp-display, #hum-display { font-size: 2.3em; margin-top: 4px; flex-wrap: wrap; }
+            #temp-display #temp-trend, #hum-display #hum-trend { flex-basis: 100%; margin-top: 2px; }
             .unit { font-size: 0.6em; }
             .period-note { font-size: 11px; }
             .dew-secondary { font-size: 12px; flex-wrap: wrap; }
+            .dew-secondary-label { flex-basis: 100%; }
             .dew-secondary strong { font-size: 1.3em; }
             .pres-rate { font-size: 0.9em; margin-top: 2px; }
             .pres-main-line { gap: 3px; }
@@ -442,6 +445,7 @@
             <svg id="icon-temp" class="card-icon" viewBox="0 0 24 24" fill="none" stroke-width="2.5"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
             <h3>Temperatur</h3>
             <div id="temp-display" class="val-display"><span id="curr-temp">--</span><span class="unit">°C</span><span id="temp-trend" class="trend-arrow">→</span></div>
+            <div class="dew-secondary"><span class="dew-secondary-label">Taupunkt</span><strong id="curr-temp-dew">--</strong><span class="unit dew-unit">°C</span></div>
         </div>
         <div class="card min">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--color-min)"><path d="M12 9V3m0 0L9 6m3-3 3 3m-3 15v-6m0 0-3 3m3-3 3 3"></path><path d="M14 14.54V4a2 2 0 0 0-4 0v10.54a4 4 0 1 0 4 0Z"></path></svg>
@@ -462,7 +466,6 @@
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5L12 2 8.1 9.5C6.1 11.1 5 13 5 15a7 7 0 0 0 7 7Z"></path></svg>
             <h3>Feuchte</h3>
             <div id="hum-display" class="val-display accent-text"><span id="curr-hum">--</span><span class="unit">%</span><span id="hum-trend" class="trend-arrow">→</span></div>
-            <div class="dew-secondary"><span class="dew-secondary-label">Taupunkt</span><strong id="curr-temp-dew">--</strong><span class="unit dew-unit">°C</span></div>
         </div>
         <div id="rainCard" class="card rain">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 14.89c0-4 5-9 8-9s8 5 8 9a8 8 0 0 1-16 0ZM5 18l1.5-1.5M10 20l1.5-1.5M15 18l1.5-1.5"></path></svg>
