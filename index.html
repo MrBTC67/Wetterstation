@@ -802,7 +802,8 @@ function calculateDewPoint(temp, hum) {
     return (b * alpha) / (a - alpha); 
 }
 
-function findNearestHumidity(tempEntry, humidityEntries, maxDifferenceMs = 5 * 60 * 1000) {
+// Standardmäßig höchstens 90 s Abstand (halbe Messintervallbreite bei 3-Minuten-Messungen), damit Taupunkt nur aus zeitlich passenden Werten entsteht.
+function findNearestHumidity(tempEntry, humidityEntries, maxDifferenceMs = 90 * 1000) {
     let nearest = null;
     let nearestDifference = Infinity;
     for (const humidityEntry of humidityEntries) {
