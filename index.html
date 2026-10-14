@@ -184,6 +184,7 @@
         }
         .unit { font-size: 0.6em; font-weight: 400; color: var(--text-muted); }
         .period-note { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+        #min-temp-time { font-size: 16px; font-weight: 600; }
 
         /* Symbol und Überschrift nebeneinander, alle übrigen Inhalte darunter. */
         .card > .card-icon { grid-column: 1; grid-row: 1; width: 20px; height: 20px; margin: 0; align-self: center; stroke: currentColor; opacity: 0.85; flex: none; }
@@ -376,7 +377,7 @@
             .card h3 { font-size: 11px; font-weight: 600; }
             .val-display { font-size: 1.15em; margin-top: 4px; }
             /* Feuchte und Temperatur gleich groß; Trendpfeil auf dem Handy eigene Zeile unter dem Wert. */
-            #temp-display, #hum-display { font-size: 2.3em; margin-top: 4px; flex-wrap: wrap; }
+            #temp-display, #hum-display, .card.min .val-display, .card.max .val-display { font-size: 2.3em; margin-top: 4px; flex-wrap: wrap; }
             #temp-display #temp-trend, #hum-display #hum-trend { flex-basis: 100%; margin-top: 2px; }
             .unit { font-size: 0.6em; }
             .period-note { font-size: 11px; }
@@ -452,6 +453,7 @@
             <h3>Min-Temp</h3>
             <div class="val-display accent-text" style="color: var(--color-min) !important;"><span id="min-temp-val">--</span><span class="unit">°C</span></div>
             <div class="period-note minmax-period">Zeitraum: --</div>
+            <div class="period-note min-temp-time" id="min-temp-time"></div>
         </div>
         <div class="card max">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="color: var(--color-max)"><path d="M12 3v6m0 0L9 6m3 3 3-3m-3 9v6m0 0-3-3m3 3 3-3"></path><path d="M14 14.54V4a2 2 0 0 0-4 0v10.54a4 4 0 1 0 4 0Z"></path></svg>
@@ -472,8 +474,8 @@
             <h3 style="text-transform: none;">REGEN: mm</h3>
             <div class="val-display" style="flex-direction: column; align-items: flex-start; gap: 2px;">
                 <div class="rain-line"><span class="rain-label">Tag:</span> <span id="day-rain">--</span></div>
+                <div class="rain-line"><span class="rain-label">Woche:</span> <span id="week-rain">--</span></div>
                 <div class="rain-line"><span class="rain-label">Monat:</span> <span id="curr-rain">--</span></div>
-                <div class="rain-line"><span class="rain-label">Jahr:</span> <span id="year-rain">--</span></div>
             </div>
         </div>
         <div class="card pres">
@@ -1011,6 +1013,22 @@ function getCorrectedMonthAmount(entriesR) {
     return series[series.length - 1].value;
 }
 
+// Woche = laufende Kalenderwoche (Montag 00:00 bis jetzt), aus den Einträgen des ganzen Jahres.
+function getWeekRainAmount(entriesR, now) {
+    const series = buildMonthSeries(entriesR);
+    if (series.length === 0) return 0;
+    const weekStart = new Date(now);
+    weekStart.setHours(0, 0, 0, 0);
+    weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
+    // Zählerstand direkt vor Wochenbeginn; ohne früheren Eintrag beginnt die Zählung bei 0.
+    let baseline = 0;
+    for (const point of series) {
+        if (point.date >= weekStart) break;
+        baseline = point.value;
+    }
+    return Math.max(0, series[series.length - 1].value - baseline);
+}
+
 function updatePreviousMonthsUI(prevMonthStats) {
     const grid = document.getElementById('prev-month-rain-grid');
     grid.innerHTML = '';
@@ -1106,8 +1124,9 @@ async function fetchData() {
             const amount = getCorrectedMonthAmount(entries);
             return sum + (amount === null ? 0 : amount);
         }, 0);
+        const weekRainFromMonths = getWeekRainAmount(yearMonthData.flatMap(md => parseRainEntries(md)), now);
 
-        updateUI(entriesT, entriesH, entriesHChart, entriesP, entriesPChart, entriesR_current, entriesR_selected, rainPeriod.start, rainPeriod.end, tempPeriod.chartHours, humidityPeriod.chartHours, rainPeriod.chartHours, pressurePeriod.chartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths, entriesP_all);
+        updateUI(entriesT, entriesH, entriesHChart, entriesP, entriesPChart, entriesR_current, entriesR_selected, rainPeriod.start, rainPeriod.end, tempPeriod.chartHours, humidityPeriod.chartHours, rainPeriod.chartHours, pressurePeriod.chartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths, entriesP_all, weekRainFromMonths);
         sparkSource = { temp: entriesT_all, hum: entriesH_all, pres: entriesP_all };
         renderSparklines();
         linkCursors();
@@ -1122,7 +1141,7 @@ async function fetchData() {
     }
 }
 
-    function updateUI(entriesT, entriesH, entriesHChart, entriesP, entriesPChart, entriesRCurrent, entriesRSelected, rainRangeStart, rainRangeEnd, hours, humidityHoursPeriod, rainChartHours, pressureChartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths, entriesPAll) {
+    function updateUI(entriesT, entriesH, entriesHChart, entriesP, entriesPChart, entriesRCurrent, entriesRSelected, rainRangeStart, rainRangeEnd, hours, humidityHoursPeriod, rainChartHours, pressureChartHours, rainPeriodValue, prevMonthStats, yearRainFromMonths, entriesPAll, weekRainFromMonths) {
     const now = new Date();
     const currentMonthName = monthNames[now.getMonth()];
 
@@ -1134,7 +1153,10 @@ async function fetchData() {
         applyDynamicCardTheme('card-temp', 'temp-display');
         const iconTempEl = document.getElementById('icon-temp');
         iconTempEl.style.color = getComputedStyle(tempDisplayEl).color;
-        setValueWithFlash('min-temp-val', Math.min(...entriesT.map(e => e.value)).toFixed(1));
+        const minTempEntry = entriesT.reduce((min, e) => (e.value < min.value ? e : min), entriesT[0]);
+        setValueWithFlash('min-temp-val', minTempEntry.value.toFixed(1));
+        const minTempTime = minTempEntry.date.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+        document.getElementById('min-temp-time').textContent = `um ${minTempTime} Uhr`;
         setValueWithFlash('max-temp-val', Math.max(...entriesT.map(e => e.value)).toFixed(1));
         document.getElementById('frost-alarm').style.display = lastT <= 3 ? 'flex' : 'none';
         document.getElementById('frost-banner').style.display = lastT <= 3 ? 'block' : 'none';
@@ -1226,11 +1248,11 @@ async function fetchData() {
 
         setValueWithFlash('day-rain', Math.max(0, lastRCurrent.tag).toFixed(1));
         setValueWithFlash('curr-rain', korrigiertMonat.toFixed(1));
-        setValueWithFlash('year-rain', yearRainFromMonths.toFixed(1));
+        setValueWithFlash('week-rain', weekRainFromMonths.toFixed(1));
     } else {
         setValueWithFlash('day-rain', '0.0');
         setValueWithFlash('curr-rain', '0.0');
-        setValueWithFlash('year-rain', yearRainFromMonths.toFixed(1));
+        setValueWithFlash('week-rain', weekRainFromMonths.toFixed(1));
     }
 
     const selectedMonthSeries = entriesRSelected.length > 0 ? buildMonthSeries(entriesRSelected) : [];
