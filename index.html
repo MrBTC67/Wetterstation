@@ -1333,6 +1333,72 @@ const crosshairPlugin = {
     }
 };
 
+// Hilfsfunktionen für die Min/Max-Beschriftung: Die Beschriftung wird so platziert, dass sie die Kurve nie berührt.
+function segmentHitsRect(x1, y1, x2, y2, left, top, right, bottom) {
+    let t0 = 0, t1 = 1;
+    const dx = x2 - x1, dy = y2 - y1;
+    const p = [-dx, dx, -dy, dy];
+    const q = [x1 - left, right - x1, y1 - top, bottom - y1];
+    for (let i = 0; i < 4; i++) {
+        if (p[i] === 0) {
+            if (q[i] < 0) return false;
+        } else {
+            const r = q[i] / p[i];
+            if (p[i] < 0) { if (r > t1) return false; if (r > t0) t0 = r; }
+            else { if (r < t0) return false; if (r < t1) t1 = r; }
+        }
+    }
+    return true;
+}
+
+// Linienstücke der Kurve in Pixeln (nur zwischen benachbarten, gültigen Messpunkten).
+function curveSegments(chart) {
+    const meta = chart.getDatasetMeta(0);
+    const values = chart.data.datasets[0].data;
+    const points = meta.data.map((el, i) => (values[i] !== null && el && Number.isFinite(el.x) && Number.isFinite(el.y)) ? { x: el.x, y: el.y } : null);
+    const segments = [];
+    for (let i = 0; i < points.length; i++) {
+        if (!points[i]) continue;
+        if (points[i - 1]) segments.push([points[i - 1].x, points[i - 1].y, points[i].x, points[i].y]);
+        else segments.push([points[i].x, points[i].y, points[i].x, points[i].y]);
+    }
+    return segments;
+}
+
+// Sucht für eine Beschriftung (Breite w, Höhe h) einen freien Platz an der Min-/Max-Linie py:
+// zuerst außen (Max über der Linie, Min unter der Linie), dann innen. Von der Mitte aus nach links und rechts.
+// Der Platz darf weder die Kurve noch bereits platzierte Beschriftungen berühren.
+function findLabelSpot(area, segments, taken, py, w, h, preferAbove) {
+    const margin = 3, gap = 3;
+    const sides = preferAbove ? ['above', 'below'] : ['below', 'above'];
+    const minCx = area.left + w / 2 + 2, maxCx = area.right - w / 2 - 2;
+    const centre = (area.left + area.right) / 2;
+    const stepPx = Math.max(8, w / 3);
+    const xs = [centre];
+    for (let d = stepPx; centre - d >= minCx || centre + d <= maxCx; d += stepPx) {
+        if (centre - d >= minCx) xs.push(centre - d);
+        if (centre + d <= maxCx) xs.push(centre + d);
+    }
+    let best = null;
+    for (const side of sides) {
+        const top = side === 'above' ? py - gap - h : py + gap;
+        if (top < area.top || top + h > area.bottom) continue;
+        for (const cx of xs) {
+            const box = { left: cx - w / 2, top, right: cx + w / 2, bottom: top + h };
+            let hits = 0;
+            for (const sg of segments) {
+                if (segmentHitsRect(sg[0], sg[1], sg[2], sg[3], box.left - margin, box.top - margin, box.right + margin, box.bottom + margin)) hits++;
+            }
+            for (const t of taken) {
+                if (box.left < t.right + margin && box.right > t.left - margin && box.top < t.bottom + margin && box.bottom > t.top - margin) hits += 1000;
+            }
+            if (hits === 0) return { box, hits };
+            if (!best || hits < best.hits) best = { box, hits };
+        }
+    }
+    return best;
+}
+
 const minMaxPlugin = {
     id: 'minMaxPlugin',
     afterDatasetsDraw(chart) {
@@ -1346,11 +1412,28 @@ const minMaxPlugin = {
         const maxColor = '#ef5350';
         const minColor = '#64b5f6';
 
+        const segments = curveSegments(chart);
+        const taken = [];
+        chart._minMaxBoxes = [];
         const draw = (val, color, isMax) => {
             const py = y.getPixelForValue(val);
-            const centerX = left + width / 2;
-            ctx.save(); ctx.beginPath(); ctx.setLineDash([5, 5]); ctx.strokeStyle = color + '44'; ctx.moveTo(left, py); ctx.lineTo(right, py); ctx.stroke();
-            ctx.font = 'bold 11px sans-serif'; ctx.fillStyle = color; ctx.textAlign = 'center'; ctx.fillText(val.toFixed(1) + unit, centerX, isMax ? py + 12 : py - 6); ctx.restore();
+            const text = val.toFixed(1) + unit;
+            ctx.save();
+            ctx.beginPath(); ctx.setLineDash([5, 5]); ctx.strokeStyle = color + '44'; ctx.moveTo(left, py); ctx.lineTo(right, py); ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.font = 'bold 11px sans-serif'; ctx.textAlign = 'center'; ctx.textBaseline = 'alphabetic';
+            const w = ctx.measureText(text).width + 8, h = 15;
+            const spot = findLabelSpot(chart.chartArea, segments, taken, py, w, h, isMax);
+            if (spot) {
+                const b = spot.box;
+                taken.push(b);
+                chart._minMaxBoxes.push({ box: b, hits: spot.hits, isMax });
+                ctx.fillStyle = 'rgba(18, 27, 36, 0.72)';
+                ctx.fillRect(b.left, b.top, b.right - b.left, b.bottom - b.top);
+                ctx.fillStyle = color;
+                ctx.fillText(text, (b.left + b.right) / 2, b.bottom - 4);
+            }
+            ctx.restore();
         };
         draw(maxVal, maxColor, true); draw(minVal, minColor, false);
     }
@@ -1492,7 +1575,7 @@ function renderMainChart(ent, hrs) {
             responsive: true, maintainAspectRatio: false, animation: false, 
             plugins: { legend: { display: false } }, 
             scales: { 
-                y: { grid: { color: CHART_GRID_COLOR }, ticks: { color: CHART_TEXT_COLOR, callback: v => `${v.toLocaleString('de-DE')} °C` } }, 
+                y: { grid: { color: CHART_GRID_COLOR }, ticks: { color: tickCtx => scaleColorAt(TEMP_SCALE, tickCtx.tick?.value) || CHART_TEXT_COLOR, callback: v => `${v.toLocaleString('de-DE')} °C` } }, 
                 x: { 
                     grid: { display: false }, 
                     ticks: { 
@@ -1572,7 +1655,7 @@ function renderHumidityChart(ent, hrs) {
                 y: {
                     min: humidityMin,
                     max: humidityMax,
-                    ticks: { color: CHART_TEXT_COLOR, stepSize: step, precision: 0, callback: v => `${v} %` },
+                    ticks: { color: tickCtx => scaleColorAt(HUMIDITY_SCALE, tickCtx.tick?.value) || CHART_TEXT_COLOR, stepSize: step, precision: 0, callback: v => `${v} %` },
                     grid: { color: CHART_GRID_COLOR }
                 },
                 x: {
