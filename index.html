@@ -492,8 +492,8 @@
         <div class="section-header"><h2><svg class="section-icon" viewBox="0 0 24 24" style="color: #86efac;"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>Temperatur</h2><select id="period" aria-label="Zeitraum Temperatur" onchange="fetchData()"></select></div>
         <div class="chart-box"><canvas id="mainChart"></canvas></div>
         <div class="legend-box">
-            <span class="legend-item"><span class="legend-dot" style="background: rgba(239, 68, 68, 0.45);"></span>Abstand Temperatur–Taupunkt ≤ 1 °C (Nebelgefahr)</span>
-            <span class="legend-item"><span class="legend-dot" style="background: rgba(249, 115, 22, 0.4);"></span>Abstand Temperatur–Taupunkt 1–2 °C</span>
+            <span class="legend-item"><span class="legend-dot" style="background: rgba(239, 68, 68, 0.45);"></span>Abstand Temperatur–Taupunkt ≤ 0,8 °C (Nebelgefahr)</span>
+            <span class="legend-item"><span class="legend-dot" style="background: rgba(249, 115, 22, 0.4);"></span>Abstand Temperatur–Taupunkt 0,8–1,2 °C</span>
         </div>
         <div class="temp-scale" aria-hidden="true"><span>−10 °C</span><div class="temp-scale-bar"></div><span>40 °C</span></div>
     </div>
@@ -815,9 +815,9 @@ function findNearestHumidity(tempEntry, humidityEntries, maxDifferenceMs = 5 * 6
     return nearestDifference <= maxDifferenceMs ? nearest : null;
 }
 
-// Markiert Taupunktnähe bis 2 °C; bis 1 °C rot, darüber orange.
-const DEW_RED_MAX = 1.0;
-const DEW_ORANGE_MAX = 2.0;
+// Markiert Taupunktnähe bis 1,2 °C; bis 0,8 °C rot, darüber orange.
+const DEW_RED_MAX = 0.8;
+const DEW_ORANGE_MAX = 1.2;
 const dewRiskZones = {
     id: 'dewRiskZones',
     beforeDatasetsDraw(chart) {
@@ -1520,21 +1520,27 @@ function renderHumidityChart(ent, hrs) {
     let humidityMax = 100;
     let step = 10;
     if (humidityValues.length > 0) {
+        // Autoscale: Achse folgt dem tatsächlichen Wertebereich (Messwerte werden nie abgeschnitten), Grenzen auf runde Schritte, 0 bis 100 %.
         const dataMin = Math.min(...humidityValues);
         const dataMax = Math.max(...humidityValues);
-        const dataRange = dataMax - dataMin;
-        const padding = Math.max(3, dataRange * 0.15);
-        const minimumRange = 10;
+        const padding = Math.max(3, (dataMax - dataMin) * 0.1);
+        let low = dataMin - padding;
+        let high = dataMax + padding;
+        // Mindestspanne 10 %, damit kleine Schwankungen nicht übertrieben dargestellt werden.
+        if (high - low < 10) {
+            const middle = (low + high) / 2;
+            low = middle - 5;
+            high = middle + 5;
+        }
         // Schrittweite so wählen, dass höchstens etwa sieben runde Beschriftungen entstehen.
-        const requiredTolerance = Math.ceil(Math.max(minimumRange / 2, dataRange / 2 + padding));
-        step = [1, 2, 5, 10, 20].find(s => requiredTolerance * 2 / s <= 7) || 20;
-        // Mitte und Abstand liegen auf Vielfachen der Schrittweite: runde Achsenwerte, beide Grenzen gleich weit von der Mitte.
-        const center = Math.min(100 - step, Math.max(step, Math.round((dataMin + dataMax) / 2 / step) * step));
-        const maximumSymmetricTolerance = Math.floor(Math.min(center, 100 - center) / step) * step;
-        const tolerance = Math.min(Math.ceil(requiredTolerance / step) * step, maximumSymmetricTolerance);
-
-        humidityMin = center - tolerance;
-        humidityMax = center + tolerance;
+        step = [1, 2, 5, 10, 20].find(s => (high - low) / s <= 7) || 20;
+        humidityMin = Math.max(0, Math.floor(low / step) * step);
+        humidityMax = Math.min(100, Math.ceil(high / step) * step);
+        // Nach dem Begrenzen auf 0 bis 100 % bleibt mindestens eine Achsenspanne von zwei Schritten.
+        if (humidityMax - humidityMin < step * 2) {
+            if (humidityMin === 0) humidityMax = Math.min(100, step * 2);
+            else humidityMin = Math.max(0, humidityMax - step * 2);
+        }
     }
     charts['humidityChart'] = new Chart(ctx, {
         type: 'line',
