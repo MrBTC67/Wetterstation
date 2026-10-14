@@ -253,9 +253,9 @@
         #temp-display { font-size: 3.4em; font-weight: 300; line-height: 1; margin-top: 8px; }
         .pres-rate { font-size: 0.5em; display: block; margin-top: 5px; font-weight: 400; color: var(--text-muted) !important; }
         .pres-main-line { display: flex; align-items: center; gap: 6px; }
-        .pres-trend-arrow { font-size: 0.75em; font-weight: 800; color: var(--text-muted); line-height: 1; }
-        .pres-trend-arrow.up { color: var(--color-max); }
-        .pres-trend-arrow.down { color: var(--color-min); }
+        .pres-trend-arrow { font-size: 0.75em; font-weight: 800; color: var(--text-muted); line-height: 1; align-self: flex-start; margin-top: 4px; }
+        .pres-trend-arrow.up { color: #34d399; }
+        .pres-trend-arrow.down { color: #f87171; }
         .pres-trend-arrow.flat { color: var(--text-muted); }
         .trend-arrow { font-size: 0.75em; font-weight: 800; color: var(--text-muted); line-height: 1; }
         .section-title { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
@@ -386,7 +386,8 @@
             .dew-secondary strong { font-size: 1.3em; }
             .pres-rate { font-size: 0.9em; margin-top: 2px; }
             .pres-main-line { gap: 3px; }
-            #pres-trend-arrow { display: none; }
+            /* Trendpfeil auf dem Handy wie am Desktop ganz unten unter der Änderungsrate. */
+            #pres-trend-arrow { margin-top: 2px; font-size: 1em; }
             #pres-rate-val { align-self: flex-start; text-align: left; }
             #rainCard .val-display { font-size: 0.95em; }
             #rainCard .rain-line { font-size: 0.9em; gap: 4px; }
@@ -482,8 +483,9 @@
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><path d="M12 7v5l3 3"></path></svg>
             <h3>Luftdruck</h3>
             <div class="val-display accent-text" style="color: var(--color-pres) !important; flex-direction: column; align-items: flex-start; gap: 0;">
-                <div class="pres-main-line"><span id="curr-pres">--</span><span class="unit"> hPa</span><span id="pres-trend-arrow" class="pres-trend-arrow flat">→</span></div>
+                <div class="pres-main-line"><span id="curr-pres">--</span><span class="unit"> hPa</span></div>
                 <span id="pres-rate-val" class="pres-rate">-- hPa/h</span>
+                <span id="pres-trend-arrow" class="pres-trend-arrow flat">→</span>
             </div>
         </div>
     </div>
@@ -508,11 +510,11 @@
     <div class="section-header"><div class="section-title"><h2><svg class="section-icon" viewBox="0 0 24 24" style="color: var(--color-dry);"><path d="M4 14.89c0-4 5-9 8-9s8 5 8 9a8 8 0 0 1-16 0ZM5 18l1.5-1.5M10 20l1.5-1.5M15 18l1.5-1.5"/></svg>Niederschlag</h2><span id="rain-total" class="section-total"></span></div><select id="rainPeriod" aria-label="Zeitraum Niederschlag" onchange="fetchData()"></select></div>
     <div class="chart-box"><canvas id="rainChart"></canvas></div>
     <div class="legend-box" id="rainDayLegend" style="display: none;">
-        <span class="legend-item"><span class="legend-dot" style="background: #34d399;"></span>&lt; 2,5 mm/h (leicht)</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #facc15;"></span>2,5–5</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #fb923c;"></span>5–10 (mäßig)</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #f87171;"></span>10–20</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #dc2626;"></span>≥ 20 mm/h (stark)</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #34d399;"></span>&lt; 20 mm/h</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #facc15;"></span>20–40</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #fb923c;"></span>40–60</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #f87171;"></span>60–80</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #dc2626;"></span>≥ 80 mm/h</span>
         <span class="legend-item" id="rainRateNote" style="opacity: 0.75;"></span>
     </div>
     <div class="legend-box" id="rainMonthLegend" style="display: none;">
@@ -598,15 +600,16 @@ const RAIN_DAY_CLASSES = [
     { min: 0, color: RAIN_BAR_COLOR, label: '< 20 mm' }
 ];
 const getRainDayColor = amount => RAIN_DAY_CLASSES.find(c => amount >= c.min).color;
-// Balkenfarbe nach Regenrate in mm/h (fünf Stufen). Die Einordnung leicht/mäßig/stark in Tooltip und Kopfkarte bleibt bei 2,5 und 10 mm/h.
+// Balkenfarbe nach der höchsten Regenrate (mm/h) im Balken, berechnet wie die Karte "Max. Regenrate" (von Messpunkt zu Messpunkt, ca. 1 Minute).
+// Ein einzelner Kipper (0,26 mm) in einer Minute ergibt ca. 15 mm/h, deshalb beginnen die Stufen erst bei 20 mm/h.
 const RAIN_RATE_CLASSES = [
-    { min: 20, color: '#dc2626' },
-    { min: 10, color: '#f87171' },
-    { min: 5, color: '#fb923c' },
-    { min: 2.5, color: '#facc15' },
+    { min: 80, color: '#dc2626' },
+    { min: 60, color: '#f87171' },
+    { min: 40, color: '#fb923c' },
+    { min: 20, color: '#facc15' },
     { min: 0, color: '#34d399' }
 ];
-const RAIN_RATE_LABEL_MIN = 10; // ab dieser Regenrate (mm/h) steht die Zahl über dem Balken
+const RAIN_RATE_LABEL_MIN = 30; // ab dieser Regenrate (mm/h) steht die Zahl über dem Balken
 const getRainRateColor = rate => RAIN_RATE_CLASSES.find(c => rate >= c.min).color;
 // Monatsbalken im Jahresverlauf: Anteil an der Monatsnorm (MONTHLY_RAIN_NORMAL_MM).
 const RAIN_NORM_CLASSES = [
@@ -970,6 +973,12 @@ function getPressureRateStatus(ratePerHour) {
     return 'good';
 }
 
+// Farbe der Luftdruck-Änderung pro Stunde nach Richtung: fallend (Minus) rot, steigend oder gleich grün.
+// Die Entscheidung folgt dem angezeigten Wert (auf zwei Stellen gerundet), damit "-0.00" nicht rot erscheint.
+function getPressureRateDirectionStatus(ratePerHour) {
+    return Math.round(ratePerHour * 100) < 0 ? 'crit' : 'good';
+}
+
 function getRainMonthMeta(now, offset) {
     const d = new Date(now.getFullYear(), now.getMonth() - offset, 1);
     return {
@@ -1231,11 +1240,13 @@ async function fetchData() {
             const elapsedHours = (lastPEntry.date - firstP.date) / 3600000;
             const ratePerHour = elapsedHours > 0 ? (diff / elapsedHours) : 0;
             setValueWithFlash('pres-rate-val', (ratePerHour > 0 ? "+" : "") + ratePerHour.toFixed(2) + " hPa/h");
-            applyStatusClass(document.getElementById('pres-rate-val'), getPressureRateStatus(ratePerHour));
-            if (ratePerHour > 0.3) {
+            applyStatusClass(document.getElementById('pres-rate-val'), getPressureRateDirectionStatus(ratePerHour));
+            // Der Pfeil folgt dem angezeigten Wert (zwei Nachkommastellen): Minus = fallend, Plus = steigend, 0,00 = gleichbleibend.
+            const shownRate = Math.round(ratePerHour * 100);
+            if (shownRate > 0) {
                 trendArrowEl.innerText = '↗';
                 trendArrowEl.className = 'pres-trend-arrow up';
-            } else if (ratePerHour < -0.3) {
+            } else if (shownRate < 0) {
                 trendArrowEl.innerText = '↘';
                 trendArrowEl.className = 'pres-trend-arrow down';
             } else {
@@ -1293,14 +1304,14 @@ async function fetchData() {
         setValueWithFlash('ctrl-rain-rate', rainMeta.currentRainRate.toFixed(1));
         const peakEl = document.getElementById('rain-peak-val');
         setValueWithFlash(peakEl, rainMeta.maxRate.toFixed(1));
-        peakEl.style.color = getRainIntensityColor(rainMeta.maxRate);
+        peakEl.style.color = getRainRateColor(rainMeta.maxRate); // gleiche Farbe wie der Balken im Diagramm
 
         const peakTimeEl = document.getElementById('rain-peak-time-val');
         peakTimeEl.innerText = rainMeta.maxRateTime
-            ? `${formatDateTimeShort(rainMeta.maxRateTime)} (${getRainIntensityLabel(rainMeta.maxRate)})`
+            ? formatDateTimeShort(rainMeta.maxRateTime)
             : '--';
         peakTimeEl.style.color = rainMeta.maxRateTime
-            ? getRainIntensityColor(rainMeta.maxRate)
+            ? getRainRateColor(rainMeta.maxRate)
             : 'var(--text-main)';
 
         document.getElementById('rain-range-sum-val').innerText = `${rainMeta.rangeSum.toFixed(1)} mm`;
@@ -1752,17 +1763,22 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
         }
         return found >= 0 ? ent[found].value : 0;
     };
-    // Regenrate in mm/h: stärkste volle Stunde innerhalb des Balkens (bei Stundenbalken die Stunde selbst).
-    // Angeschnittene Stunden werden auf mm/h hochgerechnet, mindestens aber über 15 Minuten gemittelt.
-    const peakHourlyRate = (from, to) => {
+    // Höchste Regenrate (mm/h) im Balken, gerechnet wie die Karte "Max. Regenrate": Änderung von Messpunkt zu Messpunkt geteilt durch die Zeit.
+    const firstIndexFrom = t => {
+        let lo = 0, hi = ent.length;
+        while (lo < hi) {
+            const mid = (lo + hi) >> 1;
+            if (ent[mid].date.getTime() < t) lo = mid + 1; else hi = mid;
+        }
+        return lo;
+    };
+    const peakSampleRate = (from, to) => {
         let peak = 0;
-        const first = new Date(from);
-        first.setMinutes(0, 0, 0);
-        for (let t = first.getTime(); t < to; t += 3600000) {
-            const a = Math.max(t, from), b = Math.min(t + 3600000, to);
-            if (b <= a) continue;
-            const mm = Math.max(0, totalAt(b) - totalAt(a));
-            peak = Math.max(peak, mm * 3600000 / Math.max(b - a, 900000));
+        for (let k = Math.max(1, firstIndexFrom(from)); k < ent.length && ent[k].date.getTime() < to; k++) {
+            const hours = (ent[k].date - ent[k - 1].date) / 3600000;
+            if (!(hours > 0)) continue;
+            const diff = ent[k].value - ent[k - 1].value;
+            if (diff > 0) peak = Math.max(peak, diff / hours);
         }
         return peak;
     };
@@ -1790,7 +1806,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
         const hasData = !monthlyBars || ent.some(e => e.date.getTime() >= from && e.date.getTime() < to);
         amounts.push(hasData ? amount : null);
         // Jahresansicht: Färbung nach Monatsnorm wie bisher. Alle anderen Ansichten (bis Monat): nach Regenrate in mm/h.
-        const rate = monthlyBars ? null : peakHourlyRate(from, to);
+        const rate = monthlyBars ? null : peakSampleRate(from, to);
         rates.push(rate);
         colors.push(!hasData ? RAIN_NO_DATA_COLOR
             : monthlyBars ? getRainNormColor(amount, MONTHLY_RAIN_NORMAL_MM[bucket.monthIndex])
@@ -1801,10 +1817,11 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
     const total = amounts.reduce((sum, amount) => sum + (amount ?? 0), 0);
     document.getElementById('rain-total').innerText = `Summe: ${total.toFixed(1)} mm`;
     document.getElementById('rainDayLegend').style.display = monthlyBars ? 'none' : '';
-    document.getElementById('rainRateNote').textContent = dailyBars ? 'Farbe und Zahl: stärkste Stunde des Tages in mm/h (die Karte unten misst kürzere Spitzen)' : 'Farbe und Zahl: Regenrate der Stunde in mm/h';
+    document.getElementById('rainRateNote').textContent = dailyBars ? 'Balkenhöhe: Regenmenge in mm. Farbe und Zahl oben: höchste Regenrate des Tages in mm/h (wie „Max. Regenrate“ unten)' : 'Balkenhöhe: Regenmenge in mm. Farbe und Zahl oben: höchste Regenrate der Stunde in mm/h (wie „Max. Regenrate“ unten)';
     document.getElementById('rainMonthLegend').style.display = monthlyBars ? '' : 'none';
 
-    // Schreibt die Regenrate (mm/h) über Balken ab RAIN_RATE_LABEL_MIN. Starke Raten haben Vorrang, überlappende Zahlen entfallen.
+    // Schreibt die höchste Regenrate (mm/h) in eine eigene Zeile über dem Diagramm (nicht am Balkenende, dort läse man sie als mm der Skala).
+    // Nur Balken ab RAIN_RATE_LABEL_MIN; starke Raten haben Vorrang, sich überlappende Zahlen entfallen. Eine feine Linie führt zum Balken.
     const rainRateLabels = {
         id: 'rainRateLabels',
         afterDatasetsDraw(chart) {
@@ -1814,7 +1831,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
             chart.getDatasetMeta(0).data.forEach((bar, i) => {
                 const rate = rates[i];
                 if (rate != null && rate >= RAIN_RATE_LABEL_MIN && amounts[i] > 0 && Number.isFinite(bar.x) && Number.isFinite(bar.y)) {
-                    candidates.push({ rate, x: bar.x, y: bar.y });
+                    candidates.push({ rate, x: bar.x, barTop: bar.y });
                 }
             });
             if (!candidates.length) return;
@@ -1824,17 +1841,26 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
             c2d.font = 'bold 10px sans-serif';
             c2d.textAlign = 'center';
             c2d.textBaseline = 'alphabetic';
-            c2d.fillStyle = '#e2e8f0';
             const placed = [];
             for (const cand of candidates) {
                 const text = `${Math.round(cand.rate)} mm/h`;
-                const w = c2d.measureText(text).width + 4;
+                const w = c2d.measureText(text).width + 6;
                 const x = Math.min(Math.max(cand.x, area.left + w / 2), area.right - w / 2);
-                const box = { left: x - w / 2, right: x + w / 2, top: cand.y - 15, bottom: cand.y - 2 };
-                const clash = placed.some(o => box.left < o.right && box.right > o.left && box.top < o.bottom && box.bottom > o.top);
-                if (clash) continue;
+                const box = { left: x - w / 2, right: x + w / 2 };
+                if (placed.some(o => box.left < o.right && box.right > o.left)) continue;
                 placed.push(box);
-                c2d.fillText(text, x, cand.y - 4);
+                const color = getRainRateColor(cand.rate);
+                const textColor = color === '#dc2626' ? '#ef4444' : color;
+                c2d.strokeStyle = textColor + '66';
+                c2d.lineWidth = 1;
+                c2d.setLineDash([2, 3]);
+                c2d.beginPath();
+                c2d.moveTo(cand.x, area.top - 3);
+                c2d.lineTo(cand.x, cand.barTop - 1);
+                c2d.stroke();
+                c2d.setLineDash([]);
+                c2d.fillStyle = textColor;
+                c2d.fillText(text, x, area.top - 6);
             }
             c2d.restore();
         }
@@ -1857,7 +1883,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
             maintainAspectRatio: false,
             animation: false,
             interaction: { mode: 'index', intersect: false },
-            layout: { padding: { top: 16 } },
+            layout: { padding: { top: 20 } },
             plugins: {
                 legend: { display: false },
                 tooltip: {
@@ -1868,7 +1894,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
                         afterLabel: context => {
                             const rate = rates[context.dataIndex];
                             if (rate == null || !(amounts[context.dataIndex] > 0)) return '';
-                            return `${dailyBars ? 'Stärkste Stunde' : 'Regenrate'}: ${rate.toFixed(1)} mm/h (${getRainIntensityLabel(rate)})`;
+                            return `Höchste Regenrate: ${rate.toFixed(1)} mm/h`;
                         }
                     }
                 }
