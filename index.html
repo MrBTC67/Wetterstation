@@ -434,7 +434,7 @@
                 <b>INFO & DATEN-ERKLÄRUNG</b>
                 <strong>Taupunkt:</strong> Temperatur, bei der Luftfeuchtigkeit kondensiert.<br>
                 <strong>Luftdruck:</strong> Normalwert ca. 1013 hPa.<br>
-                <strong>Niederschlag:</strong> In Deutschland ca. 800 mm pro Jahr.<br>
+                <strong>Niederschlag:</strong> In Deutschland ca. 800 l/m² pro Jahr (1 l/m² = 1 mm).<br>
             </div>
         </div>
     </div>
@@ -472,7 +472,7 @@
         </div>
         <div id="rainCard" class="card rain">
             <svg class="card-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M4 14.89c0-4 5-9 8-9s8 5 8 9a8 8 0 0 1-16 0ZM5 18l1.5-1.5M10 20l1.5-1.5M15 18l1.5-1.5"></path></svg>
-            <h3 style="text-transform: none;">REGEN: mm</h3>
+            <h3 style="text-transform: none;">REGEN: l/m²</h3>
             <div class="val-display" style="flex-direction: column; align-items: flex-start; gap: 2px;">
                 <div class="rain-line"><span class="rain-label">Tag:</span> <span id="day-rain">--</span></div>
                 <div class="rain-line"><span class="rain-label">Woche:</span> <span id="week-rain">--</span></div>
@@ -522,6 +522,7 @@
         <span class="legend-item"><span class="legend-dot" style="background: #60a5fa;"></span>gleich bis über Norm (100–130 %)</span>
         <span class="legend-item"><span class="legend-dot" style="background: #a78bfa;"></span>deutlich über Norm (≥ 130 %)</span>
         <span class="legend-item"><span class="legend-dot" style="background: #4b5563;"></span>keine Messdaten</span>
+        <span class="legend-item" style="opacity: 0.75;">Menge in l/m² (1 l/m² = 1 mm)</span>
     </div>
 
     <div class="rate-row">
@@ -1060,7 +1061,7 @@ function updatePreviousMonthsUI(prevMonthStats) {
         badge.className = 'rate-badge month-stat-badge';
         badge.innerHTML = `
             <span class="rate-badge-label">${month.label}</span>
-            <span class="month-stat-val">${month.amount.toFixed(1)}</span> <span class="unit">mm</span>
+            <span class="month-stat-val">${month.amount.toFixed(1)}</span> <span class="unit">l/m²</span>
         `;
         grid.appendChild(badge);
     }
@@ -1290,8 +1291,8 @@ async function fetchData() {
         : MONTHLY_RAIN_NORMAL_MM[rainPeriodValue === 'prevMonth' ? (now.getMonth() + 11) % 12 : now.getMonth()] || 0;
     const normPercent = normMonthVal > 0 ? (selectedMonthTotal / normMonthVal) * 100 : 0;
     document.getElementById('rain-norm-val').innerText = normMonthVal > 0
-        ? `${selectedMonthTotal.toFixed(1)} / ${normMonthVal.toFixed(1)} mm (${normPercent.toFixed(0)}%)`
-        : `${selectedMonthTotal.toFixed(1)} mm`;
+        ? `${selectedMonthTotal.toFixed(1)} / ${normMonthVal.toFixed(1)} l/m² (${normPercent.toFixed(0)}%)`
+        : `${selectedMonthTotal.toFixed(1)} l/m²`;
 
     // Chart/Rate folgen dem gewählten Dropdown-Zeitraum (inkl. Vormonat).
     if (entriesRSelected.length > 0) {
@@ -1314,7 +1315,7 @@ async function fetchData() {
             ? getRainRateColor(rainMeta.maxRate)
             : 'var(--text-main)';
 
-        document.getElementById('rain-range-sum-val').innerText = `${rainMeta.rangeSum.toFixed(1)} mm`;
+        document.getElementById('rain-range-sum-val').innerText = `${rainMeta.rangeSum.toFixed(1)} l/m²`;
 
         const eventEl = document.getElementById('rain-event-val');
         eventEl.innerText = rainMeta.latestEventStart
@@ -1334,7 +1335,7 @@ async function fetchData() {
         const peakTimeEl = document.getElementById('rain-peak-time-val');
         peakTimeEl.innerText = '--';
         peakTimeEl.style.color = 'var(--text-main)';
-        document.getElementById('rain-range-sum-val').innerText = '0.0 mm';
+        document.getElementById('rain-range-sum-val').innerText = '0.0 l/m²';
         document.getElementById('rain-event-val').innerText = 'Kein Regenereignis';
         const fallbackPeriod = rainPeriodValue === 'year' ? 'diesem Jahr'
             : `im ${rainPeriodValue === 'prevMonth' ? monthNames[(now.getMonth() + 11) % 12] : currentMonthName}`;
@@ -1815,12 +1816,12 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
     }
 
     const total = amounts.reduce((sum, amount) => sum + (amount ?? 0), 0);
-    document.getElementById('rain-total').innerText = `Summe: ${total.toFixed(1)} mm`;
+    document.getElementById('rain-total').innerText = `Summe: ${total.toFixed(1)} l/m²`;
     document.getElementById('rainDayLegend').style.display = monthlyBars ? 'none' : '';
-    document.getElementById('rainRateNote').textContent = dailyBars ? 'Balkenhöhe: Regenmenge in mm. Farbe und Zahl oben: höchste Regenrate des Tages in mm/h (wie „Max. Regenrate“ unten)' : 'Balkenhöhe: Regenmenge in mm. Farbe und Zahl oben: höchste Regenrate der Stunde in mm/h (wie „Max. Regenrate“ unten)';
+    document.getElementById('rainRateNote').textContent = dailyBars ? 'Balkenhöhe: Regenmenge in l/m² (1 l/m² = 1 mm). Farbe und Zahl oben: höchste Regenrate des Tages in mm/h (wie „Max. Regenrate“ unten)' : 'Balkenhöhe: Regenmenge in l/m² (1 l/m² = 1 mm). Farbe und Zahl oben: höchste Regenrate der Stunde in mm/h (wie „Max. Regenrate“ unten)';
     document.getElementById('rainMonthLegend').style.display = monthlyBars ? '' : 'none';
 
-    // Schreibt die höchste Regenrate (mm/h) in eine eigene Zeile über dem Diagramm (nicht am Balkenende, dort läse man sie als mm der Skala).
+    // Schreibt die höchste Regenrate (mm/h) in eine eigene Zeile über dem Diagramm (nicht am Balkenende, dort läse man sie als Wert der Mengenskala).
     // Nur Balken ab RAIN_RATE_LABEL_MIN; starke Raten haben Vorrang, sich überlappende Zahlen entfallen. Eine feine Linie führt zum Balken.
     const rainRateLabels = {
         id: 'rainRateLabels',
@@ -1890,7 +1891,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
                     callbacks: {
                         label: context => amounts[context.dataIndex] == null
                             ? 'Keine Messdaten'
-                            : `Regen: ${amounts[context.dataIndex].toFixed(1)} mm`,
+                            : `Regen: ${amounts[context.dataIndex].toFixed(1)} l/m²`,
                         afterLabel: context => {
                             const rate = rates[context.dataIndex];
                             if (rate == null || !(amounts[context.dataIndex] > 0)) return '';
@@ -1902,7 +1903,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
             scales: {
                 y: {
                     beginAtZero: true,
-                    ticks: { color: CHART_TEXT_COLOR, callback: v => `${v.toLocaleString('de-DE')} mm` },
+                    ticks: { color: CHART_TEXT_COLOR, callback: v => `${v.toLocaleString('de-DE')} l/m²` },
                     grid: { color: CHART_GRID_COLOR }
                 },
                 x: {
