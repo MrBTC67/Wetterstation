@@ -512,12 +512,11 @@
     <div class="section-header"><div class="section-title"><h2><svg class="section-icon" viewBox="0 0 24 24" style="color: var(--color-dry);"><path d="M4 14.89c0-4 5-9 8-9s8 5 8 9a8 8 0 0 1-16 0ZM5 18l1.5-1.5M10 20l1.5-1.5M15 18l1.5-1.5"/></svg>Niederschlag</h2><span id="rain-total" class="section-total"></span></div><select id="rainPeriod" aria-label="Zeitraum Niederschlag" onchange="fetchData()"></select></div>
     <div class="chart-box"><canvas id="rainChart"></canvas></div>
     <div class="legend-box" id="rainDayLegend" style="display: none;">
-        <span class="legend-item"><span class="legend-dot" style="background: #4dd0e1;"></span>&lt; 1 l/m²</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #34d399;"></span>1–2,5</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #facc15;"></span>2,5–5</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #fb923c;"></span>5–10</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #f87171;"></span>10–20</span>
-        <span class="legend-item"><span class="legend-dot" style="background: #c084fc;"></span>≥ 20 l/m²</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #34d399;"></span>&lt; 30 mm/h</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #facc15;"></span>30–50</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #fb923c;"></span>50–65</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #f87171;"></span>65–80</span>
+        <span class="legend-item"><span class="legend-dot" style="background: #dc2626;"></span>≥ 80 mm/h</span>
         <span class="legend-item" id="rainRateNote" style="opacity: 0.75;"></span>
     </div>
     <div class="legend-box" id="rainMonthLegend" style="display: none;">
@@ -633,6 +632,15 @@ const RAIN_RATE_CLASSES = [
     { min: 40, color: '#fb923c' },
     { min: 20, color: '#facc15' },
     { min: 0, color: '#34d399' }
+];
+// Fließende Farbskala für Stunden- und Tagesbalken nach Regenrate (mm/h), gleiche Farben wie RAIN_RATE_CLASSES.
+const RAIN_RATE_SCALE = [
+    { t: 0, color: '#34d399' },
+    { t: 10, color: '#34d399' },
+    { t: 30, color: '#facc15' },
+    { t: 50, color: '#fb923c' },
+    { t: 70, color: '#f87171' },
+    { t: 100, color: '#dc2626' }
 ];
 const RAIN_RATE_LABEL_MIN = 30; // ab dieser Regenrate (mm/h) steht die Zahl über dem Balken
 const getRainRateColor = rate => RAIN_RATE_CLASSES.find(c => rate >= c.min).color;
@@ -1824,13 +1832,14 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
         rates.push(rate);
         colors.push(!hasData ? RAIN_NO_DATA_COLOR
             : monthlyBars ? getRainAmountColor(amount, RAIN_MONTH_AMOUNT_CLASSES)
-            : scaleColorAt(RAIN_AMOUNT_SCALE, amount));
+            : rate != null ? scaleColorAt(RAIN_RATE_SCALE, rate)
+            : RAIN_BAR_COLOR);
     }
 
     const total = amounts.reduce((sum, amount) => sum + (amount ?? 0), 0);
     document.getElementById('rain-total').innerText = `Summe: ${total.toFixed(1)} l/m²`;
     document.getElementById('rainDayLegend').style.display = monthlyBars ? 'none' : '';
-    document.getElementById('rainRateNote').textContent = dailyBars ? 'Balkenhöhe und Farbe: Regenmenge des Tages in l/m² (1 l/m² = 1 mm). Zahl oben: höchste Regenrate des Tages in mm/h (wie „Max. Regenrate“ unten)' : 'Balkenhöhe und Farbe: Regenmenge der Stunde in l/m² (1 l/m² = 1 mm). Zahl oben: höchste Regenrate der Stunde in mm/h (wie „Max. Regenrate“ unten)';
+    document.getElementById('rainRateNote').textContent = dailyBars ? 'Balkenhöhe: Regenmenge des Tages in l/m² (1 l/m² = 1 mm). Farbe und Zahl oben: höchste Regenrate des Tages in mm/h (wie „Max. Regenrate“ unten)' : 'Balkenhöhe: Regenmenge der Stunde in l/m² (1 l/m² = 1 mm). Farbe und Zahl oben: höchste Regenrate der Stunde in mm/h (wie „Max. Regenrate“ unten)';
     document.getElementById('rainMonthLegend').style.display = monthlyBars ? '' : 'none';
 
     // Schreibt die höchste Regenrate (mm/h) in eine eigene Zeile über dem Diagramm (nicht am Balkenende, dort läse man sie als Wert der Mengenskala).
