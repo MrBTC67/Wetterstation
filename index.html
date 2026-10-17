@@ -616,6 +616,15 @@ const RAIN_MONTH_AMOUNT_CLASSES = [
     { min: 0, color: '#34d399' }
 ];
 const getRainAmountColor = (amount, classes) => classes.find(c => amount >= c.min).color;
+// Fließende Farbskala für Stunden- und Tagesbalken (l/m²): zwischen den Stützpunkten wird weich gemischt.
+const RAIN_AMOUNT_SCALE = [
+    { t: 0, color: RAIN_BAR_COLOR },
+    { t: 1, color: '#34d399' },
+    { t: 2.5, color: '#facc15' },
+    { t: 5, color: '#fb923c' },
+    { t: 10, color: '#f87171' },
+    { t: 20, color: '#c084fc' }
+];
 // Balkenfarbe nach der höchsten Regenrate (mm/h) im Balken, berechnet wie die Karte "Max. Regenrate" (von Messpunkt zu Messpunkt, ca. 1 Minute).
 // Ein einzelner Kipper (0,26 mm) in einer Minute ergibt ca. 15 mm/h, deshalb beginnen die Stufen erst bei 20 mm/h.
 const RAIN_RATE_CLASSES = [
@@ -1814,7 +1823,8 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
         const rate = monthlyBars ? null : peakSampleRate(from, to);
         rates.push(rate);
         colors.push(!hasData ? RAIN_NO_DATA_COLOR
-            : getRainAmountColor(amount, monthlyBars ? RAIN_MONTH_AMOUNT_CLASSES : RAIN_AMOUNT_CLASSES));
+            : monthlyBars ? getRainAmountColor(amount, RAIN_MONTH_AMOUNT_CLASSES)
+            : scaleColorAt(RAIN_AMOUNT_SCALE, amount));
     }
 
     const total = amounts.reduce((sum, amount) => sum + (amount ?? 0), 0);
