@@ -1798,7 +1798,8 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
         let peak = 0;
         for (let k = Math.max(1, firstIndexFrom(from)); k < ent.length && ent[k].date.getTime() < to; k++) {
             const hours = (ent[k].date - ent[k - 1].date) / 3600000;
-            if (!(hours > 0)) continue;
+            // Messpunkte unter einer Minute (Doppelmeldungen, Zeitstempel-Rundung) würden die Rate stark überhöhen; sie werden übersprungen.
+            if (!(hours >= 1 / 60)) continue;
             const diff = ent[k].value - ent[k - 1].value;
             if (diff > 0) peak = Math.max(peak, diff / hours);
         }
