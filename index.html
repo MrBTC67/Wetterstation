@@ -643,6 +643,10 @@ const RAIN_RATE_SCALE = [
     { t: 100, color: '#dc2626' }
 ];
 const RAIN_RATE_LABEL_MIN = 30; // ab dieser Regenrate (mm/h) steht die Zahl über dem Balken
+const RAIN_HEAVY_DAY_MM = 20; // Starkregen-Tag ab dieser Menge (l/m²)
+const RAIN_HEAVY_HOUR_MM = 10; // Starkregen-Stunde ab dieser Menge (l/m²)
+const RAIN_DRY_MIN_DAY = 3; // Trockenphase ab so vielen Tagen ohne Regen
+const RAIN_DRY_MIN_HOUR = 12; // Trockenphase ab so vielen Stunden ohne Regen
 const getRainRateColor = rate => RAIN_RATE_CLASSES.find(c => rate >= c.min).color;
 const MONTHLY_RAIN_NORMAL_MM = [67, 53, 57, 51, 70, 78, 76, 74, 59, 58, 66, 73];
 
@@ -1810,6 +1814,8 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
     const amounts = [];
     const colors = [];
     const rates = [];
+    const normCumulative = [];
+    let normRunning = 0;
     const buckets = getRainBuckets(start, end, monthly);
     const monthlyBars = monthly;
     const dailyBars = !monthly && end - start > 24 * 3600000;
@@ -1828,6 +1834,9 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
         // Monat ohne Messwerte (z. B. vor Inbetriebnahme): kein Balken, sondern "keine Messdaten".
         const hasData = !monthlyBars || ent.some(e => e.date.getTime() >= from && e.date.getTime() < to);
         amounts.push(hasData ? amount : null);
+        // Monatsnorm läuft in der Jahresansicht als Sollkurve mit (ein Balken pro Monat).
+        normRunning += MONTHLY_RAIN_NORMAL_MM[new Date(bucket.from).getMonth()];
+        normCumulative.push(monthlyBars ? normRunning : null);
         // Farbe nach Regenmenge (l/m²) des Balkens. Die Zahl oben (mm/h) behält ihre Rate-Farbe.
         const rate = monthlyBars ? null : peakSampleRate(from, to);
         rates.push(rate);
@@ -1896,6 +1905,48 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
         }
     };
 
+    // Starkregen ab dieser Menge: Tages- bzw. Stundenbalken (nicht Monatsbalken).
+    const heavyRainMm = dailyBars ? RAIN_HEAVY_DAY_MM : RAIN_HEAVY_HOUR_MM;
+    // Trockenphasen als helles Band hinter den Balken: zusammenhängende Zeiten ohne Regen.
+    const rainDryBand = {
+        id: 'rainDryBand',
+        beforeDatasetsDraw(chart) {
+            if (monthlyBars) return;
+            const { ctx: c2d, chartArea: area } = chart;
+            const slot = area.width / labels.length;
+            const minRun = dailyBars ? RAIN_DRY_MIN_DAY : RAIN_DRY_MIN_HOUR;
+            c2d.save();
+            c2d.fillStyle = 'rgba(148, 163, 184, 0.12)';
+            let runStart = -1;
+            for (let i = 0; i <= amounts.length; i++) {
+                const dry = i < amounts.length && amounts[i] === 0;
+                if (dry && runStart < 0) runStart = i;
+                if (!dry && runStart >= 0) {
+                    if (i - runStart >= minRun) c2d.fillRect(area.left + runStart * slot, area.top, (i - runStart) * slot, area.bottom - area.top);
+                    runStart = -1;
+                }
+            }
+            c2d.restore();
+        }
+    };
+    // Starkregen: weißer Punkt im Balk, knapp unter der Oberkante.
+    const rainHeavyMarks = {
+        id: 'rainHeavyMarks',
+        afterDatasetsDraw(chart) {
+            if (monthlyBars) return;
+            const { ctx: c2d } = chart;
+            c2d.save();
+            c2d.fillStyle = '#ffffff';
+            chart.getDatasetMeta(0).data.forEach((bar, i) => {
+                if (!(amounts[i] >= heavyRainMm) || !Number.isFinite(bar.x) || !Number.isFinite(bar.y)) return;
+                c2d.beginPath();
+                c2d.arc(bar.x, bar.y + 8, 3, 0, Math.PI * 2);
+                c2d.fill();
+            });
+            c2d.restore();
+        }
+    };
+
     // Gesamtsumme des gewählten Zeitraums als Zahl am Ende der kumulierten Linie.
     const cumulativeEndLabel = {
         id: 'cumulativeEndLabel',
@@ -1938,7 +1989,16 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
                 pointHoverRadius: 4,
                 tension: 0.2,
                 spanGaps: false
-            }]
+            }, ...(monthlyBars ? [{
+                type: 'line',
+                label: 'Norm (kumuliert)',
+                data: normCumulative,
+                borderColor: '#94a3b8',
+                borderDash: [6, 4],
+                borderWidth: 1.5,
+                pointRadius: 0,
+                tension: 0
+            }] : [])]
         },
         options: {
             responsive: true,
@@ -1951,6 +2011,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
                 tooltip: {
                     callbacks: {
                         label: context => {
+                            if (context.datasetIndex === 2) return `Norm: ${normCumulative[context.dataIndex].toFixed(1)} l/m²`;
                             if (context.datasetIndex === 1) {
                                 return cumulative[context.dataIndex] == null
                                     ? 'Keine Messdaten'
@@ -1961,10 +2022,12 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
                                 : `Regen: ${amounts[context.dataIndex].toFixed(1)} l/m²`;
                         },
                         afterLabel: context => {
-                            if (context.datasetIndex === 1) return '';
+                            if (context.datasetIndex !== 0) return '';
+                            const lines = [];
                             const rate = rates[context.dataIndex];
-                            if (rate == null || !(amounts[context.dataIndex] > 0)) return '';
-                            return `Höchste Regenrate: ${rate.toFixed(1)} mm/h`;
+                            if (rate != null && amounts[context.dataIndex] > 0) lines.push(`Höchste Regenrate: ${rate.toFixed(1)} mm/h`);
+                            if (!monthlyBars && amounts[context.dataIndex] >= heavyRainMm) lines.push('Starkregen');
+                            return lines;
                         }
                     }
                 }
@@ -1981,7 +2044,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
                 }
             }
         },
-        plugins: [rainRateLabels, cumulativeEndLabel]
+        plugins: [rainDryBand, rainHeavyMarks, rainRateLabels, cumulativeEndLabel]
     });
 }
 
