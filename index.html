@@ -1896,6 +1896,27 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
         }
     };
 
+    // Gesamtsumme des gewählten Zeitraums als Zahl am Ende der kumulierten Linie.
+    const cumulativeEndLabel = {
+        id: 'cumulativeEndLabel',
+        afterDatasetsDraw(chart) {
+            const meta = chart.getDatasetMeta(1);
+            let last = -1;
+            cumulative.forEach((c, i) => { if (c != null) last = i; });
+            if (last < 0) return;
+            const point = meta.data[last];
+            if (!point || !Number.isFinite(point.x) || !Number.isFinite(point.y)) return;
+            const { ctx: c2d, chartArea: area } = chart;
+            c2d.save();
+            c2d.font = 'bold 11px sans-serif';
+            c2d.fillStyle = '#38bdf8';
+            c2d.textAlign = point.x > area.right - 60 ? 'right' : 'left';
+            c2d.textBaseline = 'bottom';
+            c2d.fillText(`${cumulative[last].toFixed(1)} l/m²`, point.x + (c2d.textAlign === 'left' ? 6 : -6), point.y - 6);
+            c2d.restore();
+        }
+    };
+
     charts['rainChart'] = new Chart(ctx, {
         type: 'bar',
         data: {
@@ -1960,7 +1981,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
                 }
             }
         },
-        plugins: [rainRateLabels]
+        plugins: [rainRateLabels, cumulativeEndLabel]
     });
 }
 
