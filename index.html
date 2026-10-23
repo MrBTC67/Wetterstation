@@ -1845,6 +1845,8 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
         running += amount;
         return running;
     });
+    // Beide Achsen (links Balken, rechts Kumulierte) bekommen dieselbe Obergrenze: der größere Wert von beiden.
+    const yMax = Math.max(0, ...amounts.filter(a => a != null), ...cumulative.filter(c => c != null)) || 1;
     document.getElementById('rain-total').innerText = `Summe: ${total.toFixed(1)} l/m²`;
     document.getElementById('rainDayLegend').style.display = monthlyBars ? 'none' : '';
     document.getElementById('rainRateNote').textContent = dailyBars ? 'Balkenhöhe: Regenmenge des Tages in l/m² (1 l/m² = 1 mm). Farbe und Zahl oben: höchste Regenrate des Tages in mm/h (wie „Max. Regenrate“ unten)' : 'Balkenhöhe: Regenmenge der Stunde in l/m² (1 l/m² = 1 mm). Farbe und Zahl oben: höchste Regenrate der Stunde in mm/h (wie „Max. Regenrate“ unten)';
@@ -1952,12 +1954,14 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
             scales: {
                 y: {
                     beginAtZero: true,
+                    max: yMax,
                     ticks: { color: CHART_TEXT_COLOR, callback: v => `${v.toLocaleString('de-DE')} l/m²` },
                     grid: { color: CHART_GRID_COLOR }
                 },
                 y1: {
                     position: 'right',
                     beginAtZero: true,
+                    max: yMax,
                     ticks: { color: '#38bdf8', callback: v => `${v.toLocaleString('de-DE')} l/m²` },
                     grid: { drawOnChartArea: false }
                 },
