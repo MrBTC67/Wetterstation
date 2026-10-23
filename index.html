@@ -528,6 +528,10 @@
         <span class="legend-item"><span class="legend-dot" style="background: #4b5563;"></span>keine Messdaten</span>
         <span class="legend-item" style="opacity: 0.75;">Menge pro Monat in l/m² (1 l/m² = 1 mm)</span>
     </div>
+    <div class="legend-box" id="rainLineLegend">
+        <span class="legend-item"><span class="legend-dot" style="background: #38bdf8;"></span>Kumuliert (Summe im Zeitraum, l/m²)</span>
+        <span class="legend-item" id="rainNormLegend" style="display: none;"><span style="display: inline-block; width: 14px; border-top: 2px dashed #94a3b8; vertical-align: middle; margin-right: 4px;"></span>Norm (kumuliert)</span>
+    </div>
 
     <div class="rate-row">
         <div class="rate-badge">
@@ -1858,6 +1862,7 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
     document.getElementById('rainDayLegend').style.display = monthlyBars ? 'none' : '';
     document.getElementById('rainRateNote').textContent = dailyBars ? 'Balkenhöhe: Regenmenge des Tages in l/m² (1 l/m² = 1 mm). Farbe und Zahl oben: höchste Regenrate des Tages in mm/h (wie „Max. Regenrate“ unten)' : 'Balkenhöhe: Regenmenge der Stunde in l/m² (1 l/m² = 1 mm). Farbe und Zahl oben: höchste Regenrate der Stunde in mm/h (wie „Max. Regenrate“ unten)';
     document.getElementById('rainMonthLegend').style.display = monthlyBars ? '' : 'none';
+    document.getElementById('rainNormLegend').style.display = monthlyBars ? '' : 'none';
 
     // Schreibt die höchste Regenrate (mm/h) in eine eigene Zeile über dem Diagramm (nicht am Balkenende, dort läse man sie als Wert der Mengenskala).
     // Nur Balken ab RAIN_RATE_LABEL_MIN; starke Raten haben Vorrang, sich überlappende Zahlen entfallen. Eine feine Linie führt zum Balken.
