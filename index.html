@@ -1838,8 +1838,8 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
         // Monat ohne Messwerte (z. B. vor Inbetriebnahme): kein Balken, sondern "keine Messdaten".
         const hasData = !monthlyBars || ent.some(e => e.date.getTime() >= from && e.date.getTime() < to);
         amounts.push(hasData ? amount : null);
-        // Monatsnorm läuft in der Jahresansicht als Sollkurve mit (ein Balken pro Monat).
-        normRunning += MONTHLY_RAIN_NORMAL_MM[new Date(bucket.from).getMonth()];
+        // Monatsnorm läuft in der Jahresansicht als Sollkurve mit (ein Balken pro Monat). Monate ohne Messdaten zählen nicht mit.
+        if (hasData) normRunning += MONTHLY_RAIN_NORMAL_MM[new Date(bucket.from).getMonth()];
         normCumulative.push(monthlyBars ? normRunning : null);
         // Farbe nach Regenmenge (l/m²) des Balkens. Die Zahl oben (mm/h) behält ihre Rate-Farbe.
         const rate = monthlyBars ? null : peakSampleRate(from, to);
