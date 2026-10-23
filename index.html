@@ -1838,6 +1838,13 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
     }
 
     const total = amounts.reduce((sum, amount) => sum + (amount ?? 0), 0);
+    // Kumulierte Summe über den Zeitraum: laufende Summe der Balken, fehlende Monate bleiben ohne Punkt.
+    let running = 0;
+    const cumulative = amounts.map(amount => {
+        if (amount == null) return null;
+        running += amount;
+        return running;
+    });
     document.getElementById('rain-total').innerText = `Summe: ${total.toFixed(1)} l/m²`;
     document.getElementById('rainDayLegend').style.display = monthlyBars ? 'none' : '';
     document.getElementById('rainRateNote').textContent = dailyBars ? 'Balkenhöhe: Regenmenge des Tages in l/m² (1 l/m² = 1 mm). Farbe und Zahl oben: höchste Regenrate des Tages in mm/h (wie „Max. Regenrate“ unten)' : 'Balkenhöhe: Regenmenge der Stunde in l/m² (1 l/m² = 1 mm). Farbe und Zahl oben: höchste Regenrate der Stunde in mm/h (wie „Max. Regenrate“ unten)';
@@ -1899,6 +1906,18 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
                 backgroundColor: colors,
                 borderRadius: 4,
                 borderSkipped: false
+            }, {
+                type: 'line',
+                label: 'Kumuliert',
+                data: cumulative,
+                yAxisID: 'y1',
+                borderColor: '#38bdf8',
+                backgroundColor: '#38bdf8',
+                borderWidth: 2,
+                pointRadius: 0,
+                pointHoverRadius: 4,
+                tension: 0.2,
+                spanGaps: false
             }]
         },
         options: {
@@ -1911,10 +1930,18 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
                 legend: { display: false },
                 tooltip: {
                     callbacks: {
-                        label: context => amounts[context.dataIndex] == null
-                            ? 'Keine Messdaten'
-                            : `Regen: ${amounts[context.dataIndex].toFixed(1)} l/m²`,
+                        label: context => {
+                            if (context.datasetIndex === 1) {
+                                return cumulative[context.dataIndex] == null
+                                    ? 'Keine Messdaten'
+                                    : `Kumuliert: ${cumulative[context.dataIndex].toFixed(1)} l/m²`;
+                            }
+                            return amounts[context.dataIndex] == null
+                                ? 'Keine Messdaten'
+                                : `Regen: ${amounts[context.dataIndex].toFixed(1)} l/m²`;
+                        },
                         afterLabel: context => {
+                            if (context.datasetIndex === 1) return '';
                             const rate = rates[context.dataIndex];
                             if (rate == null || !(amounts[context.dataIndex] > 0)) return '';
                             return `Höchste Regenrate: ${rate.toFixed(1)} mm/h`;
@@ -1927,6 +1954,12 @@ function renderRainChart(ent, hrs, rangeStart, rangeEnd, monthly = false) {
                     beginAtZero: true,
                     ticks: { color: CHART_TEXT_COLOR, callback: v => `${v.toLocaleString('de-DE')} l/m²` },
                     grid: { color: CHART_GRID_COLOR }
+                },
+                y1: {
+                    position: 'right',
+                    beginAtZero: true,
+                    ticks: { color: '#38bdf8', callback: v => `${v.toLocaleString('de-DE')} l/m²` },
+                    grid: { drawOnChartArea: false }
                 },
                 x: {
                     grid: { display: false },
