@@ -570,7 +570,28 @@ const SENSOR_URLS = [
     { key: 'humidity', url: `${URL_BASE}/humidity.json` },
     { key: 'pressure', url: `${URL_BASE}/pressure.json` }
 ];
-const FETCH_QUERY = '?orderBy="$key"&limitToLast=12000';
+const FETCH_QUERY_SENSOR = '?orderBy="$key"&limitToLast=2000';
+const FETCH_QUERY_RAIN = '?orderBy="$key"&limitToLast=12000';
+
+// Spart Datenvolumen: der erste Abruf lädt den Bestand, jeder weitere nur die neuen Einträge (Push-Keys sind zeitlich sortiert).
+const incrementalCache = {};
+async function fetchIncremental(url, firstQuery) {
+    const cache = incrementalCache[url];
+    const query = cache && cache.lastKey ? `?orderBy="$key"&startAt="${cache.lastKey}"` : firstQuery;
+    const fresh = await (await fetch(url + query)).json();
+    const data = cache ? cache.data : {};
+    if (fresh) Object.assign(data, fresh);
+    const keys = Object.keys(data).sort();
+    incrementalCache[url] = { data, lastKey: keys.length ? keys[keys.length - 1] : null };
+    return data;
+}
+
+// Abgeschlossene Monate ändern sich nicht mehr: nur einmal laden.
+const onceCache = {};
+async function fetchOnce(url) {
+    if (!(url in onceCache)) onceCache[url] = await (await fetch(url + FETCH_QUERY_RAIN)).json();
+    return onceCache[url];
+}
 
 const monthNames = ["Januar", "Februar", "M\u00e4rz", "April", "Mai", "Juni", "Juli", "August", "September", "Oktober", "November", "Dezember"];
 
@@ -1130,18 +1151,11 @@ async function fetchData() {
     
     try {
         const sensorUrls = SENSOR_URLS.map(s => s.url);
-        const responses = await Promise.all([
-            ...sensorUrls.map(url => fetch(`${url}${FETCH_QUERY}`)),
-            ...rainMonthUrls.map(url => fetch(`${url}${FETCH_QUERY}`)),
-            ...yearMonthUrls.map(url => fetch(`${url}${FETCH_QUERY}`))
-        ]);
-        const [dataT, dataH, dataP] = await Promise.all(
-            responses.slice(0, SENSOR_URLS.length).map(r => r.json())
-        );
-        const rainResponsesOffset = SENSOR_URLS.length;
-        const rainResponsesEnd = rainResponsesOffset + rainMonthUrls.length;
-        const rainMonthData = await Promise.all(responses.slice(rainResponsesOffset, rainResponsesEnd).map(r => r.json()));
-        const yearMonthData = await Promise.all(responses.slice(rainResponsesEnd).map(r => r.json()));
+        const currentMonthUrl = rainMonthUrls[0];
+        const loadMonth = url => url === currentMonthUrl ? fetchIncremental(url, FETCH_QUERY_RAIN) : fetchOnce(url);
+        const [dataT, dataH, dataP] = await Promise.all(sensorUrls.map(url => fetchIncremental(url, FETCH_QUERY_SENSOR)));
+        const rainMonthData = await Promise.all(rainMonthUrls.map(loadMonth));
+        const yearMonthData = await Promise.all(yearMonthUrls.map(loadMonth));
 
         const sortEntries = (arr) => arr.sort((a, b) => a.date - b.date);
 
